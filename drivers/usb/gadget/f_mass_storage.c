@@ -2377,8 +2377,6 @@ reset:
 	common->fsg = new_fsg;
 	fsg = common->fsg;
 
-	clear_bit(IGNORE_BULK_OUT, &fsg->atomic_bitflags);
-
 	/* Allocate the requests */
 	for (i = 0; i < fsg_num_buffers; ++i) {
 		struct fsg_buffhd	*bh = &common->buffhds[i];
@@ -2422,21 +2420,23 @@ static int fsg_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 
 	rc = config_ep_by_speed(common->gadget, &(fsg->function), fsg->bulk_out);
 	if (rc)
-		goto free_bulk_in;
+		goto reset_bulk_in;
 	rc = usb_ep_enable(fsg->bulk_out);
-	if (rc) {
-free_bulk_in:
-		usb_ep_disable(fsg->bulk_in);
-		fsg->bulk_in_enabled = 0;
-		fsg->bulk_in->driver_data = NULL;
-		return rc;
-	}
+	if (rc)
+		goto reset_bulk_in;
 	fsg->bulk_out->driver_data = common;
 	fsg->bulk_out_enabled = 1;
 	common->bulk_out_maxpacket = usb_endpoint_maxp(fsg->bulk_out->desc);
+	clear_bit(IGNORE_BULK_OUT, &fsg->atomic_bitflags);
 	fsg->common->new_fsg = fsg;
 	raise_exception(fsg->common, FSG_STATE_CONFIG_CHANGE);
 	return USB_GADGET_DELAYED_STATUS;
+
+reset_bulk_in:
+	usb_ep_disable(fsg->bulk_in);
+	fsg->bulk_in_enabled = 0;
+	fsg->bulk_in->driver_data = NULL;
+	return rc;
 }
 
 static void fsg_disable(struct usb_function *f)
