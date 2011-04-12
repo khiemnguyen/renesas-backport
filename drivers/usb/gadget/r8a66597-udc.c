@@ -1697,6 +1697,27 @@ static void dma_write_complete(struct r8a66597 *r8a66597,
 	r8a66597_dma_bclr(r8a66597, TE | DE, USBHS_DMAC_CHCR(ch));
 }
 
+static unsigned long usb_dma_calc_received_size(struct r8a66597 *r8a66597,
+						struct r8a66597_dma *dma,
+						u16 size)
+{
+	struct r8a66597_ep *ep = dma->ep;
+	int ch = dma->channel;
+	unsigned long received_size;
+
+	/*
+	 * DAR will increment the value every transfer-unit-size,
+	 * but the "size" (DTLN) will be set within MaxPacketSize.
+	 * So the calucuation is "(DAR - SAR) & ~MaxPacketSize" + DTLN".
+	 */
+	received_size = r8a66597_dma_read(r8a66597, USBHS_DMAC_DAR(ch)) -
+			r8a66597_dma_read(r8a66597, USBHS_DMAC_SAR(ch));
+	received_size &= ~(ep->ep.maxpacket - 1);
+	received_size += size;
+
+	return received_size;
+}
+
 static void dma_read_complete(struct r8a66597 *r8a66597,
 			      struct r8a66597_dma *dma,
 			      int short_packet)
@@ -1713,12 +1734,11 @@ static void dma_read_complete(struct r8a66597 *r8a66597,
 	r8a66597_bset(r8a66597, BCLR, ep->fifoctr);
 	req = get_request_from_ep(ep);
 
-	/*
-	 * FIXME:
-	 * This code is wrong when the transfer size more than 512 byte with
-	 * short packet.
-	 */
-	req->req.actual += !short_packet ? req->req.length : size;
+	if (!short_packet)
+		req->req.actual += req->req.length;
+	else
+		req->req.actual += usb_dma_calc_received_size(r8a66597, dma,
+							      size);
 
 	r8a66597_dma_bclr(r8a66597, TE, USBHS_DMAC_CHCR(ch));
 	pipe_stop(r8a66597, ep->pipenum);
