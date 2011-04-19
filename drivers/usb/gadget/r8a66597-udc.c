@@ -1905,6 +1905,7 @@ static int r8a66597_disable(struct usb_ep *_ep)
 	while (!list_empty(&ep->queue)) {
 		req = get_request_from_ep(ep);
 		spin_lock_irqsave(&ep->r8a66597->lock, flags);
+		dmac_cancel(ep, req);
 		transfer_complete(ep, req, -ECONNRESET);
 		spin_unlock_irqrestore(&ep->r8a66597->lock, flags);
 	}
