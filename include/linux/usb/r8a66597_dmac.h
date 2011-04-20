@@ -79,6 +79,7 @@
 #define SP0	(1 << 1)	/* CH0 Short Packet Rx Int Src */
 #define TE0	(1 << 0)	/* Ch0 Tx End Int Src */
 
+#define USBHS_DMAC_DMICR_NULL(channel)	((channel) ? NULL1 : NULL0)
 #define USBHS_DMAC_DMICR_SP(channel)	((channel) ? SP1 : SP0)
 #define USBHS_DMAC_DMICR_TE(channel)	((channel) ? TE1 : TE0)
 
