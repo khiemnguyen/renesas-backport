@@ -2797,6 +2797,7 @@ static struct fsg_common *fsg_common_init(struct fsg_common *common,
 		curlun->ro = lcfg->cdrom || lcfg->ro;
 		curlun->initially_ro = curlun->ro;
 		curlun->removable = lcfg->removable;
+		curlun->nofua = lcfg->nofua;
 		curlun->dev.release = fsg_lun_release;
 		curlun->dev.parent = &gadget->dev;
 		/* curlun->dev.driver = &fsg_driver.driver; XXX */
@@ -3189,6 +3190,7 @@ fsg_config_from_params(struct fsg_config *cfg,
 			params->file_count > i && params->file[i][0]
 			? params->file[i]
 			: 0;
+		lun->nofua = !!params->nofua[i];
 	}
 
 	/* Let MSF use defaults */
