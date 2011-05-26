@@ -1011,6 +1011,7 @@ static void irq_packet_write(struct r8a66597_ep *ep,
 
 	/* write fifo */
 	if (req->req.buf) {
+		r8a66597_write(r8a66597, ~(1 << pipenum), BEMPSTS);
 		r8a66597_write_fifo(r8a66597, ep, buf, size);
 		if ((size == 0)
 				|| ((size % ep->ep.maxpacket) != 0)
