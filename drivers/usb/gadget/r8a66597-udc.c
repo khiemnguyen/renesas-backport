@@ -1104,7 +1104,6 @@ static void irq_pipe_ready(struct r8a66597 *r8a66597, u16 status, u16 enb)
 
 	if ((status & BRDY0) && (enb & BRDY0)) {
 		r8a66597_write(r8a66597, ~BRDY0, BRDYSTS);
-		r8a66597_mdfy(r8a66597, 0, CURPIPE, CFIFOSEL);
 
 		ep = &r8a66597->ep[0];
 		req = get_request_from_ep(ep);
@@ -1466,7 +1465,6 @@ static irqreturn_t r8a66597_irq(int irq, void *_r8a66597)
 	u16 intenb0;
 	u16 brdysts, nrdysts, bempsts;
 	u16 brdyenb, nrdyenb, bempenb;
-	u16 savepipe;
 	u16 mask0;
 
 	if (r8a66597_is_sudmac(r8a66597))
@@ -1476,8 +1474,6 @@ static irqreturn_t r8a66597_irq(int irq, void *_r8a66597)
 
 	intsts0 = r8a66597_read(r8a66597, INTSTS0);
 	intenb0 = r8a66597_read(r8a66597, INTENB0);
-
-	savepipe = r8a66597_read(r8a66597, CFIFOSEL);
 
 	mask0 = intsts0 & intenb0;
 	if (mask0) {
@@ -1514,8 +1510,6 @@ static irqreturn_t r8a66597_irq(int irq, void *_r8a66597)
 		if (intsts0 & CTRT)
 			irq_control_stage(r8a66597);
 	}
-
-	r8a66597_write(r8a66597, savepipe, CFIFOSEL);
 
 	spin_unlock(&r8a66597->lock);
 	return IRQ_HANDLED;
