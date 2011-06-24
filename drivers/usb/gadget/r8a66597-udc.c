@@ -1945,8 +1945,7 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 
 	disable_controller(r8a66597); /* make sure controller is disabled */
 
-	ret = request_irq(irq, r8a66597_irq, IRQF_SHARED,
-			udc_name, r8a66597);
+	ret = request_irq(irq, r8a66597_irq, 0, udc_name, r8a66597);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "request_irq error (%d)\n", ret);
 		goto clean_up2;
