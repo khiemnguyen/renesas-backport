@@ -31,7 +31,7 @@ struct r8a66597_platdata {
 	/* This callback can control port power instead of DVSTCTR register. */
 	void (*port_power)(int port, int power);
 
-	/* This parameter is for BUSWAIT */
+	/* the number of access waits from CPU to this module */
 	u16		buswait;
 
 	/* set one = on chip controller, set zero = external controller */
