@@ -1825,6 +1825,7 @@ static int __exit r8a66597_remove(struct platform_device *pdev)
 	}
 #endif
 	device_unregister(&r8a66597->gadget.dev);
+	dev_set_drvdata(&pdev->dev, NULL);
 	kfree(r8a66597);
 	return 0;
 }
@@ -2001,6 +2002,7 @@ clean_up_dev:
 #endif
 	device_unregister(&r8a66597->gadget.dev);
 clean_up:
+	dev_set_drvdata(&pdev->dev, NULL);
 	if (r8a66597) {
 		if (r8a66597->sudmac_reg)
 			iounmap(r8a66597->sudmac_reg);
