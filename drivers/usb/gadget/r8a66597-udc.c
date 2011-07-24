@@ -1905,12 +1905,15 @@ static int r8a66597_disable(struct usb_ep *_ep)
 	while (!list_empty(&ep->queue)) {
 		req = get_request_from_ep(ep);
 		spin_lock_irqsave(&ep->r8a66597->lock, flags);
+		pipe_stop(ep->r8a66597, ep->pipenum);
 		dmac_cancel(ep, req);
+		pipe_irq_disable(ep->r8a66597, ep->pipenum);
+		r8a66597_write(ep->r8a66597, ~(1 << ep->pipenum), BRDYSTS);
+		r8a66597_write(ep->r8a66597, ~(1 << ep->pipenum), BEMPSTS);
 		transfer_complete(ep, req, -ECONNRESET);
 		spin_unlock_irqrestore(&ep->r8a66597->lock, flags);
 	}
 
-	pipe_irq_disable(ep->r8a66597, ep->pipenum);
 	return free_pipe_config(ep);
 }
 
@@ -1986,6 +1989,9 @@ static int r8a66597_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 		if (ep->pipetrn)
 			r8a66597_write(ep->r8a66597, TRCLR, ep->pipetre);
 		dmac_cancel(ep, req);
+		pipe_irq_disable(ep->r8a66597, ep->pipenum);
+		r8a66597_write(ep->r8a66597, ~(1 << ep->pipenum), BRDYSTS);
+		r8a66597_write(ep->r8a66597, ~(1 << ep->pipenum), BEMPSTS);
 		transfer_complete(ep, req, -ECONNRESET);
 	}
 	spin_unlock_irqrestore(&ep->r8a66597->lock, flags);
