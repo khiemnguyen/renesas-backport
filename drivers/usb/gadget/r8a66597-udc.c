@@ -372,8 +372,12 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 static void pipe_buffer_release(struct r8a66597 *r8a66597,
 				struct r8a66597_pipe_info *info)
 {
+	unsigned long flags;
+
 	if (info->pipe == 0)
 		return;
+
+	spin_lock_irqsave(&r8a66597->lock, flags);
 
 	if (is_bulk_pipe(info->pipe)) {
 		r8a66597->bulk--;
@@ -387,6 +391,8 @@ static void pipe_buffer_release(struct r8a66597 *r8a66597,
 		dev_err(r8a66597_to_dev(r8a66597),
 			"ep_release: unexpect pipenum (%d)\n", info->pipe);
 	}
+
+	spin_unlock_irqrestore(&r8a66597->lock, flags);
 }
 
 static void pipe_initialize(struct r8a66597_ep *ep)
@@ -453,12 +459,15 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 	struct r8a66597_pipe_info info;
 	int dma = 0;
 	unsigned char *counter;
-	int ret;
+	int ret = 0;
+	unsigned long flags;
 
 	ep->ep.desc = desc;
 
 	if (ep->pipenum)	/* already allocated pipe  */
 		return 0;
+
+	spin_lock_irqsave(&r8a66597->lock, flags);
 
 	switch (desc->bmAttributes & USB_ENDPOINT_XFERTYPE_MASK) {
 	case USB_ENDPOINT_XFER_BULK:
@@ -466,7 +475,8 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 			if (r8a66597->isochronous >= R8A66597_MAX_NUM_ISOC) {
 				dev_err(r8a66597_to_dev(r8a66597),
 					"bulk pipe is insufficient\n");
-				return -ENODEV;
+				ret = -ENODEV;
+				goto out;
 			} else {
 				info.pipe = R8A66597_BASE_PIPENUM_ISOC
 						+ r8a66597->isochronous;
@@ -483,7 +493,8 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 		if (r8a66597->interrupt >= R8A66597_MAX_NUM_INT) {
 			dev_err(r8a66597_to_dev(r8a66597),
 				"interrupt pipe is insufficient\n");
-			return -ENODEV;
+			ret = -ENODEV;
+			goto out;
 		}
 		info.pipe = R8A66597_BASE_PIPENUM_INT + r8a66597->interrupt;
 		info.type = R8A66597_INT;
@@ -493,7 +504,8 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 		if (r8a66597->isochronous >= R8A66597_MAX_NUM_ISOC) {
 			dev_err(r8a66597_to_dev(r8a66597),
 				"isochronous pipe is insufficient\n");
-			return -ENODEV;
+			ret = -ENODEV;
+			goto out;
 		}
 		info.pipe = R8A66597_BASE_PIPENUM_ISOC + r8a66597->isochronous;
 		info.type = R8A66597_ISO;
@@ -501,7 +513,8 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 		break;
 	default:
 		dev_err(r8a66597_to_dev(r8a66597), "unexpect xfer type\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out;
 	}
 	ep->type = info.type;
 
@@ -517,7 +530,7 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 	if (ret < 0) {
 		dev_err(r8a66597_to_dev(r8a66597),
 			"pipe_buffer_setting fail\n");
-		return ret;
+		goto out;
 	}
 
 	(*counter)++;
@@ -527,7 +540,10 @@ static int alloc_pipe_config(struct r8a66597_ep *ep,
 	r8a66597_ep_setting(r8a66597, ep, desc, info.pipe, dma);
 	pipe_initialize(ep);
 
-	return 0;
+out:
+	spin_unlock_irqrestore(&r8a66597->lock, flags);
+
+	return ret;
 }
 
 static int free_pipe_config(struct r8a66597_ep *ep)
