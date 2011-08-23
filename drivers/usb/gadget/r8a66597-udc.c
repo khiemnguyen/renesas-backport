@@ -1506,7 +1506,7 @@ static irqreturn_t r8a66597_irq(int irq, void *_r8a66597)
 			mod_timer(&r8a66597->timer,
 					jiffies + msecs_to_jiffies(50));
 		}
-		if (intsts0 & DVSQ)
+		if (intsts0 & DVST)
 			irq_device_state(r8a66597);
 
 		if ((intsts0 & BRDY) && (intenb0 & BRDYE)
