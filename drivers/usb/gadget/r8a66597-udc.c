@@ -1721,12 +1721,17 @@ static void dma_write_complete(struct r8a66597 *r8a66597,
 	struct r8a66597_request *req = get_request_from_ep(ep);
 	int ch = dma->channel;
 
-	/* Clear interrupt flag for next transfer. */
-	r8a66597_write(r8a66597, ~(1 << ep->pipenum), BRDYSTS);
-
 	r8a66597_dma_bclr(r8a66597, DE | IE | TOE, USBHS_DMAC_CHCR(ch));
 	req->req.actual += req->req.length;
-	enable_irq_empty(r8a66597, ep->pipenum);
+	if (req->req.zero) {
+		/* Send zero-packet by irq_packet_write(). */
+		enable_irq_ready(r8a66597, ep->pipenum);
+	} else {
+		/* Clear interrupt flag for next transfer. */
+		r8a66597_write(r8a66597, ~(1 << ep->pipenum), BRDYSTS);
+		/* To confirm the end of transmit */
+		enable_irq_empty(r8a66597, ep->pipenum);
+	}
 	r8a66597_dma_bclr(r8a66597, TE | DE, USBHS_DMAC_CHCR(ch));
 }
 
