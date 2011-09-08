@@ -31,8 +31,3 @@ void __init shmobile_smp_init_cpus(unsigned int ncores)
 	for (i = 0; i < ncores; i++)
 		set_cpu_possible(i, true);
 }
-
-void __init platform_smp_prepare_cpus(unsigned int max_cpus)
-{
-	shmobile_smp_prepare_cpus();
-}
