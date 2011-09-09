@@ -987,4 +987,10 @@ config USB_G_WEBCAM
 
 endchoice
 
+config USB_MSC_PROFILING
+	bool "USB MSC performance profiling"
+	help
+	  If you say Y here, support will be added for collecting
+	  Mass-storage performance numbers at the VFS level.
+
 endif # USB_GADGET
