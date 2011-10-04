@@ -339,7 +339,8 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 		if (info->pipe >= R8A66597_BASE_PIPENUM_BULK)
 			bufnum = info->pipe - R8A66597_BASE_PIPENUM_BULK;
 		else
-			bufnum = info->pipe - R8A66597_BASE_PIPENUM_ISOC;
+			bufnum = info->pipe - R8A66597_BASE_PIPENUM_ISOC +
+				 R8A66597_MAX_NUM_BULK;
 
 		bufnum = R8A66597_BASE_BUFNUM + (bufnum * 16);
 		buf_bsize = 7;
@@ -349,7 +350,8 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 		break;
 	case R8A66597_ISO:
 		bufnum = R8A66597_BASE_BUFNUM +
-			 (info->pipe - R8A66597_BASE_PIPENUM_ISOC) * 16;
+			 (info->pipe - R8A66597_BASE_PIPENUM_ISOC +
+			  R8A66597_MAX_NUM_BULK) * 16;
 		buf_bsize = 7;
 		break;
 	}
