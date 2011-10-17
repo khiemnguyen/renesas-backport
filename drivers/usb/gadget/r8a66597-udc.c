@@ -1865,10 +1865,16 @@ static void r8a66597_timer(unsigned long _r8a66597)
 			r8a66597->scount--;
 			if (r8a66597->scount == 0) {
 				if (tmp == VBSTS) {
+					if (r8a66597->pdata->module_start)
+						r8a66597->pdata->module_start();
+
 					init_controller(r8a66597);
 					r8a66597_usb_connect(r8a66597);
 				} else {
 					r8a66597_usb_disconnect(r8a66597);
+
+					if (r8a66597->pdata->module_stop)
+						r8a66597->pdata->module_stop();
 
 					/* for subsequent VBINT detection */
 					init_controller(r8a66597);
@@ -2176,6 +2182,9 @@ static int r8a66597_vbus_session(struct usb_gadget *gadget , int is_active)
 		return 0;
 
 	if (is_active) {
+		if (r8a66597->pdata->module_start)
+			r8a66597->pdata->module_start();
+
 		/* start clock */
 		r8a66597_write(r8a66597, bwait, SYSCFG1);
 		r8a66597_bset(r8a66597, HSE, SYSCFG0);
@@ -2192,6 +2201,9 @@ static int r8a66597_vbus_session(struct usb_gadget *gadget , int is_active)
 		r8a66597_bclr(r8a66597, HSE, SYSCFG0);
 		r8a66597_bclr(r8a66597, SCKE, SYSCFG0);
 		r8a66597_bclr(r8a66597, USBE, SYSCFG0);
+
+		if (r8a66597->pdata->module_stop)
+			r8a66597->pdata->module_stop();
 	}
 
 	r8a66597->vbus_active = is_active;
