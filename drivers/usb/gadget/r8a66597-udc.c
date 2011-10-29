@@ -109,6 +109,8 @@ static void r8a66597_clk_put(struct r8a66597 *r8a66597)
 
 static void r8a66597_clk_enable(struct r8a66597 *r8a66597)
 {
+	if (r8a66597->pdata->clk_enable)
+		r8a66597->pdata->clk_enable(1);
 	clk_enable(r8a66597->clk_dmac);
 	clk_enable(r8a66597->clk);
 }
@@ -117,6 +119,8 @@ static void r8a66597_clk_disable(struct r8a66597 *r8a66597)
 {
 	clk_disable(r8a66597->clk);
 	clk_disable(r8a66597->clk_dmac);
+	if (r8a66597->pdata->clk_enable)
+		r8a66597->pdata->clk_enable(0);
 }
 #else
 static int r8a66597_clk_get(struct r8a66597 *r8a66597,

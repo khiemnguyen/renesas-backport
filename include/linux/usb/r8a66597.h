@@ -35,6 +35,9 @@ struct r8a66597_platdata {
 	void (*module_start)(void);
 	void (*module_stop)(void);
 
+	/* supplement clock maintenance (or NULL, if it's not used) */
+	void (*clk_enable)(int enable);
+
 	/* the number of access waits from CPU to this module */
 	u16		buswait;
 
