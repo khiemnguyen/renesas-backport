@@ -319,6 +319,7 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 {
 	u16 bufnum = 0, buf_bsize = 0;
 	u16 pipecfg = 0;
+	u16 max_bufnum;
 
 	if (info->pipe == 0)
 		return -EINVAL;
@@ -356,8 +357,11 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 		break;
 	}
 
-	if (buf_bsize && ((bufnum + 16) >= R8A66597_MAX_BUFNUM)) {
-		pr_err("r8a66597 pipe memory is insufficient\n");
+	max_bufnum = r8a66597->pdata->max_bufnum ? : R8A66597_MAX_BUFNUM;
+	if (buf_bsize && ((bufnum + 16) >= max_bufnum)) {
+		dev_err(r8a66597_to_dev(r8a66597),
+			"r8a66597 pipe memory is insufficient (%d,0x%x,0x%x)\n",
+			info->pipe, bufnum, max_bufnum);
 		return -ENOMEM;
 	}
 

@@ -34,6 +34,9 @@ struct r8a66597_platdata {
 	/* the number of access waits from CPU to this module */
 	u16		buswait;
 
+	/* the maximum number of the FIFO buffer allowed */
+	u16		max_bufnum;
+
 	/* set one = on chip controller, set zero = external controller */
 	unsigned	on_chip:1;
 
