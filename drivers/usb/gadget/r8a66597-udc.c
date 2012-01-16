@@ -44,6 +44,8 @@ static int r8a66597_queue(struct usb_ep *_ep, struct usb_request *_req,
 static void transfer_complete(struct r8a66597_ep *ep,
 		struct r8a66597_request *req, int status);
 
+static inline u16 control_reg_get(struct r8a66597 *r8a66597, u16 pipenum);
+
 /*-------------------------------------------------------------------------*/
 static inline u16 get_usb_speed(struct r8a66597 *r8a66597)
 {
@@ -135,6 +137,23 @@ static inline void control_reg_set_pid(struct r8a66597 *r8a66597, u16 pipenum,
 	}
 }
 
+static void r8a66597_wait_pbusy(struct r8a66597 *r8a66597, u16 pipenum)
+{
+	u16 tmp;
+	int i = 0;
+
+	do {
+		tmp = control_reg_get(r8a66597, pipenum);
+		if (i++ > 1000000) {	/* 1 msec */
+			dev_err(r8a66597_to_dev(r8a66597),
+				"%s: pipenum = %d, timeout \n",
+				__func__, pipenum);
+			break;
+		}
+		ndelay(1);
+	} while ((tmp & PBUSY) != 0);
+}
+
 static inline void pipe_start(struct r8a66597 *r8a66597, u16 pipenum)
 {
 	control_reg_set_pid(r8a66597, pipenum, PID_BUF);
@@ -143,6 +162,7 @@ static inline void pipe_start(struct r8a66597 *r8a66597, u16 pipenum)
 static inline void pipe_stop(struct r8a66597 *r8a66597, u16 pipenum)
 {
 	control_reg_set_pid(r8a66597, pipenum, PID_NAK);
+	r8a66597_wait_pbusy(r8a66597, pipenum);
 }
 
 static inline void pipe_stall(struct r8a66597 *r8a66597, u16 pipenum)
