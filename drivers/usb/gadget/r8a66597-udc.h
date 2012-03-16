@@ -164,6 +164,7 @@ struct r8a66597 {
 
 	unsigned irq_sense_low:1;
 	unsigned vbus_active:1;
+	unsigned softconnect:1;
 };
 
 #define gadget_to_r8a66597(_gadget)	\

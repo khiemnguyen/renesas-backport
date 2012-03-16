@@ -145,13 +145,26 @@ static void r8a66597_dma_reset(struct r8a66597 *r8a66597)
 	r8a66597_dma_bclr(r8a66597, SWR_RST, SWR);
 }
 
+static int can_pullup(struct r8a66597 *r8a66597)
+{
+	return r8a66597->driver && r8a66597->softconnect;
+}
+
+static void r8a66597_set_pullup(struct r8a66597 *r8a66597)
+{
+	if (can_pullup(r8a66597))
+		r8a66597_bset(r8a66597, DPRPU, SYSCFG0);
+	else
+		r8a66597_bclr(r8a66597, DPRPU, SYSCFG0);
+}
+
 static void r8a66597_usb_connect(struct r8a66597 *r8a66597)
 {
 	r8a66597_bset(r8a66597, CTRE, INTENB0);
 	r8a66597_bset(r8a66597, BEMPE | BRDYE, INTENB0);
 	r8a66597_bset(r8a66597, RESM | DVSE, INTENB0);
 
-	r8a66597_bset(r8a66597, DPRPU, SYSCFG0);
+	r8a66597_set_pullup(r8a66597);
 	r8a66597_dma_reset(r8a66597);
 }
 
@@ -2164,10 +2177,9 @@ static int r8a66597_pullup(struct usb_gadget *gadget, int is_on)
 	unsigned long flags;
 
 	spin_lock_irqsave(&r8a66597->lock, flags);
-	if (is_on)
-		r8a66597_bset(r8a66597, DPRPU, SYSCFG0);
-	else
-		r8a66597_bclr(r8a66597, DPRPU, SYSCFG0);
+	r8a66597->softconnect = (is_on != 0);
+	if (r8a66597->vbus_active)
+		r8a66597_set_pullup(r8a66597);
 	spin_unlock_irqrestore(&r8a66597->lock, flags);
 
 	return 0;
