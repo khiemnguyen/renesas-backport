@@ -260,6 +260,7 @@ static int __init gpio_vbus_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, gpio_vbus);
 	gpio_vbus->dev = &pdev->dev;
+	gpio_vbus->phy.dev = &pdev->dev;
 	gpio_vbus->phy.label = "gpio-vbus";
 	gpio_vbus->phy.set_power = gpio_vbus_set_power;
 	gpio_vbus->phy.set_suspend = gpio_vbus_set_suspend;
