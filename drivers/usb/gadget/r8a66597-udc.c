@@ -1745,7 +1745,7 @@ static void dma_write_complete(struct r8a66597 *r8a66597,
 	/* Clear interrupt flag for next transfer. */
 	r8a66597_write(r8a66597, ~(1 << ep->pipenum), BRDYSTS);
 
-	if (req->req.zero) {
+	if (req->req.zero && !(req->req.actual % ep->ep.maxpacket)) {
 		/* Send zero-packet by irq_packet_write(). */
 		tmp = control_reg_get(r8a66597, ep->pipenum);
 		if (tmp & BSTS)
