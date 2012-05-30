@@ -381,11 +381,13 @@ static int gpio_vbus_pm_suspend(struct device *dev)
 
 static int gpio_vbus_pm_resume(struct device *dev)
 {
+	struct platform_device *pdev = to_platform_device(dev);
 	struct gpio_vbus_data *gpio_vbus = dev_get_drvdata(dev);
 
 	if (device_may_wakeup(dev))
 		disable_irq_wake(gpio_vbus->irq);
 
+	gpio_vbus_irq(gpio_vbus->irq, pdev);
 	return 0;
 }
 #endif
