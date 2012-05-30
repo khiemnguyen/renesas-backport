@@ -78,7 +78,8 @@ static void set_vbus_draw(struct gpio_vbus_data *gpio_vbus, unsigned mA)
 			gpio_vbus->vbus_draw_enabled = 0;
 		}
 	}
-	gpio_vbus->mA = mA;
+	if (mA)
+		gpio_vbus->mA = mA;
 }
 
 static int is_vbus_powered(struct gpio_vbus_mach_info *pdata)
