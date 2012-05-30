@@ -368,7 +368,7 @@ static int __exit gpio_vbus_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#ifdef CONFIG_PM
+#ifdef CONFIG_PM_SLEEP
 static int gpio_vbus_pm_suspend(struct device *dev)
 {
 	struct gpio_vbus_data *gpio_vbus = dev_get_drvdata(dev);
@@ -388,12 +388,10 @@ static int gpio_vbus_pm_resume(struct device *dev)
 
 	return 0;
 }
-
-static const struct dev_pm_ops gpio_vbus_dev_pm_ops = {
-	.suspend	= gpio_vbus_pm_suspend,
-	.resume		= gpio_vbus_pm_resume,
-};
 #endif
+
+static SIMPLE_DEV_PM_OPS(gpio_vbus_dev_pm_ops,
+			 gpio_vbus_pm_suspend, gpio_vbus_pm_resume);
 
 /* NOTE:  the gpio-vbus device may *NOT* be hotplugged */
 
@@ -403,9 +401,7 @@ static struct platform_driver gpio_vbus_driver = {
 	.driver = {
 		.name  = "gpio-vbus",
 		.owner = THIS_MODULE,
-#ifdef CONFIG_PM
 		.pm = &gpio_vbus_dev_pm_ops,
-#endif
 	},
 	.remove  = __exit_p(gpio_vbus_remove),
 };
