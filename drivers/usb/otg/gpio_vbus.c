@@ -80,6 +80,8 @@ static void set_vbus_draw(struct gpio_vbus_data *gpio_vbus, unsigned mA)
 	}
 	if (mA)
 		gpio_vbus->mA = mA;
+
+	dev_info(gpio_vbus->dev, "Avail curr from USB = %u\n", mA);
 }
 
 static int is_vbus_powered(struct gpio_vbus_mach_info *pdata)
