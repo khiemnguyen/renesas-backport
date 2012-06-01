@@ -390,6 +390,7 @@ static int gpio_vbus_pm_resume(struct device *dev)
 	if (device_may_wakeup(dev))
 		disable_irq_wake(gpio_vbus->irq);
 
+	gpio_vbus->vbus = 0; /* start with disconnected */
 	gpio_vbus_irq(gpio_vbus->irq, pdev);
 	return 0;
 }
