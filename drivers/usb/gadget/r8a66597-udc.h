@@ -163,6 +163,7 @@ struct r8a66597 {
 	unsigned char num_dma;
 
 	unsigned irq_sense_low:1;
+	unsigned vbus_active:1;
 };
 
 #define gadget_to_r8a66597(_gadget)	\

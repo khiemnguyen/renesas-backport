@@ -34,7 +34,6 @@ static const char *r8a66597_ep_name[] = {
 	"ep8", "ep9", "ep10", "ep11", "ep12", "ep13", "ep14", "ep15",
 };
 
-static void init_controller(struct r8a66597 *r8a66597);
 static void disable_controller(struct r8a66597 *r8a66597);
 static void irq_ep0_write(struct r8a66597_ep *ep, struct r8a66597_request *req);
 static void irq_packet_write(struct r8a66597_ep *ep,
@@ -168,8 +167,6 @@ __acquires(r8a66597->lock)
 	r8a66597_dma_reset(r8a66597);
 
 	disable_controller(r8a66597);
-	init_controller(r8a66597);
-	r8a66597_bset(r8a66597, VBSE, INTENB0);
 	INIT_LIST_HEAD(&r8a66597->ep[0].queue);
 }
 
@@ -1862,10 +1859,16 @@ static void r8a66597_timer(unsigned long _r8a66597)
 		if (tmp == r8a66597->old_vbus) {
 			r8a66597->scount--;
 			if (r8a66597->scount == 0) {
-				if (tmp == VBSTS)
+				if (tmp == VBSTS) {
+					init_controller(r8a66597);
 					r8a66597_usb_connect(r8a66597);
-				else
+				} else {
 					r8a66597_usb_disconnect(r8a66597);
+
+					/* for subsequent VBINT detection */
+					init_controller(r8a66597);
+					r8a66597_bset(r8a66597, VBSE, INTENB0);
+				}
 			} else {
 				mod_timer(&r8a66597->timer,
 					jiffies + msecs_to_jiffies(50));
@@ -2082,15 +2085,18 @@ static int r8a66597_start(struct usb_gadget *gadget,
 	/* hook up the driver */
 	r8a66597->driver = driver;
 
-	init_controller(r8a66597);
-	r8a66597_bset(r8a66597, VBSE, INTENB0);
-	if (r8a66597_read(r8a66597, INTSTS0) & VBSTS) {
-		r8a66597_start_xclock(r8a66597);
-		/* start vbus sampling */
-		r8a66597->old_vbus = r8a66597_read(r8a66597,
-					 INTSTS0) & VBSTS;
-		r8a66597->scount = R8A66597_MAX_SAMPLING;
-		mod_timer(&r8a66597->timer, jiffies + msecs_to_jiffies(50));
+	if (0) {
+		/* try to initiate VBUS session */
+	} else {
+		init_controller(r8a66597);
+		r8a66597_bset(r8a66597, VBSE, INTENB0);
+		if (r8a66597_read(r8a66597, INTSTS0) & VBSTS) {
+			r8a66597_start_xclock(r8a66597);
+			/* start vbus sampling */
+			r8a66597->old_vbus = r8a66597_read(r8a66597, INTSTS0) & VBSTS;
+			r8a66597->scount = R8A66597_MAX_SAMPLING;
+			mod_timer(&r8a66597->timer, jiffies + msecs_to_jiffies(50));
+		}
 	}
 
 	return 0;
@@ -2145,9 +2151,45 @@ static int r8a66597_pullup(struct usb_gadget *gadget, int is_on)
 	return 0;
 }
 
+static int r8a66597_vbus_session(struct usb_gadget *gadget , int is_active)
+{
+	struct r8a66597 *r8a66597 = gadget_to_r8a66597(gadget);
+	u16 bwait = r8a66597->pdata->buswait ? : 0xf;
+	unsigned long flags;
+
+	dev_dbg(r8a66597_to_dev(r8a66597), "VBUS %s => %s\n",
+		r8a66597->vbus_active ? "on" : "off", is_active ? "on" : "off");
+
+	if ((is_active ^ r8a66597->vbus_active) == 0)
+		return 0;
+
+	if (is_active) {
+		/* start clock */
+		r8a66597_write(r8a66597, bwait, SYSCFG1);
+		r8a66597_bset(r8a66597, HSE, SYSCFG0);
+		r8a66597_bset(r8a66597, USBE, SYSCFG0);
+		r8a66597_bset(r8a66597, SCKE, SYSCFG0);
+
+		r8a66597_usb_connect(r8a66597);
+	} else {
+		spin_lock_irqsave(&r8a66597->lock, flags);
+		r8a66597_usb_disconnect(r8a66597);
+		spin_unlock_irqrestore(&r8a66597->lock, flags);
+
+		/* stop clock */
+		r8a66597_bclr(r8a66597, HSE, SYSCFG0);
+		r8a66597_bclr(r8a66597, SCKE, SYSCFG0);
+		r8a66597_bclr(r8a66597, USBE, SYSCFG0);
+	}
+
+	r8a66597->vbus_active = is_active;
+	return 0;
+}
+
 static struct usb_gadget_ops r8a66597_gadget_ops = {
 	.get_frame		= r8a66597_get_frame,
 	.set_selfpowered	= r8a66597_set_selfpowered,
+	.vbus_session		= r8a66597_vbus_session,
 	.pullup			= r8a66597_pullup,
 	.udc_start		= r8a66597_start,
 	.udc_stop		= r8a66597_stop,
