@@ -22,6 +22,7 @@
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
+#include <linux/usb/otg.h>
 
 #include "r8a66597-udc.h"
 
@@ -2116,6 +2117,7 @@ static int r8a66597_start(struct usb_gadget *gadget,
 		struct usb_gadget_driver *driver)
 {
 	struct r8a66597 *r8a66597 = gadget_to_r8a66597(gadget);
+	int ret = 0;
 
 	if (!driver
 			|| driver->max_speed < USB_SPEED_HIGH
@@ -2127,8 +2129,10 @@ static int r8a66597_start(struct usb_gadget *gadget,
 	/* hook up the driver */
 	r8a66597->driver = driver;
 
-	if (0) {
-		/* try to initiate VBUS session */
+	if (r8a66597->transceiver) {
+		r8a66597->vbus_active = 0; /* start with disconnected */
+
+		ret = otg_set_peripheral(r8a66597->transceiver->otg, &r8a66597->gadget);
 	} else {
 		init_controller(r8a66597);
 		r8a66597_bset(r8a66597, VBSE, INTENB0);
@@ -2141,7 +2145,7 @@ static int r8a66597_start(struct usb_gadget *gadget,
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
 static int r8a66597_stop(struct usb_gadget *gadget,
@@ -2154,6 +2158,9 @@ static int r8a66597_stop(struct usb_gadget *gadget,
 	r8a66597_bclr(r8a66597, VBSE, INTENB0);
 	disable_controller(r8a66597);
 	spin_unlock_irqrestore(&r8a66597->lock, flags);
+
+	if (r8a66597->transceiver)
+		otg_set_peripheral(r8a66597->transceiver->otg, NULL);
 
 	r8a66597->driver = NULL;
 	return 0;
@@ -2260,6 +2267,8 @@ static int __exit r8a66597_remove(struct platform_device *pdev)
 		r8a66597_clk_put(r8a66597);
 	}
 
+	if (r8a66597->transceiver)
+		usb_put_transceiver(r8a66597->transceiver);
 	device_unregister(&r8a66597->gadget.dev);
 	dev_set_drvdata(&pdev->dev, NULL);
 	kfree(r8a66597);
@@ -2340,6 +2349,10 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "kzalloc error\n");
 		goto clean_up;
 	}
+
+	r8a66597->transceiver = usb_get_transceiver();
+	dev_info(&pdev->dev, "%s transceiver found\n",
+		 r8a66597->transceiver ? r8a66597->transceiver->label : "No");
 
 	spin_lock_init(&r8a66597->lock);
 	dev_set_drvdata(&pdev->dev, r8a66597);
@@ -2451,6 +2464,8 @@ clean_up:
 		if (r8a66597->ep0_req)
 			r8a66597_free_request(&r8a66597->ep[0].ep,
 						r8a66597->ep0_req);
+		if (r8a66597->transceiver)
+			usb_put_transceiver(r8a66597->transceiver);
 		kfree(r8a66597);
 	}
 	if (reg)

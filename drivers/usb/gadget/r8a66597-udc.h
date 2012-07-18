@@ -165,6 +165,8 @@ struct r8a66597 {
 	unsigned irq_sense_low:1;
 	unsigned vbus_active:1;
 	unsigned softconnect:1;
+
+	struct usb_phy		*transceiver;
 };
 
 #define gadget_to_r8a66597(_gadget)	\
