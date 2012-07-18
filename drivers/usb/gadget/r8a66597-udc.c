@@ -76,6 +76,47 @@ static void disable_pipe_irq(struct r8a66597 *r8a66597, u16 pipenum,
 	r8a66597_write(r8a66597, tmp, INTENB0);
 }
 
+#ifdef CONFIG_HAVE_CLK
+static int r8a66597_clk_get(struct r8a66597 *r8a66597,
+			    struct platform_device *pdev)
+{
+	char clk_name[8];
+
+	snprintf(clk_name, sizeof(clk_name), "usb%d", pdev->id);
+	r8a66597->clk = clk_get(&pdev->dev, clk_name);
+	if (IS_ERR(r8a66597->clk)) {
+		dev_err(&pdev->dev, "cannot get clock \"%s\"\n", clk_name);
+		return PTR_ERR(r8a66597->clk);
+	}
+
+	return 0;
+}
+
+static void r8a66597_clk_put(struct r8a66597 *r8a66597)
+{
+	clk_put(r8a66597->clk);
+}
+
+static void r8a66597_clk_enable(struct r8a66597 *r8a66597)
+{
+	clk_enable(r8a66597->clk);
+}
+
+static void r8a66597_clk_disable(struct r8a66597 *r8a66597)
+{
+	clk_disable(r8a66597->clk);
+}
+#else
+static int r8a66597_clk_get(struct r8a66597 *r8a66597,
+			    struct platform_device *pdev)
+{
+	return 0;
+}
+#define r8a66597_clk_put(x)
+#define r8a66597_clk_enable(x)
+#define r8a66597_clk_disable(x)
+#endif
+
 static void r8a66597_usb_connect(struct r8a66597 *r8a66597)
 {
 	r8a66597_bset(r8a66597, CTRE, INTENB0);
@@ -1788,12 +1829,12 @@ static int __exit r8a66597_remove(struct platform_device *pdev)
 		iounmap(r8a66597->dmac_reg);
 	free_irq(platform_get_irq(pdev, 0), r8a66597);
 	r8a66597_free_request(&r8a66597->ep[0].ep, r8a66597->ep0_req);
-#ifdef CONFIG_HAVE_CLK
+
 	if (r8a66597->pdata->on_chip) {
-		clk_disable(r8a66597->clk);
-		clk_put(r8a66597->clk);
+		r8a66597_clk_disable(r8a66597);
+		r8a66597_clk_put(r8a66597);
 	}
-#endif
+
 	device_unregister(&r8a66597->gadget.dev);
 	dev_set_drvdata(&pdev->dev, NULL);
 	kfree(r8a66597);
@@ -1826,9 +1867,6 @@ static int __init r8a66597_dmac_ioremap(struct r8a66597 *r8a66597,
 
 static int __init r8a66597_probe(struct platform_device *pdev)
 {
-#ifdef CONFIG_HAVE_CLK
-	char clk_name[8];
-#endif
 	struct resource *res, *ires;
 	int irq;
 	void __iomem *reg = NULL;
@@ -1892,19 +1930,13 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 	r8a66597->timer.data = (unsigned long)r8a66597;
 	r8a66597->reg = reg;
 
-#ifdef CONFIG_HAVE_CLK
 	if (r8a66597->pdata->on_chip) {
-		snprintf(clk_name, sizeof(clk_name), "usb%d", pdev->id);
-		r8a66597->clk = clk_get(&pdev->dev, clk_name);
-		if (IS_ERR(r8a66597->clk)) {
-			dev_err(&pdev->dev, "cannot get clock \"%s\"\n",
-				clk_name);
-			ret = PTR_ERR(r8a66597->clk);
+		ret = r8a66597_clk_get(r8a66597, pdev);
+		if (ret < 0)
 			goto clean_up_dev;
-		}
-		clk_enable(r8a66597->clk);
+		r8a66597_clk_enable(r8a66597);
 	}
-#endif
+
 	if (r8a66597->pdata->dmac) {
 		ret = r8a66597_dmac_ioremap(r8a66597, pdev);
 		if (ret < 0)
@@ -1963,13 +1995,11 @@ err_add_udc:
 clean_up3:
 	free_irq(irq, r8a66597);
 clean_up2:
-#ifdef CONFIG_HAVE_CLK
 	if (r8a66597->pdata->on_chip) {
-		clk_disable(r8a66597->clk);
-		clk_put(r8a66597->clk);
+		r8a66597_clk_disable(r8a66597);
+		r8a66597_clk_put(r8a66597);
 	}
 clean_up_dev:
-#endif
 	device_unregister(&r8a66597->gadget.dev);
 clean_up:
 	dev_set_drvdata(&pdev->dev, NULL);
