@@ -303,9 +303,7 @@ static inline void pipe_change(struct r8a66597 *r8a66597, u16 pipenum)
 	if (ep->use_dma)
 		r8a66597_bclr(r8a66597, DREQE, ep->fifosel);
 
-	r8a66597_mdfy(r8a66597, pipenum, CURPIPE, ep->fifosel);
-
-	ndelay(450);
+	r8a66597_change_curpipe(r8a66597, pipenum, 0, ep->fifosel);
 
 	if (r8a66597_is_sudmac(r8a66597) && ep->use_dma)
 		r8a66597_bclr(r8a66597, mbw_value(r8a66597), ep->fifosel);
@@ -395,15 +393,13 @@ static void pipe_initialize(struct r8a66597_ep *ep)
 {
 	struct r8a66597 *r8a66597 = ep->r8a66597;
 
-	r8a66597_mdfy(r8a66597, 0, CURPIPE, ep->fifosel);
+	r8a66597_change_curpipe(r8a66597, 0, 0, ep->fifosel);
 
 	r8a66597_write(r8a66597, ACLRM, ep->pipectr);
 	r8a66597_write(r8a66597, 0, ep->pipectr);
 	r8a66597_write(r8a66597, SQCLR, ep->pipectr);
 	if (ep->use_dma) {
-		r8a66597_mdfy(r8a66597, ep->pipenum, CURPIPE, ep->fifosel);
-
-		ndelay(450);
+		r8a66597_change_curpipe(r8a66597, ep->pipenum, 0, ep->fifosel);
 
 		r8a66597_bset(r8a66597, mbw_value(r8a66597), ep->fifosel);
 	}
@@ -573,8 +569,7 @@ static void start_ep0_write(struct r8a66597_ep *ep,
 {
 	struct r8a66597 *r8a66597 = ep->r8a66597;
 
-	pipe_change(r8a66597, ep->pipenum);
-	r8a66597_mdfy(r8a66597, ISEL, (ISEL | CURPIPE), CFIFOSEL);
+	r8a66597_change_curpipe(r8a66597, 0, ISEL, CFIFOSEL);
 	r8a66597_write(r8a66597, BCLR, ep->fifoctr);
 	if (req->req.length == 0) {
 		r8a66597_bset(r8a66597, BVAL, ep->fifoctr);
@@ -740,7 +735,7 @@ static void start_packet_read(struct r8a66597_ep *ep,
 	u16 pipenum = ep->pipenum;
 
 	if (ep->pipenum == 0) {
-		r8a66597_mdfy(r8a66597, 0, (ISEL | CURPIPE), CFIFOSEL);
+		r8a66597_change_curpipe(r8a66597, 0, 0, CFIFOSEL);
 		r8a66597_write(r8a66597, BCLR, ep->fifoctr);
 		pipe_start(r8a66597, pipenum);
 		pipe_irq_enable(r8a66597, pipenum);
