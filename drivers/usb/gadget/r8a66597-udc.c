@@ -325,10 +325,7 @@ static inline void pipe_change(struct r8a66597 *r8a66597, u16 pipenum)
 
 	r8a66597_change_curpipe(r8a66597, pipenum, 0, ep->fifosel);
 
-	if (r8a66597_is_sudmac(r8a66597) && ep->use_dma)
-		r8a66597_bclr(r8a66597, mbw_value(r8a66597), ep->fifosel);
-	else
-		r8a66597_bset(r8a66597, mbw_value(r8a66597), ep->fifosel);
+	r8a66597_bset(r8a66597, mbw_value(r8a66597), ep->fifosel);
 
 	if (ep->use_dma)
 		r8a66597_bset(r8a66597, DREQE, ep->fifosel);
@@ -725,14 +722,6 @@ static void sudmac_free_channel(struct r8a66597 *r8a66597,
 static void sudmac_start(struct r8a66597 *r8a66597, struct r8a66597_ep *ep,
 			 struct r8a66597_request *req)
 {
-	BUG_ON(req->req.length == 0);
-
-	r8a66597_sudmac_write(r8a66597, LBA_WAIT, CH0CFG);
-	r8a66597_sudmac_write(r8a66597, req->req.dma, CH0BA);
-	r8a66597_sudmac_write(r8a66597, req->req.length, CH0BBC);
-	r8a66597_sudmac_write(r8a66597, CH0ENDE, DINTCTRL);
-
-	r8a66597_sudmac_write(r8a66597, DEN, CH0DEN);
 }
 
 static void start_packet_write(struct r8a66597_ep *ep,
@@ -1435,65 +1424,6 @@ __acquires(r8a66597->lock)
 	}
 }
 
-static void sudmac_finish(struct r8a66597 *r8a66597, struct r8a66597_ep *ep)
-{
-	u16 pipenum;
-	struct r8a66597_request *req;
-	u32 len;
-	int i = 0;
-
-	pipenum = ep->pipenum;
-	pipe_change(r8a66597, pipenum);
-
-	while (!(r8a66597_read(r8a66597, ep->fifoctr) & FRDY)) {
-		udelay(1);
-		if (unlikely(i++ >= 10000)) {	/* timeout = 10 msec */
-			dev_err(r8a66597_to_dev(r8a66597),
-				"%s: FRDY was not set (%d)\n",
-				__func__, pipenum);
-			return;
-		}
-	}
-
-	r8a66597_bset(r8a66597, BCLR, ep->fifoctr);
-	req = get_request_from_ep(ep);
-
-	/* prepare parameters */
-	len = r8a66597_sudmac_read(r8a66597, CH0CBC);
-	req->req.actual += len;
-
-	/* clear */
-	r8a66597_sudmac_write(r8a66597, CH0STCLR, DSTSCLR);
-
-	/* check transfer finish */
-	if ((!req->req.zero && (req->req.actual == req->req.length))
-			|| (len % ep->ep.maxpacket)) {
-		if (ep->dma->dir) {
-			disable_irq_ready(r8a66597, pipenum);
-			enable_irq_empty(r8a66597, pipenum);
-		} else {
-			/* Clear the interrupt flag for next transfer */
-			r8a66597_write(r8a66597, ~(1 << pipenum), BRDYSTS);
-			transfer_complete(ep, req, 0);
-		}
-	}
-}
-
-static void r8a66597_sudmac_irq(struct r8a66597 *r8a66597)
-{
-	u32 irqsts;
-	struct r8a66597_ep *ep;
-	u16 pipenum;
-
-	irqsts = r8a66597_sudmac_read(r8a66597, DINTSTS);
-	if (irqsts & CH0ENDS) {
-		r8a66597_sudmac_write(r8a66597, CH0ENDC, DINTSTSCLR);
-		pipenum = (r8a66597_read(r8a66597, D0FIFOSEL) & CURPIPE);
-		ep = r8a66597->pipenum2ep[pipenum];
-		sudmac_finish(r8a66597, ep);
-	}
-}
-
 static irqreturn_t r8a66597_irq(int irq, void *_r8a66597)
 {
 	struct r8a66597 *r8a66597 = _r8a66597;
@@ -1502,9 +1432,6 @@ static irqreturn_t r8a66597_irq(int irq, void *_r8a66597)
 	u16 brdysts, nrdysts, bempsts;
 	u16 brdyenb, nrdyenb, bempenb;
 	u16 mask0;
-
-	if (r8a66597_is_sudmac(r8a66597))
-		r8a66597_sudmac_irq(r8a66597);
 
 	spin_lock(&r8a66597->lock);
 
