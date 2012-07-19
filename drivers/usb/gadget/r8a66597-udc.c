@@ -1266,8 +1266,8 @@ static void clear_feature(struct r8a66597 *r8a66597,
 			start_packet(ep, req);
 		} else if (!list_empty(&ep->queue))
 			pipe_start(r8a66597, ep->pipenum);
-		}
 		break;
+	}
 	default:
 		pipe_stall(r8a66597, 0);
 		break;
@@ -1311,8 +1311,8 @@ static void set_feature(struct r8a66597 *r8a66597, struct usb_ctrlrequest *ctrl)
 		pipe_stall(r8a66597, ep->pipenum);
 
 		control_end(r8a66597, 1);
-		}
 		break;
+	}
 	default:
 		pipe_stall(r8a66597, 0);
 		break;
@@ -1410,8 +1410,8 @@ __acquires(r8a66597->lock)
 		ep = &r8a66597->ep[0];
 		req = get_request_from_ep(ep);
 		transfer_complete(ep, req, 0);
-		}
 		break;
+	}
 
 	case CS_RDDS:
 	case CS_WRDS:
@@ -1815,6 +1815,18 @@ static int r8a66597_get_frame(struct usb_gadget *_gadget)
 	return r8a66597_read(r8a66597, FRMNUM) & 0x03FF;
 }
 
+static int r8a66597_set_selfpowered(struct usb_gadget *gadget, int is_self)
+{
+	struct r8a66597 *r8a66597 = gadget_to_r8a66597(gadget);
+
+	if (is_self)
+		r8a66597->device_status |= 1 << USB_DEVICE_SELF_POWERED;
+	else
+		r8a66597->device_status &= ~(1 << USB_DEVICE_SELF_POWERED);
+
+	return 0;
+}
+
 static int r8a66597_pullup(struct usb_gadget *gadget, int is_on)
 {
 	struct r8a66597 *r8a66597 = gadget_to_r8a66597(gadget);
@@ -1830,24 +1842,12 @@ static int r8a66597_pullup(struct usb_gadget *gadget, int is_on)
 	return 0;
 }
 
-static int r8a66597_set_selfpowered(struct usb_gadget *gadget, int is_self)
-{
-	struct r8a66597 *r8a66597 = gadget_to_r8a66597(gadget);
-
-	if (is_self)
-		r8a66597->device_status |= 1 << USB_DEVICE_SELF_POWERED;
-	else
-		r8a66597->device_status &= ~(1 << USB_DEVICE_SELF_POWERED);
-
-	return 0;
-}
-
 static struct usb_gadget_ops r8a66597_gadget_ops = {
 	.get_frame		= r8a66597_get_frame,
+	.set_selfpowered	= r8a66597_set_selfpowered,
+	.pullup			= r8a66597_pullup,
 	.udc_start		= r8a66597_start,
 	.udc_stop		= r8a66597_stop,
-	.pullup			= r8a66597_pullup,
-	.set_selfpowered	= r8a66597_set_selfpowered,
 };
 
 static int __exit r8a66597_remove(struct platform_device *pdev)
