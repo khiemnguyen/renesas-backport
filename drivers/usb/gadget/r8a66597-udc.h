@@ -18,6 +18,7 @@
 #endif
 
 #include <linux/usb/r8a66597.h>
+#include <linux/usb/r8a66597_dmac.h>
 
 #define R8A66597_MAX_SAMPLING	10
 
@@ -32,6 +33,7 @@
 
 #define R8A66597_BASE_BUFNUM	6
 #define R8A66597_MAX_BUFNUM	0x4F
+#define R8A66597_MAX_DMA_CHANNELS	2
 
 #define is_bulk_pipe(pipenum)	\
 	((pipenum >= R8A66597_BASE_PIPENUM_BULK) && \
@@ -83,7 +85,23 @@ struct r8a66597_ep {
 	unsigned char		pipetrn;
 };
 
+/*
+ * Use CH0 and CH1 with their transfer direction fixed.  Please refer
+ * to [Restrictions] 4) IN/OUT switching after NULLL packet reception,
+ * at the end of "DMA Transfer Function, (3) DMA transfer flow" in the
+ * datasheet.
+ */
+#define USBHS_DMAC_OUT_CHANNEL	0
+#define USBHS_DMAC_IN_CHANNEL	1
+
 struct r8a66597_dma {
+	struct r8a66597_ep	*ep;
+	unsigned long		expect_dmicr;
+	unsigned long		chcr_ts;
+	int			channel;
+	int			tx_size;
+
+	unsigned		initialized:1;
 	unsigned		used:1;
 	unsigned		dir:1;	/* 1 = IN(write), 0 = OUT(read) */
 };
@@ -95,6 +113,7 @@ struct r8a66597 {
 
 #ifdef CONFIG_HAVE_CLK
 	struct clk *clk;
+	struct clk *clk_dmac;
 #endif
 	struct r8a66597_platdata	*pdata;
 
@@ -104,7 +123,7 @@ struct r8a66597 {
 	struct r8a66597_ep	ep[R8A66597_MAX_NUM_PIPE];
 	struct r8a66597_ep	*pipenum2ep[R8A66597_MAX_NUM_PIPE];
 	struct r8a66597_ep	*epaddr2ep[16];
-	struct r8a66597_dma	dma;
+	struct r8a66597_dma	dma[R8A66597_MAX_DMA_CHANNELS];
 
 	struct timer_list	timer;
 	struct usb_request	*ep0_req;	/* for internal request */
@@ -195,10 +214,38 @@ static inline void r8a66597_mdfy(struct r8a66597 *r8a66597,
 	r8a66597_write(r8a66597, tmp, offset);
 }
 
+/* USBHS-DMAC read/write */
+static inline u32 r8a66597_dma_read(struct r8a66597 *r8a66597,
+				unsigned long offset)
+{
+	return ioread32(r8a66597->dmac_reg + offset);
+}
+
+static inline void r8a66597_dma_write(struct r8a66597 *r8a66597, u32 val,
+				unsigned long offset)
+{
+	iowrite32(val, r8a66597->dmac_reg + offset);
+}
+
+static inline void r8a66597_dma_mdfy(struct r8a66597 *r8a66597,
+				 u32 val, u32 pat, unsigned long offset)
+{
+	u32 tmp;
+	tmp = r8a66597_dma_read(r8a66597, offset);
+	tmp = tmp & (~pat);
+	tmp = tmp | val;
+	r8a66597_dma_write(r8a66597, tmp, offset);
+}
+
 #define r8a66597_bclr(r8a66597, val, offset)	\
 			r8a66597_mdfy(r8a66597, 0, val, offset)
 #define r8a66597_bset(r8a66597, val, offset)	\
 			r8a66597_mdfy(r8a66597, val, 0, offset)
+
+#define r8a66597_dma_bclr(r8a66597, val, offset)	\
+			r8a66597_dma_mdfy(r8a66597, 0, val, offset)
+#define r8a66597_dma_bset(r8a66597, val, offset)	\
+			r8a66597_dma_mdfy(r8a66597, val, 0, offset)
 
 static inline void r8a66597_write_fifo(struct r8a66597 *r8a66597,
 				       struct r8a66597_ep *ep,
@@ -261,18 +308,6 @@ static inline u16 get_xtal_from_pdata(struct r8a66597_platdata *pdata)
 	}
 
 	return clock;
-}
-
-static inline u32 r8a66597_dmac_read(struct r8a66597 *r8a66597,
-				       unsigned long offset)
-{
-	return ioread32(r8a66597->dmac_reg + offset);
-}
-
-static inline void r8a66597_dmac_write(struct r8a66597 *r8a66597, u32 val,
-					 unsigned long offset)
-{
-	iowrite32(val, r8a66597->dmac_reg + offset);
 }
 
 #define get_pipectr_addr(pipenum)	(PIPE1CTR + (pipenum - 1) * 2)
