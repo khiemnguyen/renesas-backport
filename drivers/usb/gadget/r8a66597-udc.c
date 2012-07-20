@@ -663,13 +663,13 @@ static void change_bfre_mode(struct r8a66597 *r8a66597, u16 pipenum,
 	restore_usb_toggle(r8a66597, pipenum, toggle);
 }
 
-static int sudmac_alloc_channel(struct r8a66597 *r8a66597,
+static int dmac_alloc_channel(struct r8a66597 *r8a66597,
 				struct r8a66597_ep *ep,
 				struct r8a66597_request *req)
 {
 	struct r8a66597_dma *dma;
 
-	if (!r8a66597_is_sudmac(r8a66597))
+	if (!r8a66597_has_dmac(r8a66597))
 		return -ENODEV;
 
 	/* Check transfer type */
@@ -679,7 +679,7 @@ static int sudmac_alloc_channel(struct r8a66597 *r8a66597,
 	if (r8a66597->dma.used)
 		return -EBUSY;
 
-	/* set SUDMAC parameters */
+	/* set USBHS-DMAC parameters */
 	dma = &r8a66597->dma;
 	dma->used = 1;
 	if (ep->ep.desc->bEndpointAddress & USB_DIR_IN) {
@@ -700,11 +700,11 @@ static int sudmac_alloc_channel(struct r8a66597 *r8a66597,
 	return usb_gadget_map_request(&r8a66597->gadget, &req->req, dma->dir);
 }
 
-static void sudmac_free_channel(struct r8a66597 *r8a66597,
+static void dmac_free_channel(struct r8a66597 *r8a66597,
 				struct r8a66597_ep *ep,
 				struct r8a66597_request *req)
 {
-	if (!r8a66597_is_sudmac(r8a66597))
+	if (!r8a66597_has_dmac(r8a66597))
 		return;
 
 	usb_gadget_unmap_request(&r8a66597->gadget, &req->req, ep->dma->dir);
@@ -719,7 +719,7 @@ static void sudmac_free_channel(struct r8a66597 *r8a66597,
 	ep->fifoctr = CFIFOCTR;
 }
 
-static void sudmac_start(struct r8a66597 *r8a66597, struct r8a66597_ep *ep,
+static void dmac_start(struct r8a66597 *r8a66597, struct r8a66597_ep *ep,
 			 struct r8a66597_request *req)
 {
 }
@@ -738,7 +738,7 @@ static void start_packet_write(struct r8a66597_ep *ep,
 		transfer_complete(ep, req, 0);
 	} else {
 		r8a66597_write(r8a66597, ~(1 << ep->pipenum), BRDYSTS);
-		if (sudmac_alloc_channel(r8a66597, ep, req) < 0) {
+		if (dmac_alloc_channel(r8a66597, ep, req) < 0) {
 			/* PIO mode */
 			pipe_change(r8a66597, ep->pipenum);
 			disable_irq_empty(r8a66597, ep->pipenum);
@@ -754,7 +754,7 @@ static void start_packet_write(struct r8a66597_ep *ep,
 			disable_irq_nrdy(r8a66597, ep->pipenum);
 			pipe_start(r8a66597, ep->pipenum);
 			enable_irq_nrdy(r8a66597, ep->pipenum);
-			sudmac_start(r8a66597, ep, req);
+			dmac_start(r8a66597, ep, req);
 		}
 	}
 }
@@ -782,14 +782,14 @@ static void start_packet_read(struct r8a66597_ep *ep,
 		}
 
 		r8a66597_write(r8a66597, ~(1 << pipenum), BRDYSTS);
-		if (sudmac_alloc_channel(r8a66597, ep, req) < 0) {
+		if (dmac_alloc_channel(r8a66597, ep, req) < 0) {
 			/* PIO mode */
 			change_bfre_mode(r8a66597, ep->pipenum, 0);
 			pipe_start(r8a66597, pipenum);	/* trigger once */
 			pipe_irq_enable(r8a66597, pipenum);
 		} else {
 			pipe_change(r8a66597, pipenum);
-			sudmac_start(r8a66597, ep, req);
+			dmac_start(r8a66597, ep, req);
 			pipe_start(r8a66597, pipenum);	/* trigger once */
 		}
 	}
@@ -946,7 +946,7 @@ __acquires(r8a66597->lock)
 		restart = 1;
 
 	if (ep->use_dma)
-		sudmac_free_channel(ep->r8a66597, ep, req);
+		dmac_free_channel(ep->r8a66597, ep, req);
 
 	spin_unlock(&ep->r8a66597->lock);
 	req->req.complete(&ep->ep, &req->req);
@@ -1784,8 +1784,8 @@ static int __exit r8a66597_remove(struct platform_device *pdev)
 	usb_del_gadget_udc(&r8a66597->gadget);
 	del_timer_sync(&r8a66597->timer);
 	iounmap(r8a66597->reg);
-	if (r8a66597->pdata->sudmac)
-		iounmap(r8a66597->sudmac_reg);
+	if (r8a66597_has_dmac(r8a66597))
+		iounmap(r8a66597->dmac_reg);
 	free_irq(platform_get_irq(pdev, 0), r8a66597);
 	r8a66597_free_request(&r8a66597->ep[0].ep, r8a66597->ep0_req);
 #ifdef CONFIG_HAVE_CLK
@@ -1804,20 +1804,20 @@ static void nop_completion(struct usb_ep *ep, struct usb_request *r)
 {
 }
 
-static int __init r8a66597_sudmac_ioremap(struct r8a66597 *r8a66597,
+static int __init r8a66597_dmac_ioremap(struct r8a66597 *r8a66597,
 					  struct platform_device *pdev)
 {
 	struct resource *res;
 
-	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "sudmac");
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "dmac");
 	if (!res) {
-		dev_err(&pdev->dev, "platform_get_resource error(sudmac).\n");
+		dev_err(&pdev->dev, "platform_get_resource error(dmac).\n");
 		return -ENODEV;
 	}
 
-	r8a66597->sudmac_reg = ioremap(res->start, resource_size(res));
-	if (r8a66597->sudmac_reg == NULL) {
-		dev_err(&pdev->dev, "ioremap error(sudmac).\n");
+	r8a66597->dmac_reg = ioremap(res->start, resource_size(res));
+	if (r8a66597->dmac_reg == NULL) {
+		dev_err(&pdev->dev, "ioremap error(dmac).\n");
 		return -ENOMEM;
 	}
 
@@ -1905,8 +1905,8 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 		clk_enable(r8a66597->clk);
 	}
 #endif
-	if (r8a66597->pdata->sudmac) {
-		ret = r8a66597_sudmac_ioremap(r8a66597, pdev);
+	if (r8a66597->pdata->dmac) {
+		ret = r8a66597_dmac_ioremap(r8a66597, pdev);
 		if (ret < 0)
 			goto clean_up2;
 	}
@@ -1974,8 +1974,8 @@ clean_up_dev:
 clean_up:
 	dev_set_drvdata(&pdev->dev, NULL);
 	if (r8a66597) {
-		if (r8a66597->sudmac_reg)
-			iounmap(r8a66597->sudmac_reg);
+		if (r8a66597->dmac_reg)
+			iounmap(r8a66597->dmac_reg);
 		if (r8a66597->ep0_req)
 			r8a66597_free_request(&r8a66597->ep[0].ep,
 						r8a66597->ep0_req);

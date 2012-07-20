@@ -43,7 +43,8 @@
 	((pipenum >= R8A66597_BASE_PIPENUM_ISOC) && \
 	 (pipenum < (R8A66597_BASE_PIPENUM_ISOC + R8A66597_MAX_NUM_ISOC)))
 
-#define r8a66597_is_sudmac(r8a66597)	(r8a66597->pdata->sudmac)
+#define r8a66597_has_dmac(r8a66597)	(r8a66597->pdata->dmac)
+
 struct r8a66597_pipe_info {
 	u16	pipe;
 	u16	epnum;
@@ -90,7 +91,7 @@ struct r8a66597_dma {
 struct r8a66597 {
 	spinlock_t		lock;
 	void __iomem		*reg;
-	void __iomem		*sudmac_reg;
+	void __iomem		*dmac_reg;
 
 #ifdef CONFIG_HAVE_CLK
 	struct clk *clk;
@@ -262,16 +263,16 @@ static inline u16 get_xtal_from_pdata(struct r8a66597_platdata *pdata)
 	return clock;
 }
 
-static inline u32 r8a66597_sudmac_read(struct r8a66597 *r8a66597,
+static inline u32 r8a66597_dmac_read(struct r8a66597 *r8a66597,
 				       unsigned long offset)
 {
-	return ioread32(r8a66597->sudmac_reg + offset);
+	return ioread32(r8a66597->dmac_reg + offset);
 }
 
-static inline void r8a66597_sudmac_write(struct r8a66597 *r8a66597, u32 val,
+static inline void r8a66597_dmac_write(struct r8a66597 *r8a66597, u32 val,
 					 unsigned long offset)
 {
-	iowrite32(val, r8a66597->sudmac_reg + offset);
+	iowrite32(val, r8a66597->dmac_reg + offset);
 }
 
 #define get_pipectr_addr(pipenum)	(PIPE1CTR + (pipenum - 1) * 2)

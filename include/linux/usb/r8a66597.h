@@ -52,8 +52,8 @@ struct r8a66597_platdata {
 	/* (external controller only) set one = WR0_N shorted to WR1_N */
 	unsigned	wr0_shorted_to_wr1:1;
 
-	/* set one = using SUDMAC */
-	unsigned	sudmac:1;
+	/* set one = using USBHS-DMAC */
+	unsigned	dmac:1;
 };
 
 /* Register definitions */
