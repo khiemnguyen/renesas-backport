@@ -1636,6 +1636,12 @@ static void irq_device_state(struct r8a66597 *r8a66597)
 	if ((dvsq == DS_CNFG || dvsq == DS_ADDS)
 			&& r8a66597->gadget.speed == USB_SPEED_UNKNOWN)
 		r8a66597_update_usb_speed(r8a66597);
+	if (r8a66597->transceiver) {
+		if (dvsq & DS_SUSP)
+			usb_phy_set_suspend(r8a66597->transceiver, 1);
+		else
+			usb_phy_set_suspend(r8a66597->transceiver, 0);
+	}
 
 	r8a66597->old_dvsq = dvsq;
 }
