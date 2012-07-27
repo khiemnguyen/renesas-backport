@@ -19,6 +19,7 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/dma-mapping.h>
+#include <linux/pm_runtime.h>
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
@@ -2212,6 +2213,9 @@ static int r8a66597_vbus_session(struct usb_gadget *gadget , int is_active)
 		return 0;
 
 	if (is_active) {
+		pm_runtime_get_sync(r8a66597_to_dev(r8a66597));
+		r8a66597_clk_enable(r8a66597);
+
 		if (r8a66597->pdata->module_start)
 			r8a66597->pdata->module_start();
 
@@ -2234,6 +2238,9 @@ static int r8a66597_vbus_session(struct usb_gadget *gadget , int is_active)
 
 		if (r8a66597->pdata->module_stop)
 			r8a66597->pdata->module_stop();
+
+		r8a66597_clk_disable(r8a66597);
+		pm_runtime_put(r8a66597_to_dev(r8a66597));
 	}
 
 	r8a66597->vbus_active = is_active;
@@ -2263,8 +2270,12 @@ static int __exit r8a66597_remove(struct platform_device *pdev)
 	r8a66597_free_request(&r8a66597->ep[0].ep, r8a66597->ep0_req);
 
 	if (r8a66597->pdata->on_chip) {
-		r8a66597_clk_disable(r8a66597);
+		if (!r8a66597->transceiver) {
+			r8a66597_clk_disable(r8a66597);
+			pm_runtime_put(r8a66597_to_dev(r8a66597));
+		}
 		r8a66597_clk_put(r8a66597);
+		pm_runtime_disable(r8a66597_to_dev(r8a66597));
 	}
 
 	if (r8a66597->transceiver)
@@ -2378,10 +2389,14 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 	r8a66597->reg = reg;
 
 	if (r8a66597->pdata->on_chip) {
+		pm_runtime_enable(&pdev->dev);
 		ret = r8a66597_clk_get(r8a66597, pdev);
 		if (ret < 0)
 			goto clean_up_dev;
-		r8a66597_clk_enable(r8a66597);
+		if (!r8a66597->transceiver) {
+			pm_runtime_get_sync(r8a66597_to_dev(r8a66597));
+			r8a66597_clk_enable(r8a66597);
+		}
 	}
 
 	if (r8a66597->pdata->dmac) {
@@ -2451,8 +2466,12 @@ clean_up3:
 	free_irq(irq, r8a66597);
 clean_up2:
 	if (r8a66597->pdata->on_chip) {
-		r8a66597_clk_disable(r8a66597);
+		if (!r8a66597->transceiver) {
+			r8a66597_clk_disable(r8a66597);
+			pm_runtime_put(r8a66597_to_dev(r8a66597));
+		}
 		r8a66597_clk_put(r8a66597);
+		pm_runtime_disable(r8a66597_to_dev(r8a66597));
 	}
 clean_up_dev:
 	device_unregister(&r8a66597->gadget.dev);
