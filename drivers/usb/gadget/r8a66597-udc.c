@@ -1593,6 +1593,13 @@ static int setup_packet(struct r8a66597 *r8a66597, struct usb_ctrlrequest *ctrl)
 	return ret;
 }
 
+static int r8a66597_set_vbus_draw(struct r8a66597 *r8a66597, int mA)
+{
+	if (r8a66597->transceiver)
+		return usb_phy_set_power(r8a66597->transceiver, mA);
+	return -EOPNOTSUPP;
+}
+
 static void r8a66597_update_usb_speed(struct r8a66597 *r8a66597)
 {
 	u16 speed = get_usb_speed(r8a66597);
@@ -2186,6 +2193,11 @@ static int r8a66597_set_selfpowered(struct usb_gadget *gadget, int is_self)
 	return 0;
 }
 
+static int r8a66597_vbus_draw(struct usb_gadget *gadget, unsigned mA)
+{
+	return r8a66597_set_vbus_draw(gadget_to_r8a66597(gadget), mA);
+}
+
 static int r8a66597_pullup(struct usb_gadget *gadget, int is_on)
 {
 	struct r8a66597 *r8a66597 = gadget_to_r8a66597(gadget);
@@ -2251,6 +2263,7 @@ static struct usb_gadget_ops r8a66597_gadget_ops = {
 	.get_frame		= r8a66597_get_frame,
 	.set_selfpowered	= r8a66597_set_selfpowered,
 	.vbus_session		= r8a66597_vbus_session,
+	.vbus_draw		= r8a66597_vbus_draw,
 	.pullup			= r8a66597_pullup,
 	.udc_start		= r8a66597_start,
 	.udc_stop		= r8a66597_stop,
