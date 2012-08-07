@@ -2424,7 +2424,8 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 			goto clean_up2;
 	}
 
-	disable_controller(r8a66597); /* make sure controller is disabled */
+	if (!r8a66597->transceiver)
+		disable_controller(r8a66597); /* make sure controller is disabled */
 
 	ret = request_irq(irq, r8a66597_irq, 0, udc_name, r8a66597);
 	if (ret < 0) {
