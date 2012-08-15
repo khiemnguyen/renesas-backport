@@ -83,8 +83,6 @@ extern void r8a7740_meram_workaround(void);
 
 extern void r8a7779_register_twd(void);
 
-extern void shmobile_init_late(void);
-
 #ifdef CONFIG_SUSPEND
 int shmobile_suspend_init(void);
 #else
@@ -108,5 +106,11 @@ static inline int shmobile_cpu_is_dead(unsigned int cpu) { return 1; }
 
 extern void __iomem *shmobile_scu_base;
 extern void shmobile_smp_init_cpus(unsigned int ncores);
+
+static inline void shmobile_init_late(void)
+{
+	shmobile_suspend_init();
+	shmobile_cpuidle_init();
+}
 
 #endif /* __ARCH_MACH_COMMON_H */
