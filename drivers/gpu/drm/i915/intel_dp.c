@@ -2106,6 +2106,7 @@ intel_dp_get_edid_modes(struct drm_connector *connector, struct i2c_adapter *ada
 	int	ret;
 
 	ironlake_edp_panel_vdd_on(intel_dp);
+
 	ret = intel_ddc_get_modes(connector, adapter);
 	ironlake_edp_panel_vdd_off(intel_dp, false);
 	return ret;
@@ -2147,7 +2148,6 @@ intel_dp_detect(struct drm_connector *connector, bool force)
 		edid = intel_dp_get_edid(connector, &intel_dp->adapter);
 		if (edid) {
 			intel_dp->has_audio = drm_detect_monitor_audio(edid);
-			connector->display_info.raw_edid = NULL;
 			kfree(edid);
 		}
 	}
@@ -2212,8 +2212,6 @@ intel_dp_detect_audio(struct drm_connector *connector)
 	edid = intel_dp_get_edid(connector, &intel_dp->adapter);
 	if (edid) {
 		has_audio = drm_detect_monitor_audio(edid);
-
-		connector->display_info.raw_edid = NULL;
 		kfree(edid);
 	}
 
