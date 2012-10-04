@@ -134,9 +134,6 @@ struct r8a66597 {
 	u16			device_status;	/* for GET_STATUS */
 
 	/* pipe config */
-	unsigned char bulk;
-	unsigned char interrupt;
-	unsigned char isochronous;
 	unsigned char num_dma;
 
 	unsigned irq_sense_low:1;
