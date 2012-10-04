@@ -35,16 +35,6 @@
 #define R8A66597_MAX_BUFNUM	0x4F
 #define R8A66597_MAX_DMA_CHANNELS	2
 
-#define is_bulk_pipe(pipenum)	\
-	((pipenum >= R8A66597_BASE_PIPENUM_BULK) && \
-	 (pipenum < (R8A66597_BASE_PIPENUM_BULK + R8A66597_MAX_NUM_BULK)))
-#define is_interrupt_pipe(pipenum)	\
-	((pipenum >= R8A66597_BASE_PIPENUM_INT) && \
-	 (pipenum < (R8A66597_BASE_PIPENUM_INT + R8A66597_MAX_NUM_INT)))
-#define is_isoc_pipe(pipenum)	\
-	((pipenum >= R8A66597_BASE_PIPENUM_ISOC) && \
-	 (pipenum < (R8A66597_BASE_PIPENUM_ISOC + R8A66597_MAX_NUM_ISOC)))
-
 #define r8a66597_has_dmac(r8a66597)	(r8a66597->pdata->dmac)
 
 struct r8a66597_pipe_info {

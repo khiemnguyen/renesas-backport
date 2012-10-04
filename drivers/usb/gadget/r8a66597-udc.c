@@ -513,7 +513,7 @@ static void r8a66597_ep_setting(struct r8a66597 *r8a66597,
 	ep->fifoctr = CFIFOCTR;
 
 	ep->pipectr = get_pipectr_addr(pipenum);
-	if (is_bulk_pipe(pipenum) || is_isoc_pipe(pipenum)) {
+	if (usb_endpoint_xfer_bulk(desc) || usb_endpoint_xfer_isoc(desc)) {
 		ep->pipetre = get_pipetre_addr(pipenum);
 		ep->pipetrn = get_pipetrn_addr(pipenum);
 	} else {
@@ -699,7 +699,7 @@ static int dmac_alloc_channel(struct r8a66597 *r8a66597,
 		return -ENODEV;
 
 	/* Check transfer type */
-	if (!is_bulk_pipe(ep->pipenum))
+	if (!usb_endpoint_xfer_bulk(ep->ep.desc))
 		return -EIO;
 
 	/* Check buffer alignment */
