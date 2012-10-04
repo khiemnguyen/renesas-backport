@@ -425,6 +425,50 @@ static inline void pipe_dma_disable(struct r8a66597 *r8a66597, u16 pipenum)
 		r8a66597_bclr(r8a66597, DREQE, ep->fifosel);
 }
 
+/*
+ * PIPE, transfer type and buffer size configuration (1 chunk = 64 bytes)
+ *
+ * pipe#			type		size@bufnum
+ * -------------------------------------------------------------
+ * PIPE0 = 0			CONTROL		256B@0x00
+ * PIPE1 = 8 + (32 * 0)		ISOC or BULK	2KB@0x08 (1KB reserved for future use)
+ * PIPE2 = 8 + (32 * 1)		ISOC or BULK	2KB@0x28 (1KB reserved for future use)
+ * PIPE3 = 8 + 64 + (16 * 0)	BULK		1KB@0x48 with DBLB
+ * PIPE4 = 8 + 64 + (16 * 1)	BULK		1KB@0x58 with DBLB
+ * PIPE5 = 8 + 64 + (16 * 2)	BULK		1KB@0x68 with DBLB
+ * PIPE6 = 4 + (1 * 0)		INT		64B@0x04
+ * PIPE7 = 4 + (1 * 1)		INT		64B@0x05
+ * PIPE8 = 4 + (1 * 2)		INT		64B@0x06
+ * PIPE9 = 4 + (1 * 3)		INT		64B@0x07
+ *
+ * Expression in C:
+ *
+ * #define R8A66597_BASE_PIPENUM_BULK	3
+ * #define R8A66597_BASE_PIPENUM_ISOC	1
+ * #define R8A66597_BASE_PIPENUM_INT	6
+ *
+ * u16 get_bufnum(int pipenum)
+ * {
+ *	u16 bufnum = 0;
+ *
+ *	if (pipenum < 0)
+ *		BUG();
+ *	else if (pipenum <= 2)
+ *		bufnum = 8 + 32 * (pipenum - R8A66597_BASE_PIPENUM_ISOC);
+ *	else if (pipenum <= 5)
+ *		bufnum = 8 + 64 + 16 * (pipenum - R8A66597_BASE_PIPENUM_BULK);
+ *	else if (pipenum <= 9)
+ *		bufnum = 4 + (pipenum - R8A66597_BASE_PIPENUM_INT);
+ *	else
+ *		BUG();
+ *
+ *	return bufnum;
+ * }
+ */
+static u16 pipenum2bufnum[R8A66597_MAX_NUM_PIPE] = {
+	0, 0x08, 0x28, 0x48, 0x58, 0x68, 0x04, 0x05, 0x06, 0x07,
+};
+
 static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 		struct r8a66597_pipe_info *info)
 {
@@ -432,7 +476,7 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 	u16 pipecfg = 0;
 	u16 max_bufnum;
 
-	if (info->pipe == 0)
+	if ((info->pipe <= 0) || (info->pipe >= R8A66597_MAX_NUM_PIPE))
 		return -EINVAL;
 
 	r8a66597_write(r8a66597, info->pipe, PIPESEL);
@@ -443,31 +487,20 @@ static int pipe_buffer_setting(struct r8a66597 *r8a66597,
 	pipecfg |= info->epnum;
 	switch (info->type) {
 	case R8A66597_INT:
-		bufnum = 4 + (info->pipe - R8A66597_BASE_PIPENUM_INT);
 		buf_bsize = 0;
 		break;
 	case R8A66597_BULK:
-		/* isochronous pipes may be used as bulk pipes */
-		if (info->pipe >= R8A66597_BASE_PIPENUM_BULK)
-			bufnum = info->pipe - R8A66597_BASE_PIPENUM_BULK;
-		else
-			bufnum = info->pipe - R8A66597_BASE_PIPENUM_ISOC +
-				 R8A66597_MAX_NUM_BULK;
-
-		bufnum = R8A66597_BASE_BUFNUM + (bufnum * 16);
 		buf_bsize = 7;
 		pipecfg |= R8A66597_DBLB;
 		if (!info->dir_in)
 			pipecfg |= (R8A66597_SHTNAK | R8A66597_BFRE);
 		break;
 	case R8A66597_ISO:
-		bufnum = R8A66597_BASE_BUFNUM +
-			 (info->pipe - R8A66597_BASE_PIPENUM_ISOC +
-			  R8A66597_MAX_NUM_BULK) * 16;
-		buf_bsize = 7;
+		buf_bsize = 15;
 		break;
 	}
 
+	bufnum = pipenum2bufnum[info->pipe];
 	max_bufnum = r8a66597->pdata->max_bufnum ? : R8A66597_MAX_BUFNUM;
 	if (buf_bsize && ((bufnum + 16) >= max_bufnum)) {
 		dev_err(r8a66597_to_dev(r8a66597),
