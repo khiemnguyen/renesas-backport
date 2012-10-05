@@ -33,7 +33,13 @@ static const char udc_name[] = "r8a66597_udc";
 static const char usbhs_dma_name[] = "USBHS-DMA1";
 static const char *r8a66597_ep_name[] = {
 	"ep0", "ep1-iso", "ep2-iso", "ep3-bulk", "ep4-bulk", "ep5-bulk",
-	"ep6-int", "ep7-int", "ep8-int", "ep9-int",
+	"ep6-int", "ep7-int", "ep8-int",
+#ifdef CONFIG_USB_R8A66597_TYPE_BULK_PIPES_12
+	"ep9-bulk", "ep10-bulk", "ep11-bulk", "ep12-bulk", "ep13-bulk",
+	"ep14-bulk", "ep15-bulk",
+#else
+	"ep9-int",
+#endif
 };
 
 static void disable_controller(struct r8a66597 *r8a66597);
@@ -441,6 +447,15 @@ static inline void pipe_dma_disable(struct r8a66597 *r8a66597, u16 pipenum)
  * PIPE8 = 4 + (1 * 2)		INT		64B@0x06
  * PIPE9 = 4 + (1 * 3)		INT		64B@0x07
  *
+ * With extended bulk endpoints supported:
+ * PIPE9 = 8 + 64 + (16 * 3)	BULK		1KB@0x78 with DBLB
+ * PIPEA = 8 + 64 + (16 * 4)	BULK		1KB@0x88 with DBLB
+ * PIPEB = 8 + 64 + (16 * 5)	BULK		1KB@0x98 with DBLB
+ * PIPEC = 8 + 64 + (16 * 6)	BULK		1KB@0xA8 with DBLB
+ * PIPED = 8 + 64 + (16 * 7)	BULK		1KB@0xB8 with DBLB
+ * PIPEE = 8 + 64 + (16 * 8)	BULK		1KB@0xC8 with DBLB
+ * PIPEF = 8 + 64 + (16 * 9)	BULK		1KB@0xD8 with DBLB
+ *
  * Expression in C:
  *
  * #define R8A66597_BASE_PIPENUM_BULK	3
@@ -466,7 +481,12 @@ static inline void pipe_dma_disable(struct r8a66597 *r8a66597, u16 pipenum)
  * }
  */
 static u16 pipenum2bufnum[R8A66597_MAX_NUM_PIPE] = {
-	0, 0x08, 0x28, 0x48, 0x58, 0x68, 0x04, 0x05, 0x06, 0x07,
+	0, 0x08, 0x28, 0x48, 0x58, 0x68, 0x04, 0x05, 0x06, /* PIPE0..PIPE8 */
+#ifdef CONFIG_USB_R8A66597_TYPE_BULK_PIPES_12
+	0x78, 0x88, 0x98, 0xa8, 0xb8, 0xc8, 0xd8, /* PIPE9..PIPEF */
+#else
+	0x07, /* PIPE9 */
+#endif
 };
 
 static int pipe_buffer_setting(struct r8a66597 *r8a66597,
@@ -1235,7 +1255,8 @@ static void irq_packet_read(struct r8a66597_ep *ep,
 		req->req.status = -EPIPE;
 		pipe_stop(r8a66597, pipenum);
 		pipe_irq_disable(r8a66597, pipenum);
-		dev_err(r8a66597_to_dev(r8a66597), "read fifo not ready");
+		dev_err(r8a66597_to_dev(r8a66597), "read fifo not ready (%d)",
+			pipenum);
 		return;
 	}
 

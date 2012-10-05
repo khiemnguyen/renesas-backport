@@ -232,6 +232,16 @@ config USB_R8A66597
 	   dynamically linked module called "r8a66597_udc" and force all
 	   gadget drivers to also be dynamically linked.
 
+# Selected by R-Mobile machines with extended bulk endpoints support
+config USB_R8A66597_TYPE_BULK_PIPES_12
+	bool "on-chip USBHS type with extended bulk endpoints support"
+	depends on USB_R8A66597
+	help
+	  Some recent R-Mobile SoCs (APE5R, U2, etc.) come with extended
+	  bulk endpoints support.  They have twelve bulk pipes supported
+	  at maximum, and six-teen in total including control, isoc, and
+	  interrupt.
+
 config USB_RENESAS_USBHS_UDC
 	tristate 'Renesas USBHS controller'
 	depends on USB_RENESAS_USBHS

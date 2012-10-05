@@ -22,10 +22,17 @@
 
 #define R8A66597_MAX_SAMPLING	10
 
+#ifdef CONFIG_USB_R8A66597_TYPE_BULK_PIPES_12
+#define R8A66597_MAX_NUM_PIPE	16
+#define R8A66597_MAX_NUM_BULK	10
+#define R8A66597_MAX_NUM_ISOC	2
+#define R8A66597_MAX_NUM_INT	3
+#else
 #define R8A66597_MAX_NUM_PIPE	10
 #define R8A66597_MAX_NUM_BULK	3
 #define R8A66597_MAX_NUM_ISOC	2
 #define R8A66597_MAX_NUM_INT	4
+#endif
 
 #define R8A66597_BASE_PIPENUM_BULK	3
 #define R8A66597_BASE_PIPENUM_ISOC	1
@@ -302,8 +309,45 @@ static inline u16 get_xtal_from_pdata(struct r8a66597_platdata *pdata)
 }
 
 #define get_pipectr_addr(pipenum)	(PIPE1CTR + (pipenum - 1) * 2)
+#ifdef CONFIG_USB_R8A66597_TYPE_BULK_PIPES_12
+static inline unsigned long get_pipetre_addr(u16 pipenum)
+{
+	const unsigned long offset[] = {
+		0,		PIPE1TRE,	PIPE2TRE,	PIPE3TRE,
+		PIPE4TRE,	PIPE5TRE,	0,		0,
+		0,		PIPE9TRE,	PIPEATRE,	PIPEBTRE,
+		PIPECTRE,	PIPEDTRE,	PIPEETRE,	PIPEFTRE,
+	};
+
+	if (offset[pipenum] == 0) {
+		printk(KERN_ERR "no PIPEnTRE (%d)\n", pipenum);
+		return 0;
+	}
+
+	return offset[pipenum];
+}
+
+static inline unsigned long get_pipetrn_addr(u16 pipenum)
+{
+	const unsigned long offset[] = {
+		0,		PIPE1TRN,	PIPE2TRN,	PIPE3TRN,
+		PIPE4TRN,	PIPE5TRN,	0,		0,
+		0,		PIPE9TRN,	PIPEATRN,	PIPEBTRN,
+		PIPECTRN,	PIPEDTRN,	PIPEETRN,	PIPEFTRN,
+	};
+
+	if (offset[pipenum] == 0) {
+		printk(KERN_ERR "no PIPEnTRN (%d)\n", pipenum);
+		return 0;
+	}
+
+	return offset[pipenum];
+}
+
+#else
 #define get_pipetre_addr(pipenum)	(PIPE1TRE + (pipenum - 1) * 4)
 #define get_pipetrn_addr(pipenum)	(PIPE1TRN + (pipenum - 1) * 4)
+#endif
 
 #define enable_irq_ready(r8a66597, pipenum)	\
 	enable_pipe_irq(r8a66597, pipenum, BRDYENB)

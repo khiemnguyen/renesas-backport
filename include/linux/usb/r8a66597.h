@@ -121,6 +121,12 @@ struct r8a66597_platdata {
 #define PIPE7CTR	0x7C
 #define PIPE8CTR	0x7E
 #define PIPE9CTR	0x80
+#define PIPEACTR	0x82
+#define PIPEBCTR	0x84
+#define PIPECCTR	0x86
+#define PIPEDCTR	0x88
+#define PIPEECTR	0x8A
+#define PIPEFCTR	0x8C
 #define PIPE1TRE	0x90
 #define PIPE1TRN	0x92
 #define PIPE2TRE	0x94
@@ -128,9 +134,23 @@ struct r8a66597_platdata {
 #define PIPE3TRE	0x98
 #define PIPE3TRN	0x9A
 #define PIPE4TRE	0x9C
-#define	PIPE4TRN	0x9E
-#define	PIPE5TRE	0xA0
-#define	PIPE5TRN	0xA2
+#define PIPE4TRN	0x9E
+#define PIPE5TRE	0xA0
+#define PIPE5TRN	0xA2
+#define PIPEBTRE	0xA4
+#define PIPEBTRN	0xA6
+#define PIPECTRE	0xA8
+#define PIPECTRN	0xAA
+#define PIPEDTRE	0xAC
+#define PIPEDTRN	0xAE
+#define PIPEETRE	0xB0
+#define PIPEETRN	0xB2
+#define PIPEFTRE	0xB4
+#define PIPEFTRN	0xB6
+#define PIPE9TRE	0xB8
+#define PIPE9TRN	0xBA
+#define PIPEATRE	0xBC
+#define PIPEATRN	0xBE
 #define DEVADD0		0xD0
 #define DEVADD1		0xD2
 #define DEVADD2		0xD4
@@ -142,6 +162,10 @@ struct r8a66597_platdata {
 #define DEVADD8		0xE0
 #define DEVADD9		0xE2
 #define DEVADDA		0xE4
+#define D2FIFOSEL	0xF0
+#define D2FIFOCTR	0xF2
+#define D3FIFOSEL	0xF4
+#define D3FIFOCTR	0xF6
 
 /* System Configuration Control Register */
 #define	XTAL		0xC000	/* b15-14: Crystal selection */
