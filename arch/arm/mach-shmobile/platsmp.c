@@ -12,7 +12,11 @@
  */
 #include <linux/init.h>
 #include <linux/smp.h>
-#include <asm/hardware/gic.h>
+#include <linux/io.h>
+#include <linux/of.h>
+#include <asm/mach-types.h>
+#include <mach/common.h>
+#include <mach/emev2.h>
 
 void __init shmobile_smp_init_cpus(unsigned int ncores)
 {
