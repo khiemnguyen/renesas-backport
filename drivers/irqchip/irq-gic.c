@@ -47,6 +47,8 @@
 
 #include "irqchip.h"
 
+#include "irqchip.h"
+
 union gic_base {
 	void __iomem *common_base;
 	void __percpu __iomem **percpu_base;
