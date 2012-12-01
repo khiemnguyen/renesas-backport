@@ -238,10 +238,10 @@ char *drm_get_connector_status_name(enum drm_connector_status status)
 }
 
 /**
- * drm_mode_object_get - allocate a new identifier
+ * drm_mode_object_get - allocate a new modeset identifier
  * @dev: DRM device
- * @ptr: object pointer, used to generate unique ID
- * @type: object type
+ * @obj: object pointer, used to generate unique ID
+ * @obj_type: object type
  *
  * Create a unique identifier based on @ptr in @dev's identifier space.  Used
  * for tracking modes, CRTCs and connectors.
@@ -282,9 +282,9 @@ again:
 }
 
 /**
- * drm_mode_object_put - free an identifer
+ * drm_mode_object_put - free a modeset identifer
  * @dev: DRM device
- * @id: ID to free
+ * @object: object to free
  *
  * Free @id from @dev's unique identifier pool.
  */
@@ -327,6 +327,8 @@ EXPORT_SYMBOL(drm_mode_object_find);
 /**
  * drm_framebuffer_init - initialize a framebuffer
  * @dev: DRM device
+ * @fb: framebuffer to be initialized
+ * @funcs: ... with these functions
  *
  * Allocates an ID for the framebuffer's parent mode object, sets its mode
  * functions & device file and adds it to the master fd list.
@@ -417,6 +419,9 @@ EXPORT_SYMBOL(drm_framebuffer_lookup);
 
 /**
  * drm_framebuffer_unreference - unref a framebuffer
+ * @fb: framebuffer to unref
+ *
+ * This functions decrements the fb's refcount and frees it if it drops to zero.
  */
 void drm_framebuffer_unreference(struct drm_framebuffer *fb)
 {
@@ -429,6 +434,7 @@ EXPORT_SYMBOL(drm_framebuffer_unreference);
 
 /**
  * drm_framebuffer_reference - incr the fb refcnt
+ * @fb: framebuffer
  */
 void drm_framebuffer_reference(struct drm_framebuffer *fb)
 {
@@ -651,7 +657,7 @@ EXPORT_SYMBOL(drm_mode_remove);
  * @dev: DRM device
  * @connector: the connector to init
  * @funcs: callbacks for this connector
- * @name: user visible name of the connector
+ * @connector_type: user visible type of the connector
  *
  * Initialises a preallocated connector. Connectors should be
  * subclassed as part of driver connector objects.
@@ -1393,10 +1399,9 @@ static int drm_crtc_convert_umode(struct drm_display_mode *out,
 
 /**
  * drm_mode_getresources - get graphics configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Construct a set of configuration description structures and return
  * them to the user, including CRTC, connector and framebuffer configuration.
@@ -1580,10 +1585,9 @@ out:
 
 /**
  * drm_mode_getcrtc - get CRTC configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Construct a CRTC configuration structure to return to the user.
  *
@@ -1637,10 +1641,9 @@ out:
 
 /**
  * drm_mode_getconnector - get connector configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Construct a connector configuration structure to return to the user.
  *
@@ -1927,7 +1930,7 @@ out:
  * drm_mode_setplane - set up or tear down an plane
  * @dev: DRM device
  * @data: ioctl data*
- * @file_prive: DRM file info
+ * @file_priv: DRM file info
  *
  * Set plane info, including placement, fb, scaling, and other factors.
  * Or pass a NULL fb to disable.
@@ -2290,10 +2293,9 @@ EXPORT_SYMBOL(drm_mode_set_config_internal);
 
 /**
  * drm_mode_setcrtc - set CRTC configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Build a new CRTC configuration based on user request.
  *
@@ -2546,10 +2548,9 @@ EXPORT_SYMBOL(drm_mode_legacy_fb_format);
 
 /**
  * drm_mode_addfb - add an FB to the graphics configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Add a new FB to the specified CRTC, given a user request.
  *
@@ -2728,10 +2729,9 @@ static int framebuffer_check(const struct drm_mode_fb_cmd2 *r)
 
 /**
  * drm_mode_addfb2 - add an FB to the graphics configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Add a new FB to the specified CRTC, given a user request with format.
  *
@@ -2793,10 +2793,9 @@ int drm_mode_addfb2(struct drm_device *dev,
 
 /**
  * drm_mode_rmfb - remove an FB from the configuration
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Remove the FB specified by the user.
  *
@@ -2850,10 +2849,9 @@ fail_lookup:
 
 /**
  * drm_mode_getfb - get FB info
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Lookup the FB given its ID and return info about it.
  *
@@ -2972,7 +2970,7 @@ out_err1:
 
 /**
  * drm_fb_release - remove and free the FBs on this file
- * @filp: file * from the ioctl
+ * @priv: drm file for the ioctl
  *
  * Destroy all the FBs associated with @filp.
  *
@@ -3093,10 +3091,9 @@ EXPORT_SYMBOL(drm_mode_detachmode_crtc);
 
 /**
  * drm_fb_attachmode - Attach a user mode to an connector
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * This attaches a user specified mode to an connector.
  * Called by the user via ioctl.
@@ -3148,10 +3145,9 @@ out:
 
 /**
  * drm_fb_detachmode - Detach a user specified mode from an connector
- * @inode: inode from the ioctl
- * @filp: file * from the ioctl
- * @cmd: cmd from ioctl
- * @arg: arg from ioctl
+ * @dev: drm device for the ioctl
+ * @data: data pointer for the ioctl
+ * @file_priv: drm file for the ioctl call
  *
  * Called by the user via ioctl.
  *
