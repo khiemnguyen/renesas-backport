@@ -1305,10 +1305,11 @@ static int __devinit sh_mmcif_probe(struct platform_device *pdev)
 	struct resource *res;
 	void __iomem *reg;
 	char clk_name[8];
+	const char *name;
 
 	irq[0] = platform_get_irq(pdev, 0);
 	irq[1] = platform_get_irq(pdev, 1);
-	if (irq[0] < 0 || irq[1] < 0) {
+	if (irq[0] < 0) {
 		dev_err(&pdev->dev, "Get irq error\n");
 		return -ENXIO;
 	}
@@ -1374,15 +1375,19 @@ static int __devinit sh_mmcif_probe(struct platform_device *pdev)
 	sh_mmcif_sync_reset(host);
 	sh_mmcif_writel(host->addr, MMCIF_CE_INT_MASK, MASK_ALL);
 
-	ret = request_threaded_irq(irq[0], sh_mmcif_intr, sh_mmcif_irqt, 0, "sh_mmc:error", host);
+	name = irq[1] < 0 ? dev_name(&pdev->dev) : "sh_mmc:error";
+	ret = request_threaded_irq(irq[0], sh_mmcif_intr, sh_mmcif_irqt, 0, name, host);
 	if (ret) {
-		dev_err(&pdev->dev, "request_irq error (sh_mmc:error)\n");
+		dev_err(&pdev->dev, "request_irq error (%s)\n", name);
 		goto ereqirq0;
 	}
-	ret = request_threaded_irq(irq[1], sh_mmcif_intr, sh_mmcif_irqt, 0, "sh_mmc:int", host);
-	if (ret) {
-		dev_err(&pdev->dev, "request_irq error (sh_mmc:int)\n");
-		goto ereqirq1;
+	if (irq[1] >= 0) {
+		ret = request_threaded_irq(irq[1], sh_mmcif_intr, sh_mmcif_irqt,
+					   0, "sh_mmc:int", host);
+		if (ret) {
+			dev_err(&pdev->dev, "request_irq error (sh_mmc:int)\n");
+			goto ereqirq1;
+		}
 	}
 
 	if (pd && pd->use_cd_gpio) {
@@ -1407,7 +1412,8 @@ emmcaddh:
 	if (pd && pd->use_cd_gpio)
 		mmc_gpio_free_cd(mmc);
 erqcd:
-	free_irq(irq[1], host);
+	if (irq[1] >= 0)
+		free_irq(irq[1], host);
 ereqirq1:
 	free_irq(irq[0], host);
 ereqirq0:
@@ -1456,7 +1462,8 @@ static int __devexit sh_mmcif_remove(struct platform_device *pdev)
 	irq[1] = platform_get_irq(pdev, 1);
 
 	free_irq(irq[0], host);
-	free_irq(irq[1], host);
+	if (irq[1] >= 0)
+		free_irq(irq[1], host);
 
 	platform_set_drvdata(pdev, NULL);
 
