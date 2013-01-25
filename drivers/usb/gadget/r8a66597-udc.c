@@ -751,6 +751,10 @@ static int dmac_alloc_channel(struct r8a66597 *r8a66597,
 	if (!r8a66597_has_dmac(r8a66597))
 		return -ENODEV;
 
+	/* Check transfer length */
+	if (!req->req.length)
+		return -EINVAL;
+
 	/* Check transfer type */
 	if (!usb_endpoint_xfer_bulk(ep->ep.desc))
 		return -EIO;
@@ -909,28 +913,24 @@ static void start_packet_write(struct r8a66597_ep *ep,
 		dev_warn(r8a66597_to_dev(r8a66597),
 			 "%s: buffer pointer is NULL\n", __func__);
 
-	if (req->req.length == 0) {
-		transfer_complete(ep, req, 0);
+	r8a66597_write(r8a66597, ~(1 << ep->pipenum), BRDYSTS);
+	if (dmac_alloc_channel(r8a66597, ep, req) < 0) {
+		/* PIO mode */
+		pipe_change(r8a66597, ep->pipenum);
+		disable_irq_empty(r8a66597, ep->pipenum);
+		pipe_start(r8a66597, ep->pipenum);
+		tmp = r8a66597_read(r8a66597, ep->fifoctr);
+		if (unlikely((tmp & FRDY) == 0))
+			pipe_irq_enable(r8a66597, ep->pipenum);
+		else
+			irq_packet_write(ep, req);
 	} else {
-		r8a66597_write(r8a66597, ~(1 << ep->pipenum), BRDYSTS);
-		if (dmac_alloc_channel(r8a66597, ep, req) < 0) {
-			/* PIO mode */
-			pipe_change(r8a66597, ep->pipenum);
-			disable_irq_empty(r8a66597, ep->pipenum);
-			pipe_start(r8a66597, ep->pipenum);
-			tmp = r8a66597_read(r8a66597, ep->fifoctr);
-			if (unlikely((tmp & FRDY) == 0))
-				pipe_irq_enable(r8a66597, ep->pipenum);
-			else
-				irq_packet_write(ep, req);
-		} else {
-			/* DMA mode */
-			pipe_change(r8a66597, ep->pipenum);
-			disable_irq_nrdy(r8a66597, ep->pipenum);
-			pipe_start(r8a66597, ep->pipenum);
-			enable_irq_nrdy(r8a66597, ep->pipenum);
-			dmac_start(r8a66597, ep, req);
-		}
+		/* DMA mode */
+		pipe_change(r8a66597, ep->pipenum);
+		disable_irq_nrdy(r8a66597, ep->pipenum);
+		pipe_start(r8a66597, ep->pipenum);
+		enable_irq_nrdy(r8a66597, ep->pipenum);
+		dmac_start(r8a66597, ep, req);
 	}
 }
 
