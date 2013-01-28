@@ -1740,12 +1740,20 @@ static unsigned long usb_dma_calc_received_size(struct r8a66597 *r8a66597,
 	/*
 	 * DAR will increment the value every transfer-unit-size,
 	 * but the "size" (DTLN) will be set within MaxPacketSize.
-	 * So the calucuation is "(DAR - SAR) & ~MaxPacketSize" + DTLN".
+	 *
+	 * The calucuation would be:
+	 *   (((DAR-SAR) - TransferUnitSize) & ~MaxPacketSize) + DTLN.
+	 *
+	 * Be careful that if the "size" is zero, no correction is needed.
+	 * Just return (DAR-SAR) as-is.
 	 */
 	received_size = r8a66597_dma_read(r8a66597, USBHS_DMAC_DAR(ch)) -
 			r8a66597_dma_read(r8a66597, USBHS_DMAC_SAR(ch));
-	received_size &= ~(ep->ep.maxpacket - 1);
-	received_size += size;
+	if (size) {
+		received_size -= dma->tx_size;
+		received_size &= ~(ep->ep.maxpacket - 1);
+		received_size += size; /* DTLN */
+	}
 
 	return received_size;
 }
