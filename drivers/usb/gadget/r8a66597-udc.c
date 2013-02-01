@@ -1759,8 +1759,7 @@ static unsigned long usb_dma_calc_received_size(struct r8a66597 *r8a66597,
 }
 
 static void dma_read_complete(struct r8a66597 *r8a66597,
-			      struct r8a66597_dma *dma,
-			      int short_packet)
+			      struct r8a66597_dma *dma)
 {
 	struct r8a66597_ep *ep = dma->ep;
 	struct r8a66597_request *req = get_request_from_ep(ep);
@@ -1775,11 +1774,7 @@ static void dma_read_complete(struct r8a66597 *r8a66597,
 	r8a66597_bset(r8a66597, BCLR, ep->fifoctr);
 	req = get_request_from_ep(ep);
 
-	if (!short_packet)
-		req->req.actual += req->req.length;
-	else
-		req->req.actual += usb_dma_calc_received_size(r8a66597, dma,
-							      size);
+	req->req.actual += usb_dma_calc_received_size(r8a66597, dma, size);
 
 	if (r8a66597_dma_read(r8a66597, USBHS_DMAC_CHCR(ch)) & NULLF) {
 		/*
@@ -1805,27 +1800,12 @@ static void dma_read_complete(struct r8a66597 *r8a66597,
 	transfer_complete(ep, req, 0);
 }
 
-static int dmac_is_received_short_packet(struct r8a66597 *r8a66597, int ch,
-					 unsigned long dmicrsts)
-{
-	unsigned long expect_dmicr = r8a66597->dma[ch].expect_dmicr;
-
-	if (dmicrsts & expect_dmicr & USBHS_DMAC_DMICR_TE(ch))
-		return 0;
-	if (dmicrsts & expect_dmicr & USBHS_DMAC_DMICR_SP(ch))
-		return 1;
-	if (dmicrsts & expect_dmicr & USBHS_DMAC_DMICR_NULL(ch))
-		return 1;
-	return 0;
-}
-
 static irqreturn_t r8a66597_dma_irq(int irq, void *_r8a66597)
 {
 	struct r8a66597 *r8a66597 = _r8a66597;
 	u32 dmicrsts;
 	int ch;
 	irqreturn_t ret = IRQ_NONE;
-	int short_packet;
 
 	spin_lock(&r8a66597->lock);
 
@@ -1838,15 +1818,8 @@ static irqreturn_t r8a66597_dma_irq(int irq, void *_r8a66597)
 
 		if (r8a66597->dma[ch].dir)
 			dma_write_complete(r8a66597, &r8a66597->dma[ch]);
-		else {
-			if (dmac_is_received_short_packet(r8a66597, ch,
-							  dmicrsts))
-				short_packet = 1;
-			else
-				short_packet = 0;
-			dma_read_complete(r8a66597, &r8a66597->dma[ch],
-					  short_packet);
-		}
+		else
+			dma_read_complete(r8a66597, &r8a66597->dma[ch]);
 	}
 
 	spin_unlock(&r8a66597->lock);
