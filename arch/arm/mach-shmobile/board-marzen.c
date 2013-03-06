@@ -80,6 +80,12 @@ static struct platform_device *marzen_devices[] __initdata = {
 };
 
 static const struct pinctrl_map marzen_pinctrl_map[] = {
+	/* SCIF2 (CN18: DEBUG0) */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.2", "pfc-r8a7779",
+				  "scif2_data_c", "scif2"),
+	/* SCIF4 (CN19: DEBUG1) */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.4", "pfc-r8a7779",
+				  "scif4_data", "scif4"),
 	/* SDHI0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7779",
 				  "sdhi0_data4", "sdhi0"),
@@ -99,14 +105,6 @@ static void __init marzen_init(void)
 				  ARRAY_SIZE(marzen_pinctrl_map));
 	r8a7779_pinmux_init();
 	r8a7779_init_irq_extpin(1); /* IRQ1 as individual interrupt */
-
-	/* SCIF2 (CN18: DEBUG0) */
-	gpio_request(GPIO_FN_TX2_C, NULL);
-	gpio_request(GPIO_FN_RX2_C, NULL);
-
-	/* SCIF4 (CN19: DEBUG1) */
-	gpio_request(GPIO_FN_TX4, NULL);
-	gpio_request(GPIO_FN_RX4, NULL);
 
 	/* LAN89218 */
 	gpio_request(GPIO_FN_EX_CS0, NULL); /* nCS */
