@@ -60,6 +60,10 @@
 #define SDCKCR		0xE6150074
 #define SD2CKCR		0xE6150078
 #define SD3CKCR		0xE615007C
+#define MMC0CKCR	0xE6150240
+#define MMC1CKCR	0xE6150244
+#define SSPCKCR		0xE6150248
+#define SSPRSCKCR	0xE615024C
 
 static struct clk_mapping cpg_mapping = {
 	.phys   = CPG_BASE,
@@ -112,27 +116,12 @@ SH_FIXED_RATIO_CLK_SET(zb3d2_clk,		pll3_clk,	1, 8);
 SH_FIXED_RATIO_CLK_SET(ddr_clk,			pll3_clk,	1, 8);
 SH_FIXED_RATIO_CLK_SET(mp_clk,			pll1_div2_clk,	1, 15);
 
-static unsigned long d4_recalc(struct clk *clk)
-{
-	return clk->parent->rate / 4;
-}
-
-static struct sh_clk_ops d4_clk_ops = {
-	.recalc		= d4_recalc,
-};
-
-static struct clk pll1_d4_clk = {
-	.ops		= &d4_clk_ops,
-	.parent		= &pll1_clk,
-};
-
 static struct clk *main_clks[] = {
 	&extal_clk,
 	&extal_div2_clk,
 	&main_clk,
 	&pll1_clk,
 	&pll1_div2_clk,
-	&pll1_d4_clk,
 	&pll3_clk,
 	&lb_clk,
 	&qspi_clk,
@@ -153,33 +142,6 @@ static struct clk *main_clks[] = {
 	&ddr_clk,
 	&mp_clk,
 	&cp_clk,
-};
-
-enum {
-	SD0, SD1,
-	SD01_NR };
-
-enum {
-	SD2, SD3,
-	SD23_NR };
-
-#define SD_DIV(_parent, _reg, _shift, _flags)			\
-{								\
-	.parent = _parent,					\
-	.enable_reg = (void __iomem *)_reg,			\
-	.enable_bit = _shift,					\
-	.div_mask = SH_CLK_DIV_MSK(4),				\
-	.flags = _flags,					\
-}
-
-static struct clk sd01_clks[SD01_NR] = {
-	[SD0] = SD_DIV(&pll1_div2_clk, SDCKCR, 4, 0),
-	[SD1] = SD_DIV(&pll1_div2_clk, SDCKCR, 0, 0),
-};
-
-static struct clk sd23_clks[SD23_NR] = {
-	[SD2] = SH_CLK_DIV6(&pll1_d4_clk, SD2CKCR, 0),
-	[SD3] = SH_CLK_DIV6(&pll1_d4_clk, SD3CKCR, 0),
 };
 
 /* SDHI (DIV4) clock */
@@ -204,6 +166,23 @@ struct clk div4_clks[DIV4_NR] = {
 	[DIV4_SD1] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 0, 0x1de0, CLK_ENABLE_ON_INIT),
 };
 
+/* DIV6 clocks */
+enum {
+	DIV6_SD2, DIV6_SD3,
+	DIV6_MMC0, DIV6_MMC1,
+	DIV6_SSP, DIV6_SSPRS,
+	DIV6_NR
+};
+
+static struct clk div6_clks[DIV6_NR] = {
+	[DIV6_SD2]	= SH_CLK_DIV6(&pll1_div2_clk, SD2CKCR, 0),
+	[DIV6_SD3]	= SH_CLK_DIV6(&pll1_div2_clk, SD3CKCR, 0),
+	[DIV6_MMC0]	= SH_CLK_DIV6(&pll1_div2_clk, MMC0CKCR, 0),
+	[DIV6_MMC1]	= SH_CLK_DIV6(&pll1_div2_clk, MMC1CKCR, 0),
+	[DIV6_SSP]	= SH_CLK_DIV6(&pll1_div2_clk, SSPCKCR, 0),
+	[DIV6_SSPRS]	= SH_CLK_DIV6(&pll1_div2_clk, SSPRSCKCR, 0),
+};
+
 /* MSTP */
 enum {
 	MSTP726, MSTP725, MSTP724, MSTP723, MSTP721, MSTP720,
@@ -225,10 +204,10 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP723] = SH_CLK_MSTP32(&zx_clk, SMSTPCR7, 23, 0), /* DU1 */
 	[MSTP721] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 21, 0), /* SCIF0 */
 	[MSTP720] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 20, 0), /* SCIF1 */
-	[MSTP314] = SH_CLK_MSTP32(&sd01_clks[SD0], SMSTPCR3, 14, 0), /* SDHI0 */
-	[MSTP313] = SH_CLK_MSTP32(&sd01_clks[SD1], SMSTPCR3, 13, 0), /* SDHI1 */
-	[MSTP312] = SH_CLK_MSTP32(&sd23_clks[SD2], SMSTPCR3, 12, 0), /* SDHI2 */
-	[MSTP311] = SH_CLK_MSTP32(&sd23_clks[SD3], SMSTPCR3, 11, 0), /* SDHI3 */
+	[MSTP314] = SH_CLK_MSTP32(&div4_clks[DIV4_SD0], SMSTPCR3, 14, 0), /* SDHI0 */
+	[MSTP313] = SH_CLK_MSTP32(&div4_clks[DIV4_SD1], SMSTPCR3, 13, 0), /* SDHI1 */
+	[MSTP312] = SH_CLK_MSTP32(&div6_clks[DIV6_SD2], SMSTPCR3, 12, 0), /* SDHI2 */
+	[MSTP311] = SH_CLK_MSTP32(&div6_clks[DIV6_SD3], SMSTPCR3, 11, 0), /* SDHI3 */
 	[MSTP216] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 16, 0), /* SCIFB2 */
 	[MSTP207] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 7, 0), /* SCIFB1 */
 	[MSTP206] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 6, 0), /* SCIFB0 */
@@ -290,6 +269,14 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("sdh",		&div4_clks[DIV4_SDH]),
 	CLKDEV_CON_ID("sd0",		&div4_clks[DIV4_SD0]),
 	CLKDEV_CON_ID("sd1",		&div4_clks[DIV4_SD1]),
+
+	/* DIV6 */
+	CLKDEV_CON_ID("sd2",		&div6_clks[DIV6_SD2]),
+	CLKDEV_CON_ID("sd3",		&div6_clks[DIV6_SD3]),
+	CLKDEV_CON_ID("mmc0",		&div6_clks[DIV6_MMC0]),
+	CLKDEV_CON_ID("mmc1",		&div6_clks[DIV6_MMC1]),
+	CLKDEV_CON_ID("ssp",		&div6_clks[DIV6_SSP]),
+	CLKDEV_CON_ID("ssprs",		&div6_clks[DIV6_SSPRS]),
 
 	/* MSTP */
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
@@ -390,7 +377,7 @@ void __init r8a7790_clock_init(void)
 		ret = sh_clk_div4_register(div4_clks, DIV4_NR, &div4_table);
 
 	if (!ret)
-		ret = sh_clk_div6_reparent_register(sd23_clks, SD23_NR);
+		ret = sh_clk_div6_register(div6_clks, DIV6_NR);
 
 	if (!ret)
 		ret = sh_clk_mstp_register(mstp_clks, MSTP_NR);
