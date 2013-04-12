@@ -163,17 +163,6 @@ enum {
 	SD2, SD3,
 	SD23_NR };
 
-static int sd01_divisors[] = { 0, 0, 0, 0, 0, 12, 16, 18, 24, 0, 36, 48, 10};
-
-static struct clk_div_mult_table sd01_div_mult_table = {
-	.divisors = sd01_divisors,
-	.nr_divisors = ARRAY_SIZE(sd01_divisors),
-};
-
-static struct clk_div4_table div4_table = {
-	.div_mult_table = &sd01_div_mult_table,
-};
-
 #define SD_DIV(_parent, _reg, _shift, _flags)			\
 {								\
 	.parent = _parent,					\
@@ -191,6 +180,28 @@ static struct clk sd01_clks[SD01_NR] = {
 static struct clk sd23_clks[SD23_NR] = {
 	[SD2] = SH_CLK_DIV6(&pll1_d4_clk, SD2CKCR, 0),
 	[SD3] = SH_CLK_DIV6(&pll1_d4_clk, SD3CKCR, 0),
+};
+
+/* SDHI (DIV4) clock */
+static int divisors[] = { 2, 3, 4, 6, 8, 12, 16, 18, 24, 0, 36, 48, 10 };
+
+static struct clk_div_mult_table div4_div_mult_table = {
+	.divisors = divisors,
+	.nr_divisors = ARRAY_SIZE(divisors),
+};
+
+static struct clk_div4_table div4_table = {
+	.div_mult_table = &div4_div_mult_table,
+};
+
+enum {
+	DIV4_SDH, DIV4_SD0, DIV4_SD1, DIV4_NR
+};
+
+struct clk div4_clks[DIV4_NR] = {
+	[DIV4_SDH] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 8, 0x0dff, CLK_ENABLE_ON_INIT),
+	[DIV4_SD0] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 4, 0x1de0, CLK_ENABLE_ON_INIT),
+	[DIV4_SD1] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 0, 0x1de0, CLK_ENABLE_ON_INIT),
 };
 
 /* MSTP */
@@ -274,6 +285,11 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("qspi",		&qspi_clk),
 	CLKDEV_CON_ID("cp",		&cp_clk),
 	CLKDEV_CON_ID("peripheral_clk", &hp_clk),
+
+	/* DIV4 */
+	CLKDEV_CON_ID("sdh",		&div4_clks[DIV4_SDH]),
+	CLKDEV_CON_ID("sd0",		&div4_clks[DIV4_SD0]),
+	CLKDEV_CON_ID("sd1",		&div4_clks[DIV4_SD1]),
 
 	/* MSTP */
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
@@ -371,7 +387,7 @@ void __init r8a7790_clock_init(void)
 		ret = clk_register(main_clks[k]);
 
 	if (!ret)
-		ret = sh_clk_div4_register(sd01_clks, SD01_NR, &div4_table);
+		ret = sh_clk_div4_register(div4_clks, DIV4_NR, &div4_table);
 
 	if (!ret)
 		ret = sh_clk_div6_reparent_register(sd23_clks, SD23_NR);
