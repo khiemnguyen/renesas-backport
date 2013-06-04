@@ -196,6 +196,8 @@ obj-$(CONFIG_VIDEO_SAMSUNG_S5P_G2D)	+= s5p-g2d/
 
 obj-$(CONFIG_BLACKFIN)                  += blackfin/
 
+obj-$(CONFIG_VIDEO_RENESAS_VSP1)	+= vsp1/
+
 obj-$(CONFIG_ARCH_DAVINCI)		+= davinci/
 obj-$(CONFIG_VIDEO_VIN)			+= vin.o
 
