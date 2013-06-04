@@ -1230,4 +1230,14 @@ config VIDEO_MX2_EMMAPRP
 	    memory to memory. Operations include resizing and format
 	    conversion.
 
+config VIDEO_RENESAS_VSP1
+       tristate "Renesas VSP1 Video Processing Engine"
+       depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+       select VIDEOBUF2_DMA_CONTIG
+       ---help---
+	 This is a V4L2 driver for the Renesas VSP1 video processing engine.
+
+	 To compile this driver as a module, choose M here: the module
+	 will be called vsp1.
+
 endif # V4L_MEM2MEM_DRIVERS
