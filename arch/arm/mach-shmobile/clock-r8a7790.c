@@ -50,10 +50,10 @@
 
 #define SMSTPCR0	0xE6150130
 #define SMSTPCR1	0xE6150134
-#define SMSTPCR2	0xe6150138
+#define SMSTPCR2	0xE6150138
 #define SMSTPCR3	0xE615013C
 #define SMSTPCR5	0xE6150144
-#define SMSTPCR7	0xe615014c
+#define SMSTPCR7	0xE615014C
 #define SMSTPCR8	0xE6150990
 #define SMSTPCR9	0xE6150994
 #define SMSTPCR10	0xE6150998
@@ -204,6 +204,7 @@ enum {
 	MSTP522,
 	MSTP328, MSTP315, MSTP314, MSTP313, MSTP312, MSTP311, MSTP305, MSTP304,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
+	MSTP131, MSTP130, MSTP128, MSTP127,
 	MSTP112,
 	MSTP000, MSTP208, MSTP205, MSTP215,
 	MSTP219, MSTP218,
@@ -246,6 +247,10 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP522] = SH_CLK_MSTP32(&extal_clk, SMSTPCR5, 22, 0), /* Thermal */
 	[MSTP717] = SH_CLK_MSTP32(&zs_clk, SMSTPCR7, 17, 0), /* HSCIF0 */
 	[MSTP716] = SH_CLK_MSTP32(&zs_clk, SMSTPCR7, 16, 0), /* HSCIF1 */
+	[MSTP131] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 31, 0), /* VSP1 (SY) */
+	[MSTP130] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 30, 0), /* VSP1 (RT) */
+	[MSTP128] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 28, 0), /* VSP1 (DU0) */
+	[MSTP127] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 27, 0), /* VSP1 (DU1) */
 	[MSTP112] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 12, 0),
 	[MSTP219] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 19, 0),
 	[MSTP218] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 18, 0),
@@ -349,6 +354,10 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh_mobile_sdhi.3", &mstp_clks[MSTP311]),
 	CLKDEV_DEV_ID("ee220000.mmcif", &mstp_clks[MSTP305]),
 	CLKDEV_DEV_ID("sh_mmcif.1", &mstp_clks[MSTP305]),
+	CLKDEV_DEV_ID("vsp1.0", &mstp_clks[MSTP131]),
+	CLKDEV_DEV_ID("vsp1.1", &mstp_clks[MSTP130]),
+	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
+	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
 	CLKDEV_CON_ID("mmc.1", &div6_clks[DIV6_MMC1]),
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]),
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]),
