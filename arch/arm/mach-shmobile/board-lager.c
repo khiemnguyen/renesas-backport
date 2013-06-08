@@ -29,6 +29,7 @@
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
+#include <linux/platform_data/vsp1.h>
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
 #include <linux/mtd/mtd.h>
@@ -179,6 +180,35 @@ static __initdata struct gpio_keys_button gpio_buttons[] = {
 static __initdata struct gpio_keys_platform_data lager_keys_pdata = {
 	.buttons	= gpio_buttons,
 	.nbuttons	= ARRAY_SIZE(gpio_buttons),
+};
+
+/* VSP1 */
+static struct vsp1_platform_data lager_vspr_pdata = {
+	.features = 0,
+	.rpf_count = 5,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static struct vsp1_platform_data lager_vsps_pdata = {
+	.features = 0,
+	.rpf_count = 5,
+	.uds_count = 3,
+	.wpf_count = 4,
+};
+
+static struct vsp1_platform_data lager_vspd0_pdata = {
+	.features = VSP1_HAS_LIF,
+	.rpf_count = 4,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static struct vsp1_platform_data lager_vspd1_pdata = {
+	.features = VSP1_HAS_LIF,
+	.rpf_count = 4,
+	.uds_count = 1,
+	.wpf_count = 4,
 };
 
 static const struct pinctrl_map lager_pinctrl_map[] = {
@@ -465,6 +495,8 @@ static void __init lager_add_standard_devices(void)
 	platform_device_register_data(&platform_bus, "gpio-keys", -1,
 				      &lager_keys_pdata,
 				      sizeof(lager_keys_pdata));
+
+	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 2);
 
 	/* QSPI flash memory */
 	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
