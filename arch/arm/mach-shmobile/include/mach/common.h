@@ -68,12 +68,6 @@ extern void r8a7790_add_standard_devices(void);
 extern void r8a7790_clock_init(void);
 extern void r8a7790_pinmux_init(void);
 
-extern unsigned int r8a7790_get_core_count(void);
-extern void r8a7790_secondary_init(unsigned int cpu);
-extern int r8a7790_boot_secondary(unsigned int cpu);
-extern void r8a7790_smp_prepare_cpus(unsigned int max_cpus);
-extern void r8a7790_secondary_cpu_entry(void);
-
 extern void shmobile_init_late(void);
 
 #ifdef CONFIG_SUSPEND

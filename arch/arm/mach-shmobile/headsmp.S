@@ -1,7 +1,6 @@
 /*
  * SMP support for R-Mobile / SH-Mobile
  *
- * Copyright (C) 2013  Renesas Electronics Corporation
  * Copyright (C) 2010  Magnus Damm
  * Copyright (C) 2010  Takashi Yoshii
  *
@@ -80,9 +79,3 @@ ENTRY(shmobile_secondary_vector)
 	ldr     pc, 1f
 1:	.long   shmobile_invalidate_start - PAGE_OFFSET + PLAT_PHYS_OFFSET
 ENDPROC(shmobile_secondary_vector)
-
-	.align
-ENTRY(r8a7790_secondary_cpu_entry)
-	ldr     pc, 1f
-1:	.long   secondary_startup - PAGE_OFFSET + PLAT_PHYS_OFFSET
-ENDPROC(r8a7790_secondary_cpu_entry)

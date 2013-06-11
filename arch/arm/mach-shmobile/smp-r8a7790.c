@@ -22,19 +22,13 @@
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/jiffies.h>
+#include <linux/irqchip/arm-gic.h>
 #include <linux/smp.h>
 #include <asm/cacheflush.h>
 #include <asm/io.h>
 #include <asm/smp_plat.h>
 #include <mach/common.h>
 #include <mach/hardware.h>
-
-void gic_secondary_init(unsigned int);
-
-unsigned int r8a7790_get_core_count(void)
-{
-	return CONFIG_NR_CPUS;
-}
 
 #define IO_BASE		0xe6150000
 #define CA15BAR		0x016020
@@ -49,18 +43,26 @@ unsigned int r8a7790_get_core_count(void)
 #define CCI_SNOOP	0x0000
 #define CCI_STATUS	0x000c
 
-void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
+static unsigned int r8a7790_get_core_count(void)
 {
-	int i;
+	return CONFIG_NR_CPUS;
+}
+
+static void __init r8a7790_smp_init_cpus(void)
+{
+	unsigned int ncores = r8a7790_get_core_count();
+
+	shmobile_smp_init_cpus(ncores);
+}
+
+static void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
+{
 	u32 bar;
 	void __iomem *p;
 
-	for (i = 0; i < max_cpus; i++)
-		set_cpu_present(i, true);
-
 	/* MERAM for jump stub, because BAR requires 256KB aligned address */
 	p = ioremap_nocache(MERAM, 16);
-	memcpy(p, r8a7790_secondary_cpu_entry, 16);
+	memcpy(p, shmobile_secondary_vector, 16);
 	iounmap(p);
 
 	p = ioremap_nocache(IO_BASE, 0x40000);
@@ -70,12 +72,13 @@ void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
 	iounmap(p);
 }
 
-void __cpuinit r8a7790_secondary_init(unsigned int cpu)
+static void __cpuinit r8a7790_secondary_init(unsigned int cpu)
 {
 	gic_secondary_init(0);
 }
 
-int __cpuinit r8a7790_boot_secondary(unsigned int cpu)
+static int __cpuinit r8a7790_boot_secondary(unsigned int cpu,
+					    struct task_struct *idle)
 {
 	u32 val;
 	void __iomem *p;
@@ -108,3 +111,33 @@ int __cpuinit r8a7790_boot_secondary(unsigned int cpu)
 	iounmap(p);
 	return 0;
 }
+
+static int __maybe_unused r8a7790_cpu_kill(unsigned int cpu)
+{
+	int k;
+
+	/* this function is running on another CPU than the offline target,
+	 * here we need wait for shutdown code in platform_cpu_die() to
+	 * finish before asking SoC-specific code to power off the CPU core.
+	 */
+	for (k = 0; k < 1000; k++) {
+		if (shmobile_cpu_is_dead(cpu))
+			return 1;
+
+		mdelay(1);
+	}
+
+	return 0;
+}
+
+struct smp_operations r8a7790_smp_ops  __initdata = {
+	.smp_init_cpus		= r8a7790_smp_init_cpus,
+	.smp_prepare_cpus	= r8a7790_smp_prepare_cpus,
+	.smp_secondary_init	= r8a7790_secondary_init,
+	.smp_boot_secondary	= r8a7790_boot_secondary,
+#ifdef CONFIG_HOTPLUG_CPU
+	.cpu_kill		= r8a7790_cpu_kill,
+	.cpu_die		= shmobile_cpu_die,
+	.cpu_disable		= shmobile_cpu_disable,
+#endif
+};
