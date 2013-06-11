@@ -424,6 +424,8 @@ static void __cpuinit gic_cpu_init(struct gic_chip_data *gic)
 	 */
 	BUG_ON(cpu >= NR_GIC_CPU_IF);
 	cpu_mask = gic_get_cpumask(gic);
+	cpu_mask |= cpu_mask << 8;
+	cpu_mask |= cpu_mask << 16;
 	gic_cpu_map[cpu] = cpu_mask;
 
 	/*
