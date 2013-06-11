@@ -114,6 +114,7 @@ config MACH_MARZEN
 config MACH_LAGER
 	bool "Lager board"
 	depends on ARCH_R8A7790
+	select ARCH_REQUIRE_GPIOLIB
 	select USE_OF
 
 config MACH_KZM9D
