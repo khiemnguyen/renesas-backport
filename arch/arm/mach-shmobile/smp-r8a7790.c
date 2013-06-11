@@ -36,12 +36,13 @@ unsigned int r8a7790_get_core_count(void)
 	return CONFIG_NR_CPUS;
 }
 
-#define CA15BAR	0xe6166020
-#define CA15RESCNT	0xe6160040
-#define RESCNT	0xe6160050
-#define CA15WUPCR	0xe6154010
-#define SYSCSR	0xe6180000
-#define MERAM	0xe8080000
+#define IO_BASE		0xe6150000
+#define CA15BAR		0x016020
+#define CA15RESCNT	0x010040
+#define RESCNT		0x010050
+#define CA15WUPCR	0x004010
+#define SYSCSR		0x030000
+#define MERAM		0xe8080000
 #define CCI_BASE	0xf0190000
 #define CCI_SLAVE3	0x4000
 #define CCI_SLAVE4	0x5000
@@ -62,9 +63,11 @@ void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
 	memcpy(p, r8a7790_secondary_cpu_entry, 16);
 	iounmap(p);
 
+	p = ioremap_nocache(IO_BASE, 0x40000);
 	bar = (MERAM >> 8) & 0xfffffc00;
-	__raw_writel(bar, CA15BAR);
-	__raw_writel(bar | 0x10, CA15BAR);
+	__raw_writel(bar, (int)p + CA15BAR);
+	__raw_writel(bar | 0x10, (int)p + CA15BAR);
+	iounmap(p);
 }
 
 void __cpuinit r8a7790_secondary_init(unsigned int cpu)
@@ -75,29 +78,33 @@ void __cpuinit r8a7790_secondary_init(unsigned int cpu)
 int __cpuinit r8a7790_boot_secondary(unsigned int cpu)
 {
 	u32 val;
+	void __iomem *p;
 
 	cpu = cpu_logical_map(cpu);
 
-	__raw_writel(1 << (cpu & 3), CA15WUPCR);
+	p = ioremap_nocache(IO_BASE, 0x40000);
 
-	while ((__raw_readl(SYSCSR) & 0x3) != 0x3)
+	__raw_writel(1 << (cpu & 3), (int)p + CA15WUPCR);
+
+	while ((__raw_readl((int)p + SYSCSR) & 0x3) != 0x3)
 		;
-	while (__raw_readl(CA15WUPCR) != 0x0)
+	while (__raw_readl((int)p + CA15WUPCR) != 0x0)
 		;
 
-	val = __raw_readl(CA15RESCNT);
+	val = __raw_readl((int)p + CA15RESCNT);
 	val |= 0xa5a50000;
 	switch (cpu & 3) {
 	case 1:
-		__raw_writel(val & ~0x4, CA15RESCNT);
+		__raw_writel(val & ~0x4, (int)p + CA15RESCNT);
 		break;
 	case 2:
-		__raw_writel(val & ~0x2, CA15RESCNT);
+		__raw_writel(val & ~0x2, (int)p + CA15RESCNT);
 		break;
 	case 3:
-		__raw_writel(val & ~0x1, CA15RESCNT);
+		__raw_writel(val & ~0x1, (int)p + CA15RESCNT);
 		break;
 	}
 
+	iounmap(p);
 	return 0;
 }

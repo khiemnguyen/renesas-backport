@@ -26,10 +26,8 @@
 #include <linux/platform_device.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
-#include <asm/page.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
-#include <asm/mach/map.h>
 
 static const struct pinctrl_map lager_pinctrl_map[] = {
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
@@ -39,20 +37,6 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.7", "pfc-r8a7790",
 				  "scif1_data", "scif1"),
 };
-
-static struct map_desc lager_io_desc[] __initdata = {
-	{
-		.virtual	= 0xe6000000,
-		.pfn		= __phys_to_pfn(0xe6000000),
-		.length		= SZ_16M,
-		.type		= MT_DEVICE_NONSHARED,
-	},
-};
-
-static void __init lager_map_io(void)
-{
-	iotable_init(lager_io_desc, ARRAY_SIZE(lager_io_desc));
-}
 
 static void __init lager_add_standard_devices(void)
 {
@@ -72,7 +56,6 @@ static const char *lager_boards_compat_dt[] __initdata = {
 
 DT_MACHINE_START(LAGER_DT, "lager")
 	.init_irq	= r8a7790_init_irq,
-	.map_io		= lager_map_io,
 	.timer		= &r8a7790_timer,
 	.init_machine	= lager_add_standard_devices,
 	.dt_compat	= lager_boards_compat_dt,
