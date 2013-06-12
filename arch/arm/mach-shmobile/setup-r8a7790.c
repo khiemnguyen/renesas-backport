@@ -1,6 +1,7 @@
 /*
  * r8a7790 processor support
  *
+ * Copyright (C) 2013  Renesas Electronics Corporation
  * Copyright (C) 2013  Renesas Solutions Corp.
  * Copyright (C) 2013  Magnus Damm
  *
@@ -23,6 +24,7 @@
 #include <linux/kernel.h>
 #include <linux/of_platform.h>
 #include <linux/serial_sci.h>
+#include <linux/sh_eth.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/irq-renesas-irqc.h>
 #include <mach/common.h>
@@ -119,6 +121,35 @@ static inline void r8a7790_register_scif(int idx)
 				      sizeof(struct plat_sci_port));
 }
 
+static struct resource eth_resources[] = {
+	{
+		.start  = 0xee700200,
+		.end    = 0xee7003fc,
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(162),		/* IRQ0 */
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_eth_plat_data eth_platform_data = {
+	.phy = 0x1,
+	.edmac_endian = EDMAC_LITTLE_ENDIAN,
+	.register_type = SH_ETH_REG_FAST_SH4,
+	.phy_interface = PHY_INTERFACE_MODE_RMII,
+	.ether_link_active_low = 1,
+};
+
+static struct platform_device eth_device = {
+	.name = "sh-eth",
+	.id	= 0,
+	.dev = {
+		.platform_data = &eth_platform_data,
+	},
+	.num_resources = ARRAY_SIZE(eth_resources),
+	.resource = eth_resources,
+};
+
 static struct resource powervr_resources[] = {
 	{
 		.start  = 0xfd000000,
@@ -139,6 +170,7 @@ static struct platform_device powervr_device = {
 };
 
 static struct platform_device *r8a7790_early_devices[] __initdata = {
+	&eth_device,
 	&powervr_device,
 };
 
@@ -176,6 +208,8 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_scif(SCIF0);
 	r8a7790_register_scif(SCIF1);
 	r8a7790_register_irqc(0);
+	platform_add_devices(r8a7790_early_devices,
+			     ARRAY_SIZE(r8a7790_early_devices));
 
 	r8a7790_add_device_to_domain(&r8a7790_rgx, &powervr_device);
 }
