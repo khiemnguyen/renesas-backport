@@ -163,6 +163,8 @@ static struct resource irqc0_resources[] = {
 
 void __init r8a7790_add_standard_devices(void)
 {
+	r8a7790_pm_init();
+
 	r8a7790_register_scif(SCIFA0);
 	r8a7790_register_scif(SCIFA1);
 	r8a7790_register_scif(SCIFB0);
