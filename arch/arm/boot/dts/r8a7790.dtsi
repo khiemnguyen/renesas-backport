@@ -87,6 +87,7 @@
 				<1 14 0xf08>,
 				<1 11 0xf08>,
 				<1 10 0xf08>;
+		clock-frequency = <10000000>;
 	};
 
 	irqc0: interrupt-controller@e61c0000 {
