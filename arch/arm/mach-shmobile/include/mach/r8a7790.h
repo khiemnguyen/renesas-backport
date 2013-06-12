@@ -33,6 +33,8 @@ extern int r8a7790_sysc_power_down(struct r8a7790_pm_ch *r8a7790_ch);
 extern int r8a7790_sysc_power_up(struct r8a7790_pm_ch *r8a7790_ch);
 
 #ifdef CONFIG_PM
+extern struct r8a7790_pm_domain r8a7790_rgx;
+
 extern void r8a7790_init_pm_domain(struct r8a7790_pm_domain *r8a7790_pd);
 extern void r8a7790_add_device_to_domain(struct r8a7790_pm_domain *r8a7790_pd,
 					 struct platform_device *pdev);

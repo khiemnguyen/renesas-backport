@@ -165,6 +165,8 @@ void __init r8a7790_add_standard_devices(void)
 {
 	r8a7790_pm_init();
 
+	r8a7790_init_pm_domain(&r8a7790_rgx);
+
 	r8a7790_register_scif(SCIFA0);
 	r8a7790_register_scif(SCIFA1);
 	r8a7790_register_scif(SCIFB0);
@@ -174,6 +176,8 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_scif(SCIF0);
 	r8a7790_register_scif(SCIF1);
 	r8a7790_register_irqc(0);
+
+	r8a7790_add_device_to_domain(&r8a7790_rgx, &powervr_device);
 }
 
 void __init r8a7790_timer_init(void)

@@ -214,6 +214,13 @@ void r8a7790_add_device_to_domain(struct r8a7790_pm_domain *r8a7790_pd,
 		pm_clk_add(dev, NULL);
 }
 
+struct r8a7790_pm_domain r8a7790_rgx = {
+	.ch = {
+		.chan_offs = 0xc0, /* PWRSR2 .. PWRER2 */
+		.isr_bit = 20, /* RGX */
+	}
+};
+
 #endif /* CONFIG_PM */
 
 void __init r8a7790_pm_init(void)
