@@ -25,6 +25,7 @@
 #include <linux/of_platform.h>
 #include <linux/serial_sci.h>
 #include <linux/sh_eth.h>
+#include <linux/i2c/i2c-rcar.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/irq-renesas-irqc.h>
 #include <linux/platform_data/rcar-du.h>
@@ -834,6 +835,96 @@ static struct spi_board_info spi_info[] __initdata = {
 	},
 };
 
+/* I2C */
+static struct i2c_rcar_platform_data i2c_pd = {
+	.bus_speed	= 400000,
+	.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+};
+
+static struct resource rcar_i2c0_res[] = {
+	{
+		.start  = 0xe6508000,
+		.end    = (0xe6518000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(287),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c1_res[] = {
+	{
+		.start  = 0xe6518000,
+		.end    = (0xe6528000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(288),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c2_res[] = {
+	{
+		.start  = 0xe6530000,
+		.end    = (0xe6540000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(286),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c3_res[] = {
+	{
+		.start  = 0xe6540000,
+		.end    = (0xe6550000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(290),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device i2c0_device = {
+	.name		= "i2c-rcar",
+	.id		= 0,
+	.dev = {
+		.platform_data = &i2c_pd,
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c0_res),
+	.resource	= rcar_i2c0_res,
+};
+
+static struct platform_device i2c1_device = {
+	.name		= "i2c-rcar",
+	.id		= 1,
+	.dev = {
+		.platform_data = &i2c_pd,
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c1_res),
+	.resource	= rcar_i2c1_res,
+};
+
+static struct platform_device i2c2_device = {
+	.name		= "i2c-rcar",
+	.id		= 2,
+	.dev = {
+		.platform_data = &i2c_pd,
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c2_res),
+	.resource	= rcar_i2c2_res,
+};
+
+static struct platform_device i2c3_device = {
+	.name		= "i2c-rcar",
+	.id		= 3,
+	.dev = {
+		.platform_data = &i2c_pd,
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c3_res),
+	.resource	= rcar_i2c3_res,
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -849,6 +940,10 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&sdhi2_device,
 	&sdhi3_device,
 	&qspi_device,
+	&i2c0_device,
+	&i2c1_device,
+	&i2c2_device,
+	&i2c3_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
