@@ -178,6 +178,28 @@ config SH_DMAE_DESC
 	  Say Y here if you have enabled, otherwise say N.
 	  To compile this driver as a module, say M.
 
+config SH_DMAEPP_BASE
+	tristate "Renesas SuperH DMA Engine support (Peripheral <-> Peripheral)"
+	depends on (SUPERH && SH_DMA) || (ARM && ARCH_SHMOBILE)
+	depends on !SH_DMA_API
+	select DMA_ENGINE
+	help
+	  Enable support for the DMA Engine driver base library of Renesas DMA controllers.
+	  This is supported to DMAC that is transferred between peripheral and peripheral.
+	  Say Y here if you have enabled, otherwise say N.
+	  To compile this driver as a module, say M.
+
+config SH_DMAEPP_AUPP
+	tristate "Renesas SuperH Audio-DMAC-pp support"
+	depends on (SUPERH && SH_DMA) || (ARM && ARCH_SHMOBILE)
+	depends on !SH_DMA_API
+	depends on SH_DMAEPP_BASE
+	help
+	  Enable support for the Renesas DMA controllers.
+	  This is supported to Audio-DMAC-Peripheral-Peripheral.
+	  Say Y here if you have enabled, otherwise say N.
+	  To compile this driver as a module, say M.
+
 config COH901318
 	bool "ST-Ericsson COH901318 DMA support"
 	select DMA_ENGINE
