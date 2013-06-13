@@ -1,6 +1,8 @@
 /*
  *  drivers/i2c/busses/i2c-rcar.c
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
+ *
  * Copyright (C) 2012 Renesas Solutions Corp.
  * Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>
  *
@@ -221,14 +223,19 @@ static int rcar_i2c_clock_calculate(struct rcar_i2c_priv *priv,
 				    struct device *dev)
 {
 	struct clk *clkp = clk_get(NULL, "peripheral_clk");
+	struct i2c_rcar_platform_data *pdata = dev->platform_data;
 	u32 scgd, cdf;
 	u32 round, ick;
 	u32 scl;
+	u32 cdf_width = 0;
 
 	if (!clkp) {
 		dev_err(dev, "there is no peripheral_clk\n");
 		return -EIO;
 	}
+
+	if (pdata && pdata->icccr_cdf_width)
+		cdf_width = pdata->icccr_cdf_width;
 
 	/*
 	 * calculate SCL clock
@@ -245,7 +252,7 @@ static int rcar_i2c_clock_calculate(struct rcar_i2c_priv *priv,
 	 * clkp : peripheral_clk
 	 * F[]  : integer up-valuation
 	 */
-	for (cdf = 0; cdf < 4; cdf++) {
+	for (cdf = 0; cdf < (4 << cdf_width); cdf++) {
 		ick = clk_get_rate(clkp) / (1 + cdf);
 		if (ick < 20000000)
 			goto ick_find;
@@ -287,7 +294,7 @@ scgd_find:
 	/*
 	 * keep icccr value
 	 */
-	priv->icccr = (scgd << 2 | cdf);
+	priv->icccr = (scgd << (2 + cdf_width) | cdf);
 
 	return 0;
 }
