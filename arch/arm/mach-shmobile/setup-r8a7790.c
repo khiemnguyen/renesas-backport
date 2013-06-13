@@ -119,6 +119,29 @@ static inline void r8a7790_register_scif(int idx)
 				      sizeof(struct plat_sci_port));
 }
 
+static struct resource powervr_resources[] = {
+	{
+		.start  = 0xfd000000,
+		.end    = 0xfd00ffff,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.start  = gic_spi(119),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device powervr_device = {
+	.name           = "pvrsrvkm",
+	.id             = -1,
+	.resource       = powervr_resources,
+	.num_resources  = ARRAY_SIZE(powervr_resources),
+};
+
+static struct platform_device *r8a7790_early_devices[] __initdata = {
+	&powervr_device,
+};
+
 static struct renesas_irqc_config irqc0_data = {
 	.irq_base = irq_pin(0), /* IRQ0 -> IRQ3 */
 };
