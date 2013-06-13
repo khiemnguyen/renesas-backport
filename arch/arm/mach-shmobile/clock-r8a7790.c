@@ -272,6 +272,15 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("ssi0", &mstp_clks[MSTP1015]),
 	CLKDEV_DEV_ID("ssi1", &mstp_clks[MSTP1014]),
 	CLKDEV_DEV_ID("ssi", &mstp_clks[MSTP1005]),
+	CLKDEV_CON_ID("adg", &mstp_clks[MSTP922]),
+	CLKDEV_CON_ID("src0", &mstp_clks[MSTP1031]),
+	CLKDEV_CON_ID("src1", &mstp_clks[MSTP1030]),
+	CLKDEV_CON_ID("dvc0", &mstp_clks[MSTP1019]),
+	CLKDEV_CON_ID("dvc1", &mstp_clks[MSTP1018]),
+	CLKDEV_CON_ID("scu", &mstp_clks[MSTP1017]),
+	CLKDEV_CON_ID("ssi0", &mstp_clks[MSTP1015]),
+	CLKDEV_CON_ID("ssi1", &mstp_clks[MSTP1014]),
+	CLKDEV_CON_ID("ssi", &mstp_clks[MSTP1005]),
 };
 
 static void __init r8a7790_rgx_control_init(void)

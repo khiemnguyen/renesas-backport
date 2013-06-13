@@ -1298,6 +1298,46 @@ static struct platform_device sysdmau_device = {
 	},
 };
 
+/* Audio */
+static struct platform_device alsa_soc_platform_device = {
+	.name		= "lager_alsa_soc_platform",
+	.id		= 0,
+};
+
+static struct resource scu_resources[] = {
+	[0] = {
+		.name   = "scu",
+		.start  = 0xec000000,
+		.end    = 0xec500fff,
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] = {
+		.name   = "ssiu",
+		.start  = 0xec540000,
+		.end    = 0xec54085f,
+		.flags  = IORESOURCE_MEM,
+	},
+	[2] = {
+		.name   = "ssi",
+		.start  = 0xec541000,
+		.end    = 0xec54127f,
+		.flags  = IORESOURCE_MEM,
+	},
+	[3] = {
+		.name   = "adg",
+		.start  = 0xec5a0000,
+		.end    = 0xec5a0067,
+		.flags  = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device scu_device = {
+	.name		= "scu-pcm-audio",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(scu_resources),
+	.resource	= scu_resources,
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -1321,6 +1361,8 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&audmau_device,
 	&audmapp_device,
 	&sysdmau_device,
+	&alsa_soc_platform_device,
+	&scu_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {

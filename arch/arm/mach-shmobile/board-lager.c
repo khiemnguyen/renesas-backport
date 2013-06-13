@@ -24,10 +24,15 @@
 #include <linux/kernel.h>
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_device.h>
+#include <linux/i2c.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
+
+static struct i2c_board_info lager_i2c_devices[] = {
+	{ I2C_BOARD_INFO("ak4642", 0x12), },
+};
 
 static const struct pinctrl_map lager_pinctrl_map[] = {
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
@@ -65,6 +70,8 @@ static void __init lager_add_standard_devices(void)
 	r8a7790_pinmux_init();
 
 	r8a7790_add_standard_devices();
+	i2c_register_board_info(2, lager_i2c_devices,
+				ARRAY_SIZE(lager_i2c_devices));
 }
 
 static const char *lager_boards_compat_dt[] __initdata = {
