@@ -31,6 +31,7 @@
 #define SMSTPCR1	0xE6150134
 #define SMSTPCR2	0xe6150138
 #define SMSTPCR3	0xE615013C
+#define SMSTPCR5	0xE6150144
 #define SMSTPCR7	0xe615014c
 #define SMSTPCR9	0xE6150994
 #define SMSTPCR10	0xE6150998
@@ -180,6 +181,7 @@ enum {
 	MSTP726, MSTP725, MSTP724, MSTP723, MSTP721, MSTP720, MSTP704, MSTP703,
 	MSTP314, MSTP313, MSTP312, MSTP311,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP922, MSTP917,
+	MSTP502, MSTP501,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, \
 	MSTP1014, MSTP1005,
 	MSTP_NR };
@@ -198,6 +200,8 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP313] = SH_CLK_MSTP32(&sd01_clks[SD1], SMSTPCR3, 13, 0),
 	[MSTP312] = SH_CLK_MSTP32(&sd23_clks[SD2], SMSTPCR3, 12, 0),
 	[MSTP311] = SH_CLK_MSTP32(&sd23_clks[SD3], SMSTPCR3, 11, 0),
+	[MSTP502] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 2, 0),
+	[MSTP501] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 1, 0),
 	[MSTP724] = SH_CLK_MSTP32(&zg_clk, SMSTPCR7, 24, 0),
 	[MSTP723] = SH_CLK_MSTP32(&zg_clk, SMSTPCR7, 23, 0),
 	[MSTP721] = SH_CLK_MSTP32(&cp_clk, SMSTPCR7, 21, 0),
@@ -238,6 +242,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh_mobile_sdhi.1", &mstp_clks[MSTP313]),
 	CLKDEV_DEV_ID("sh_mobile_sdhi.2", &mstp_clks[MSTP312]),
 	CLKDEV_DEV_ID("sh_mobile_sdhi.3", &mstp_clks[MSTP311]),
+	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
+	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
 	CLKDEV_DEV_ID("rcar-du.0", &mstp_clks[MSTP724]),
 	CLKDEV_CON_ID("rcar-du.1", &mstp_clks[MSTP723]),
 	CLKDEV_CON_ID("lvds.0", &mstp_clks[MSTP726]),

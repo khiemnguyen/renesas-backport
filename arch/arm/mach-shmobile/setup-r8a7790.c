@@ -23,9 +23,11 @@
 #include <linux/irqchip.h>
 #include <linux/kernel.h>
 #include <linux/of_platform.h>
+#include <linux/clk.h>
 #include <linux/serial_sci.h>
 #include <linux/sh_eth.h>
 #include <linux/i2c/i2c-rcar.h>
+#include <linux/sh_dma-desc.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/irq-renesas-irqc.h>
 #include <linux/platform_data/rcar-du.h>
@@ -43,6 +45,7 @@
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
+#include <mach/dma-register.h>
 #include <asm/mach/arch.h>
 
 static const struct resource pfc_resources[] = {
@@ -925,6 +928,297 @@ static struct platform_device i2c3_device = {
 	.resource	= rcar_i2c3_res,
 };
 
+/* DMA */
+#define DMA_CHANNEL(a, b, c)	\
+{				\
+	.offset		= a,	\
+	.dmars		= b,	\
+	.dmars_bit	= 0,	\
+	.chclr_offset	= c	\
+}
+
+/* Audio-DMA */
+/*  audmal  : Audio-DMAC lower (ch0-12)  */
+/*  audmau  : Audio-DMAC upper (ch13-25) */
+static struct clk *audma_clk_get(struct platform_device *pdev)
+{
+	if (pdev->id == SHDMA_DEVID_AUDIO_LO)
+		return clk_get(NULL, "audmac_lo");
+	else if (pdev->id == SHDMA_DEVID_AUDIO_UP)
+		return clk_get(NULL, "audmac_up");
+	else
+		return NULL;
+}
+
+static const struct sh_dmadesc_slave_config r8a7790_audma_slaves[] = {
+	{
+		.slave_id	= SHDMA_SLAVE_PCM_MEM_SSI0,
+		.addr		= 0xec241008,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x01,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_MEM_SRC0,
+		.addr		= 0xec000000,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x85,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_SSI1_MEM,
+		.addr		= 0xec24104c,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x04,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_SRC1_MEM,
+		.addr		= 0xec004400,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x9c,
+	},
+};
+
+static const struct sh_dmadesc_channel r8a7790_audma_channels[] = {
+	DMA_CHANNEL(0x00008000, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008080, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008100, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008180, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008200, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008280, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008300, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008380, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008400, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008480, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008500, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008580, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008600, 0x40, 0x00000080),
+};
+
+static struct sh_dmadesc_pdata audma_platform_data = {
+	.slave		= r8a7790_audma_slaves,
+	.slave_num	= ARRAY_SIZE(r8a7790_audma_slaves),
+	.channel	= r8a7790_audma_channels,
+	.channel_num	= ARRAY_SIZE(r8a7790_audma_channels),
+	.ts_low_shift	= TS_LOW_SHIFT,
+	.ts_low_mask	= TS_LOW_BIT << TS_LOW_SHIFT,
+	.ts_high_shift	= TS_HI_SHIFT,
+	.ts_high_mask	= TS_HI_BIT << TS_HI_SHIFT,
+	.ts_shift	= dma_ts_shift,
+	.ts_shift_num	= ARRAY_SIZE(dma_ts_shift),
+	.dmaor_init	= DMAOR_DME,
+	.chclr_present	= 1,
+	.clk_get	= audma_clk_get,
+};
+
+static struct resource r8a7790_audmal_resources[] = {
+	{
+		.start	= 0xec700000,
+		.end	= 0xec70a7ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "error_irq",
+		.start	= gic_spi(346),
+		.end	= gic_spi(346),
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		/* IRQ for channels */
+		.start	= gic_spi(320),
+		.end	= gic_spi(332),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource r8a7790_audmau_resources[] = {
+	{
+		.start	= 0xec720000,
+		.end	= 0xec72a7ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "error_irq",
+		.start	= gic_spi(347),
+		.end	= gic_spi(347),
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		/* IRQ for channels */
+		.start	= gic_spi(333),
+		.end	= gic_spi(345),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device audmal_device = {
+	.name		= "sh-dmadesc-engine",
+	.id		= SHDMA_DEVID_AUDIO_LO,
+	.resource	= r8a7790_audmal_resources,
+	.num_resources	= ARRAY_SIZE(r8a7790_audmal_resources),
+	.dev		= {
+		.platform_data	= &audma_platform_data,
+	},
+};
+
+static struct platform_device audmau_device = {
+	.name		= "sh-dmadesc-engine",
+	.id		= SHDMA_DEVID_AUDIO_UP,
+	.resource	= r8a7790_audmau_resources,
+	.num_resources	= ARRAY_SIZE(r8a7790_audmau_resources),
+	.dev		= {
+		.platform_data	= &audma_platform_data,
+	},
+};
+
+/* SYS-DMA */
+static bool sysdma_filter(struct platform_device *pdev)
+{
+	if ((pdev->id != SHDMA_DEVID_SYS_LO) &&
+	    (pdev->id != SHDMA_DEVID_SYS_UP))
+		return false;
+	return true;
+}
+
+static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
+	{
+		.slave_id	= SHDMA_SLAVE_SDHI0_TX,
+		.addr		= 0xee100060,
+		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xcd,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI0_RX,
+		.addr		= 0xee100060 + 0x2000,
+		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xce,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI1_TX,
+		.addr		= 0xee120030,
+		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xc9,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI1_RX,
+		.addr		= 0xee120030 + 0x2000,
+		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xca,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI2_TX,
+		.addr		= 0xee140030,
+		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xc1,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI2_RX,
+		.addr		= 0xee140030 + 0x2000,
+		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xc2,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI3_TX,
+		.addr		= 0xee160030,
+		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xd3,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI3_RX,
+		.addr		= 0xee160030 + 0x2000,
+		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xd4,
+	},
+};
+
+static const struct sh_dmadesc_channel r8a7790_sysdma_channels[] = {
+	DMA_CHANNEL(0x00008000, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008080, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008100, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008180, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008200, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008280, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008300, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008380, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008400, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008480, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008500, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008580, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008600, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008680, 0x40, 0x00000080),
+	DMA_CHANNEL(0x00008700, 0x40, 0x00000080),
+};
+
+static struct sh_dmadesc_pdata sysdma_platform_data = {
+	.slave		= r8a7790_sysdma_slaves,
+	.slave_num	= ARRAY_SIZE(r8a7790_sysdma_slaves),
+	.channel	= r8a7790_sysdma_channels,
+	.channel_num	= ARRAY_SIZE(r8a7790_sysdma_channels),
+	.ts_low_shift	= TS_LOW_SHIFT,
+	.ts_low_mask	= TS_LOW_BIT << TS_LOW_SHIFT,
+	.ts_high_shift	= TS_HI_SHIFT,
+	.ts_high_mask	= TS_HI_BIT << TS_HI_SHIFT,
+	.ts_shift	= dma_ts_shift,
+	.ts_shift_num	= ARRAY_SIZE(dma_ts_shift),
+	.dmaor_init	= DMAOR_DME,
+	.chclr_present	= 1,
+	.dma_filter	= sysdma_filter,
+};
+
+static struct resource r8a7790_sysdmal_resources[] = {
+	{
+		.start	= 0xe6700000,
+		.end	= 0xe670a7ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "error_irq",
+		.start	= gic_spi(197),
+		.end	= gic_spi(197),
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		/* IRQ for channels */
+		.start	= gic_spi(200),
+		.end	= gic_spi(214),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource r8a7790_sysdmau_resources[] = {
+	{
+		.start	= 0xe6720000,
+		.end	= 0xe672a7ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "error_irq",
+		.start	= gic_spi(220),
+		.end	= gic_spi(220),
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		/* IRQ for channels */
+		.start	= gic_spi(216),
+		.end	= gic_spi(219),
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		/* IRQ for channels */
+		.start	= gic_spi(308),
+		.end	= gic_spi(318),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device sysdmal_device = {
+	.name		= "sh-dmadesc-engine",
+	.id		= SHDMA_DEVID_SYS_LO,
+	.resource	= r8a7790_sysdmal_resources,
+	.num_resources	= ARRAY_SIZE(r8a7790_sysdmal_resources),
+	.dev		= {
+		.platform_data	= &sysdma_platform_data,
+	},
+};
+
+static struct platform_device sysdmau_device = {
+	.name		= "sh-dmadesc-engine",
+	.id		= SHDMA_DEVID_SYS_UP,
+	.resource	= r8a7790_sysdmau_resources,
+	.num_resources	= ARRAY_SIZE(r8a7790_sysdmau_resources),
+	.dev		= {
+		.platform_data	= &sysdma_platform_data,
+	},
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -944,6 +1238,9 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&i2c1_device,
 	&i2c2_device,
 	&i2c3_device,
+	&audmal_device,
+	&audmau_device,
+	&sysdmau_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
