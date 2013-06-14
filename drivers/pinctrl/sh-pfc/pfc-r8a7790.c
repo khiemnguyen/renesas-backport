@@ -2342,6 +2342,130 @@ static const unsigned int scifb2_data_c_pins[] = {
 static const unsigned int scifb2_data_c_mux[] = {
 	SCIFB2_RXD_C_MARK, SCIFB2_TXD_C_MARK,
 };
+/* - SDHI0 ----------------------------------------------------------------- */
+static const unsigned int sdhi0_ctrl_pins[] = {
+	/* CMD, CLK */
+	RCAR_GP_PIN(3, 1), RCAR_GP_PIN(3, 0),
+};
+static const unsigned int sdhi0_ctrl_mux[] = {
+	SD0_CMD_MARK, SD0_CLK_MARK,
+};
+static const unsigned int sdhi0_data4_pins[] = {
+	/* DAT0, DAT1, DAT2, DAT3 */
+	RCAR_GP_PIN(3, 2), RCAR_GP_PIN(3, 3),
+	RCAR_GP_PIN(3, 4), RCAR_GP_PIN(3, 5),
+};
+static const unsigned int sdhi0_data4_mux[] = {
+	SD0_DAT0_MARK, SD0_DAT1_MARK,
+	SD0_DAT2_MARK, SD0_DAT3_MARK,
+};
+static const unsigned int sdhi0_cd_pins[] = {
+	/* CD */
+	RCAR_GP_PIN(3, 6),
+};
+static const unsigned int sdhi0_cd_mux[] = {
+	SD0_CD_MARK,
+};
+static const unsigned int sdhi0_wp_pins[] = {
+	/* WP */
+	RCAR_GP_PIN(3, 7),
+};
+static const unsigned int sdhi0_wp_mux[] = {
+	SD0_WP_MARK,
+};
+/* - SDHI1 ----------------------------------------------------------------- */
+static const unsigned int sdhi1_ctrl_pins[] = {
+	/* CMD, CLK */
+	RCAR_GP_PIN(3, 9), RCAR_GP_PIN(3, 8),
+};
+static const unsigned int sdhi1_ctrl_mux[] = {
+	SD1_CMD_MARK, SD1_CLK_MARK,
+};
+static const unsigned int sdhi1_data4_pins[] = {
+	/* DAT0, DAT1, DAT2, DAT3 */
+	RCAR_GP_PIN(3, 10), RCAR_GP_PIN(3, 11),
+	RCAR_GP_PIN(3, 12), RCAR_GP_PIN(3, 13),
+};
+static const unsigned int sdhi1_data4_mux[] = {
+	SD1_DAT0_MARK, SD1_DAT1_MARK,
+	SD1_DAT2_MARK, SD1_DAT3_MARK,
+};
+static const unsigned int sdhi1_cd_pins[] = {
+	/* CD */
+	RCAR_GP_PIN(3, 14),
+};
+static const unsigned int sdhi1_cd_mux[] = {
+	SD1_CD_MARK,
+};
+static const unsigned int sdhi1_wp_pins[] = {
+	/* WP */
+	RCAR_GP_PIN(3, 15),
+};
+static const unsigned int sdhi1_wp_mux[] = {
+	SD1_WP_MARK,
+};
+/* - SDHI2 ----------------------------------------------------------------- */
+static const unsigned int sdhi2_ctrl_pins[] = {
+	/* CMD, CLK */
+	RCAR_GP_PIN(3, 17), RCAR_GP_PIN(3, 16),
+};
+static const unsigned int sdhi2_ctrl_mux[] = {
+	SD2_CMD_MARK, SD2_CLK_MARK,
+};
+static const unsigned int sdhi2_data4_pins[] = {
+	/* DAT0, DAT1, DAT2, DAT3 */
+	RCAR_GP_PIN(3, 18), RCAR_GP_PIN(3, 19),
+	RCAR_GP_PIN(3, 20), RCAR_GP_PIN(3, 21),
+};
+static const unsigned int sdhi2_data4_mux[] = {
+	SD2_DAT0_MARK, SD2_DAT1_MARK,
+	SD2_DAT2_MARK, SD2_DAT3_MARK,
+};
+static const unsigned int sdhi2_cd_pins[] = {
+	/* CD */
+	RCAR_GP_PIN(3, 22),
+};
+static const unsigned int sdhi2_cd_mux[] = {
+	SD2_CD_MARK,
+};
+static const unsigned int sdhi2_wp_pins[] = {
+	/* WP */
+	RCAR_GP_PIN(3, 23),
+};
+static const unsigned int sdhi2_wp_mux[] = {
+	SD2_WP_MARK,
+};
+/* - SDHI3 ----------------------------------------------------------------- */
+static const unsigned int sdhi3_ctrl_pins[] = {
+	/* CMD, CLK */
+	RCAR_GP_PIN(3, 25), RCAR_GP_PIN(3, 24),
+};
+static const unsigned int sdhi3_ctrl_mux[] = {
+	SD3_CMD_MARK, SD3_CLK_MARK,
+};
+static const unsigned int sdhi3_data4_pins[] = {
+	/* DAT0, DAT1, DAT2, DAT3 */
+	RCAR_GP_PIN(3, 26), RCAR_GP_PIN(3, 27),
+	RCAR_GP_PIN(3, 28), RCAR_GP_PIN(3, 29),
+};
+static const unsigned int sdhi3_data4_mux[] = {
+	SD3_DAT0_MARK, SD3_DAT1_MARK,
+	SD3_DAT2_MARK, SD3_DAT3_MARK,
+};
+static const unsigned int sdhi3_cd_pins[] = {
+	/* CD */
+	RCAR_GP_PIN(3, 30),
+};
+static const unsigned int sdhi3_cd_mux[] = {
+	SD3_CD_MARK,
+};
+static const unsigned int sdhi3_wp_pins[] = {
+	/* WP */
+	RCAR_GP_PIN(3, 31),
+};
+static const unsigned int sdhi3_wp_mux[] = {
+	SD3_WP_MARK,
+};
 
 static const struct sh_pfc_pin_group pinmux_groups[] = {
 	SH_PFC_PIN_GROUP(eth_link),
@@ -2416,6 +2540,22 @@ static const struct sh_pfc_pin_group pinmux_groups[] = {
 	SH_PFC_PIN_GROUP(scifb2_clk_b),
 	SH_PFC_PIN_GROUP(scifb2_ctrl_b),
 	SH_PFC_PIN_GROUP(scifb2_data_c),
+	SH_PFC_PIN_GROUP(sdhi0_ctrl),
+	SH_PFC_PIN_GROUP(sdhi0_data4),
+	SH_PFC_PIN_GROUP(sdhi0_cd),
+	SH_PFC_PIN_GROUP(sdhi0_wp),
+	SH_PFC_PIN_GROUP(sdhi1_ctrl),
+	SH_PFC_PIN_GROUP(sdhi1_data4),
+	SH_PFC_PIN_GROUP(sdhi1_cd),
+	SH_PFC_PIN_GROUP(sdhi1_wp),
+	SH_PFC_PIN_GROUP(sdhi2_ctrl),
+	SH_PFC_PIN_GROUP(sdhi2_data4),
+	SH_PFC_PIN_GROUP(sdhi2_cd),
+	SH_PFC_PIN_GROUP(sdhi2_wp),
+	SH_PFC_PIN_GROUP(sdhi3_ctrl),
+	SH_PFC_PIN_GROUP(sdhi3_data4),
+	SH_PFC_PIN_GROUP(sdhi3_cd),
+	SH_PFC_PIN_GROUP(sdhi3_wp),
 };
 
 static const char * const eth_groups[] = {
@@ -2520,6 +2660,34 @@ static const char * const scifb2_groups[] = {
 	"scifb2_data_c",
 };
 
+static const char * const sdhi0_groups[] = {
+	"sdhi0_ctrl",
+	"sdhi0_data4",
+	"sdhi0_cd",
+	"sdhi0_wp",
+};
+
+static const char * const sdhi1_groups[] = {
+	"sdhi1_ctrl",
+	"sdhi1_data4",
+	"sdhi1_cd",
+	"sdhi1_wp",
+};
+
+static const char * const sdhi2_groups[] = {
+	"sdhi2_ctrl",
+	"sdhi2_data4",
+	"sdhi2_cd",
+	"sdhi2_wp",
+};
+
+static const char * const sdhi3_groups[] = {
+	"sdhi3_ctrl",
+	"sdhi3_data4",
+	"sdhi3_cd",
+	"sdhi3_wp",
+};
+
 static const struct sh_pfc_function pinmux_functions[] = {
 	SH_PFC_FUNCTION(eth),
 	SH_PFC_FUNCTION(intc),
@@ -2531,6 +2699,10 @@ static const struct sh_pfc_function pinmux_functions[] = {
 	SH_PFC_FUNCTION(scifb0),
 	SH_PFC_FUNCTION(scifb1),
 	SH_PFC_FUNCTION(scifb2),
+	SH_PFC_FUNCTION(sdhi0),
+	SH_PFC_FUNCTION(sdhi1),
+	SH_PFC_FUNCTION(sdhi2),
+	SH_PFC_FUNCTION(sdhi3),
 };
 
 static struct pinmux_cfg_reg pinmux_config_regs[] = {

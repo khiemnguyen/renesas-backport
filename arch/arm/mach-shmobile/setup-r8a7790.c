@@ -31,6 +31,10 @@
 #include <linux/clk.h>
 #include <linux/usb/ehci_pdriver.h>
 #include <linux/usb/ohci_pdriver.h>
+#include <linux/mfd/tmio.h>
+#include <linux/mmc/sh_mobile_sdhi.h>
+#include <linux/regulator/fixed.h>
+#include <linux/regulator/machine.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
@@ -380,7 +384,6 @@ static struct resource ohci2_resources[] = {
 	},
 };
 
-
 struct platform_device ohci2_device = {
 	.name	= "ohci-platform",
 	.id	= 2,
@@ -570,6 +573,196 @@ static int __init usbh_init(void)
 	return 0;
 }
 
+/* Fixed 3.3V regulator to be used by SDHI0/1/2/3 */
+static struct regulator_consumer_supply fixed3v3_power_consumers[] = {
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.0"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.0"),
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.1"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.1"),
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.2"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.2"),
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.3"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.3"),
+};
+
+static void sdhi_set_pwr(struct platform_device *pdev, int state)
+{
+	switch (pdev->id) {
+	case 0:
+		break;
+	case 2:
+		break;
+	default:
+		break;
+	}
+}
+
+static int sdhi_get_cd(struct platform_device *pdev)
+{
+	return 1;
+}
+
+static int sdhi_get_ro(struct platform_device *pdev)
+{
+	return 0;
+}
+
+static struct resource sdhi0_resources[] = {
+	[0] = {
+		.name	= "sdhi0",
+		.start	= 0xee100000,
+		.end	= 0xee1003ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(165),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi0_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_CLK_NO_SLEEP),
+	.set_pwr	= sdhi_set_pwr,
+	.get_cd		= sdhi_get_cd,
+	.get_ro		= sdhi_get_ro,
+};
+
+static struct platform_device sdhi0_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi0_resources),
+	.resource = sdhi0_resources,
+	.id = 0,
+	.dev = {
+		.platform_data = &sdhi0_platform_data,
+	}
+};
+
+static struct resource sdhi1_resources[] = {
+	[0] = {
+		.name	= "sdhi1",
+		.start	= 0xee120000,
+		.end	= 0xee1203ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(166),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi1_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_CLK_NO_SLEEP),
+	.set_pwr	= sdhi_set_pwr,
+	.get_cd		= sdhi_get_cd,
+	.get_ro		= sdhi_get_ro,
+};
+
+static struct platform_device sdhi1_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi1_resources),
+	.resource = sdhi1_resources,
+	.id = 1,
+	.dev = {
+		.platform_data = &sdhi1_platform_data,
+	}
+};
+
+static struct resource sdhi2_resources[] = {
+	[0] = {
+		.name	= "sdhi2",
+		.start	= 0xee140000,
+		.end	= 0xee1400ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(167),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi2_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI2_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI2_RX,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_CHECK_ILL_FUNC
+				| TMIO_MMC_CLK_NO_SLEEP),
+	.set_pwr	= sdhi_set_pwr,
+	.get_cd		= sdhi_get_cd,
+	.get_ro		= sdhi_get_ro,
+};
+
+static struct platform_device sdhi2_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi2_resources),
+	.resource = sdhi2_resources,
+	.id = 2,
+	.dev = {
+		.platform_data = &sdhi2_platform_data,
+	}
+};
+
+static struct resource sdhi3_resources[] = {
+	[0] = {
+		.name	= "sdhi3",
+		.start	= 0xee160000,
+		.end	= 0xee1600ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(168),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi3_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI3_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI3_RX,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_CHECK_ILL_FUNC
+				| TMIO_MMC_CLK_NO_SLEEP),
+	.set_pwr	= sdhi_set_pwr,
+	.get_cd		= sdhi_get_cd,
+	.get_ro		= sdhi_get_ro,
+};
+
+static struct platform_device sdhi3_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi3_resources),
+	.resource = sdhi3_resources,
+	.id = 3,
+	.dev = {
+		.platform_data = &sdhi3_platform_data,
+	}
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -580,6 +773,10 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&ohci1_device,
 	&ehci2_device,
 	&ohci2_device,
+	&sdhi0_device,
+	&sdhi1_device,
+	&sdhi2_device,
+	&sdhi3_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
@@ -606,6 +803,19 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_pm_init();
 
 	r8a7790_init_pm_domain(&r8a7790_rgx);
+
+	regulator_register_fixed(0, fixed3v3_power_consumers,
+				ARRAY_SIZE(fixed3v3_power_consumers));
+
+	/* SD control registers IOCTRLn: SD pins driving ability */
+	__raw_writel(~0xAAAAAAAA, 0xE6060000);	/* PMMR */
+	__raw_writel(0xAAAAAAAA, 0xE6060060);	/* IOCTRL0 */
+	__raw_writel(~0xAAAAAAAA, 0xE6060000);	/* PMMR */
+	__raw_writel(0xAAAAAAAA, 0xE6060064);	/* IOCTRL1 */
+	__raw_writel(~0x00110000, 0xE6060000);	/* PMMR */
+	__raw_writel(0x00110000, 0xE6060088);	/* IOCTRL5 */
+	__raw_writel(~0xFFFFFFFF, 0xE6060000);	/* PMMR */
+	__raw_writel(0xFFFFFFFF, 0xE606008C);	/* IOCTRL6 */
 
 	r8a7790_register_scif(SCIFA0);
 	r8a7790_register_scif(SCIFA1);

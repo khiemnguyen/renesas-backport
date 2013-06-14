@@ -30,9 +30,14 @@
 
 #define SMSTPCR1	0xE6150134
 #define SMSTPCR2	0xe6150138
+#define SMSTPCR3	0xE615013C
 #define SMSTPCR7	0xe615014c
 #define SMSTPCR9	0xE6150994
 #define SMSTPCR10	0xE6150998
+
+#define SDCKCR		0xE6150074
+#define SD2CKCR		0xE6150078
+#define SD3CKCR		0xE615007C
 
 static struct clk_mapping cpg_mapping = {
 	.phys	= CPG_BASE,
@@ -127,9 +132,48 @@ static struct clk *main_clks[] = {
 };
 
 enum {
+	SD0, SD1,
+	SD01_NR };
+
+enum {
+	SD2, SD3,
+	SD23_NR };
+
+static int sd01_divisors[] = { 0, 0, 0, 0, 0, 12, 16, 18, 24, 0, 36, 48, 10};
+
+static struct clk_div_mult_table sd01_div_mult_table = {
+	.divisors = sd01_divisors,
+	.nr_divisors = ARRAY_SIZE(sd01_divisors),
+};
+
+static struct clk_div4_table div4_table = {
+	.div_mult_table = &sd01_div_mult_table,
+};
+
+#define SD_DIV(_parent, _reg, _shift, _flags)			\
+{								\
+	.parent = _parent,					\
+	.enable_reg = (void __iomem *)_reg,			\
+	.enable_bit = _shift,					\
+	.div_mask = SH_CLK_DIV_MSK(4),				\
+	.flags = _flags,					\
+}
+
+static struct clk sd01_clks[SD01_NR] = {
+	[SD0] = SD_DIV(&pll1_d2_clk, SDCKCR, 4, 0),
+	[SD1] = SD_DIV(&pll1_d2_clk, SDCKCR, 0, 0),
+};
+
+static struct clk sd23_clks[SD23_NR] = {
+	[SD2] = SH_CLK_DIV6(&pll1_d4_clk, SD2CKCR, 0),
+	[SD3] = SH_CLK_DIV6(&pll1_d4_clk, SD3CKCR, 0),
+};
+
+enum {
 	MSTP112,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP726, MSTP725, MSTP724, MSTP723, MSTP721, MSTP720, MSTP704, MSTP703,
+	MSTP314, MSTP313, MSTP312, MSTP311,
 	MSTP929, MSTP922,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, \
 	MSTP1014, MSTP1005,
@@ -145,6 +189,10 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP202] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 2, 0),
 	[MSTP726] = SH_CLK_MSTP32(&zg_clk, SMSTPCR7, 26, 0),
 	[MSTP725] = SH_CLK_MSTP32(&zg_clk, SMSTPCR7, 25, 0),
+	[MSTP314] = SH_CLK_MSTP32(&sd01_clks[SD0], SMSTPCR3, 14, 0),
+	[MSTP313] = SH_CLK_MSTP32(&sd01_clks[SD1], SMSTPCR3, 13, 0),
+	[MSTP312] = SH_CLK_MSTP32(&sd23_clks[SD2], SMSTPCR3, 12, 0),
+	[MSTP311] = SH_CLK_MSTP32(&sd23_clks[SD3], SMSTPCR3, 11, 0),
 	[MSTP724] = SH_CLK_MSTP32(&zg_clk, SMSTPCR7, 24, 0),
 	[MSTP723] = SH_CLK_MSTP32(&zg_clk, SMSTPCR7, 23, 0),
 	[MSTP721] = SH_CLK_MSTP32(&cp_clk, SMSTPCR7, 21, 0),
@@ -177,6 +225,10 @@ static struct clk_lookup lookups[] = {
 
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
 	CLKDEV_CON_ID("g6400", &mstp_clks[MSTP112]),
+	CLKDEV_DEV_ID("sh_mobile_sdhi.0", &mstp_clks[MSTP314]),
+	CLKDEV_DEV_ID("sh_mobile_sdhi.1", &mstp_clks[MSTP313]),
+	CLKDEV_DEV_ID("sh_mobile_sdhi.2", &mstp_clks[MSTP312]),
+	CLKDEV_DEV_ID("sh_mobile_sdhi.3", &mstp_clks[MSTP311]),
 	CLKDEV_DEV_ID("rcar-du.0", &mstp_clks[MSTP724]),
 	CLKDEV_CON_ID("rcar-du.1", &mstp_clks[MSTP723]),
 	CLKDEV_CON_ID("lvds.0", &mstp_clks[MSTP726]),
@@ -222,6 +274,12 @@ void __init r8a7790_clock_init(void)
 
 	for (k = 0; !ret && (k < ARRAY_SIZE(main_clks)); k++)
 		ret = clk_register(main_clks[k]);
+
+	if (!ret)
+		ret = sh_clk_div4_register(sd01_clks, SD01_NR, &div4_table);
+
+	if (!ret)
+		ret = sh_clk_div6_reparent_register(sd23_clks, SD23_NR);
 
 	if (!ret)
 		ret = sh_clk_mstp_register(mstp_clks, MSTP_NR);
