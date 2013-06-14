@@ -40,6 +40,7 @@
 #include "mmc_ops.h"
 #include "sd_ops.h"
 #include "sdio_ops.h"
+#include "lock.h"
 
 static struct workqueue_struct *workqueue;
 
@@ -2450,8 +2451,14 @@ static int __init mmc_init(void)
 	if (ret)
 		goto unregister_host_class;
 
+	ret = mmc_register_key_type();
+	if (ret)
+		goto unregister_sdio;
+
 	return 0;
 
+unregister_sdio:
+	sdio_unregister_bus();
 unregister_host_class:
 	mmc_unregister_host_class();
 unregister_bus:
@@ -2464,6 +2471,7 @@ destroy_workqueue:
 
 static void __exit mmc_exit(void)
 {
+	mmc_unregister_key_type();
 	sdio_unregister_bus();
 	mmc_unregister_host_class();
 	mmc_unregister_bus();
