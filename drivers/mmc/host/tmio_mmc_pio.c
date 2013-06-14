@@ -161,9 +161,11 @@ static void tmio_mmc_set_clock(struct tmio_mmc_host *host, int new_clock)
 static void tmio_mmc_clk_stop(struct tmio_mmc_host *host)
 {
 	struct resource *res = platform_get_resource(host->pdev, IORESOURCE_MEM, 0);
+	struct tmio_mmc_data *pdata = host->pdata;
 
 	/* implicit BUG_ON(!res) */
-	if (resource_size(res) > 0x100) {
+	if (!(pdata->flags & TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL)
+		&& resource_size(res) > 0x100) {
 		sd_ctrl_write16(host, CTL_CLK_AND_WAIT_CTL, 0x0000);
 		msleep(10);
 	}
@@ -176,13 +178,15 @@ static void tmio_mmc_clk_stop(struct tmio_mmc_host *host)
 static void tmio_mmc_clk_start(struct tmio_mmc_host *host)
 {
 	struct resource *res = platform_get_resource(host->pdev, IORESOURCE_MEM, 0);
+	struct tmio_mmc_data *pdata = host->pdata;
 
 	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0100 |
 		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
 	msleep(10);
 
 	/* implicit BUG_ON(!res) */
-	if (resource_size(res) > 0x100) {
+	if (!(pdata->flags & TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL)
+		&& resource_size(res) > 0x100) {
 		sd_ctrl_write16(host, CTL_CLK_AND_WAIT_CTL, 0x0100);
 		msleep(10);
 	}

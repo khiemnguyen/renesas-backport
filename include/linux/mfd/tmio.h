@@ -88,6 +88,9 @@
 /* NO_CTL_RESET_SDIO register don't work. */
 #define TMIO_MMC_NO_CTL_RESET_SDIO	(1 << 7)
 
+/* CTL_CLK_AND_WAIT_CTL register don't work. */
+#define TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL	(1 << 8)
+
 int tmio_core_mmc_enable(void __iomem *cnf, int shift, unsigned long base);
 int tmio_core_mmc_resume(void __iomem *cnf, int shift, unsigned long base);
 void tmio_core_mmc_pwr(void __iomem *cnf, int shift, int state);
