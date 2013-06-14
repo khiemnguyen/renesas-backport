@@ -36,8 +36,8 @@
 /*
  * rcar_du_get - Acquire a reference to the DU
  *
- * Acquiring a reference enables the device clock and setup core registers. A
- * reference must be held before accessing any hardware registers.
+ * Acquiring the first  reference setups core registers. A reference must be
+ * held before accessing any hardware registers.
  *
  * This function must be called with the DRM mode_config lock held.
  *
@@ -45,27 +45,8 @@
  */
 int rcar_du_get(struct rcar_du_device *rcdu)
 {
-	int ret;
-
 	if (rcdu->use_count)
 		goto done;
-
-	/* Enable clocks before accessing the hardware. */
-	ret = clk_prepare_enable(rcdu->clock);
-	if (ret < 0)
-		return ret;
-
-	ret = clk_enable(rcdu->clock_du1);
-	if (ret < 0)
-		return ret;
-
-	ret = clk_enable(rcdu->clock_lvds0);
-	if (ret < 0)
-		return ret;
-
-	ret = clk_enable(rcdu->clock_lvds1);
-	if (ret < 0)
-		return ret;
 
 	/* Enable extended features */
 	rcar_du_write(rcdu, DEFR, DEFR_CODE | DEFR_DEFE);
@@ -94,19 +75,11 @@ done:
 /*
  * rcar_du_put - Release a reference to the DU
  *
- * Releasing the last reference disables the device clock.
- *
  * This function must be called with the DRM mode_config lock held.
  */
 void rcar_du_put(struct rcar_du_device *rcdu)
 {
-	if (--rcdu->use_count)
-		return;
-
-	clk_disable_unprepare(rcdu->clock);
-	clk_disable(rcdu->clock_du1);
-	clk_disable(rcdu->clock_lvds0);
-	clk_disable(rcdu->clock_lvds1);
+	--rcdu->use_count;
 }
 
 /* -----------------------------------------------------------------------------
@@ -123,7 +96,6 @@ static int rcar_du_unload(struct drm_device *dev)
 	drm_kms_helper_poll_fini(dev);
 	drm_mode_config_cleanup(dev);
 	drm_vblank_cleanup(dev);
-	drm_irq_uninstall(dev);
 
 	dev->dev_private = NULL;
 
@@ -135,11 +107,7 @@ static int rcar_du_load(struct drm_device *dev, unsigned long flags)
 	struct platform_device *pdev = dev->platformdev;
 	struct rcar_du_platform_data *pdata = pdev->dev.platform_data;
 	struct rcar_du_device *rcdu;
-	struct resource *lvds0_ioarea;
-	struct resource *lvds1_ioarea;
 	struct resource *mem;
-	struct resource *lvds0_mem;
-	struct resource *lvds1_mem;
 	int ret;
 
 	if (pdata == NULL) {
@@ -159,7 +127,7 @@ static int rcar_du_load(struct drm_device *dev, unsigned long flags)
 	rcdu->ddev = dev;
 	dev->dev_private = rcdu;
 
-	/* I/O resources and clocks */
+	/* I/O resources */
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (mem == NULL) {
 		dev_err(&pdev->dev, "failed to get memory resource\n");
@@ -172,81 +140,6 @@ static int rcar_du_load(struct drm_device *dev, unsigned long flags)
 		return -ENOMEM;
 	}
 
-	/* LVDS0 */
-	lvds0_mem = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	if (lvds0_mem == NULL) {
-		dev_err(&pdev->dev, "failed to get memory lvds0 resource\n");
-		ret = -EINVAL;
-		goto done;
-	}
-
-	lvds0_ioarea = devm_request_mem_region(&pdev->dev, lvds0_mem->start,
-					 resource_size(lvds0_mem), pdev->name);
-	if (lvds0_ioarea == NULL) {
-		dev_err(&pdev->dev, "failed to request memory lvds0 region\n");
-		ret = -EBUSY;
-		goto done;
-	}
-
-	rcdu->lvds0_mmio = devm_ioremap_nocache(&pdev->dev, lvds0_ioarea->start,
-					  resource_size(lvds0_ioarea));
-	if (rcdu->lvds0_mmio == NULL) {
-		dev_err(&pdev->dev, "failed to remap memory lvds0 resource\n");
-		ret = -ENOMEM;
-		goto done;
-	}
-
-	/* LVDS1 */
-	lvds1_mem = platform_get_resource(pdev, IORESOURCE_MEM, 2);
-	if (lvds1_mem == NULL) {
-		dev_err(&pdev->dev, "failed to get memory lvds1 resource\n");
-		ret = -EINVAL;
-		goto done;
-	}
-
-	lvds1_ioarea = devm_request_mem_region(&pdev->dev, lvds1_mem->start,
-					 resource_size(lvds1_mem), pdev->name);
-	if (lvds1_ioarea == NULL) {
-		dev_err(&pdev->dev, "failed to request memory lvds1 region\n");
-		ret = -EBUSY;
-		goto done;
-	}
-
-	rcdu->lvds1_mmio = devm_ioremap_nocache(&pdev->dev, lvds1_ioarea->start,
-					  resource_size(lvds1_ioarea));
-	if (rcdu->lvds1_mmio == NULL) {
-		dev_err(&pdev->dev, "failed to remap memory lvds1 resource\n");
-		ret = -ENOMEM;
-		goto done;
-	}
-
-	rcdu->clock = devm_clk_get(&pdev->dev, NULL);
-	if (IS_ERR(rcdu->clock)) {
-		dev_err(&pdev->dev, "failed to get clock\n");
-		return -ENOENT;
-	}
-
-	rcdu->clock_du1 = clk_get(NULL, "rcar-du.1");
-	if (IS_ERR(rcdu->clock_du1)) {
-		dev_err(&pdev->dev, "failed to get rcar-du.1 clock\n");
-		ret = -ENOENT;
-		goto done;
-	}
-
-	rcdu->clock_lvds0 = clk_get(NULL, "lvds.0");
-	if (IS_ERR(rcdu->clock_lvds0)) {
-		dev_err(&pdev->dev, "failed to get lvds.0 clock\n");
-		ret = -ENOENT;
-		goto done;
-	}
-
-	rcdu->clock_lvds1 = clk_get(NULL, "lvds.1");
-	if (IS_ERR(rcdu->clock_lvds1)) {
-		dev_err(&pdev->dev, "failed to get lvds.1 clock\n");
-		ret = -ENOENT;
-		goto done;
-	}
-
 	/* DRM/KMS objects */
 	ret = rcar_du_modeset_init(rcdu);
 	if (ret < 0) {
@@ -254,16 +147,10 @@ static int rcar_du_load(struct drm_device *dev, unsigned long flags)
 		goto done;
 	}
 
-	/* IRQ and vblank handling */
+	/* vblank handling */
 	ret = drm_vblank_init(dev, (1 << rcdu->num_crtcs) - 1);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "failed to initialize vblank\n");
-		goto done;
-	}
-
-	ret = drm_irq_install(dev);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "failed to install IRQ handler\n");
 		goto done;
 	}
 
@@ -290,18 +177,6 @@ static void rcar_du_lastclose(struct drm_device *dev)
 	struct rcar_du_device *rcdu = dev->dev_private;
 
 	drm_fbdev_cma_restore_mode(rcdu->fbdev);
-}
-
-static irqreturn_t rcar_du_irq(int irq, void *arg)
-{
-	struct drm_device *dev = arg;
-	struct rcar_du_device *rcdu = dev->dev_private;
-	unsigned int i;
-
-	for (i = 0; i < ARRAY_SIZE(rcdu->crtcs); ++i)
-		rcar_du_crtc_irq(&rcdu->crtcs[i]);
-
-	return IRQ_HANDLED;
 }
 
 static int rcar_du_enable_vblank(struct drm_device *dev, int crtc)
@@ -336,13 +211,11 @@ static const struct file_operations rcar_du_fops = {
 };
 
 static struct drm_driver rcar_du_driver = {
-	.driver_features	= DRIVER_HAVE_IRQ | DRIVER_GEM | DRIVER_MODESET
-				| DRIVER_PRIME,
+	.driver_features	= DRIVER_GEM | DRIVER_MODESET | DRIVER_PRIME,
 	.load			= rcar_du_load,
 	.unload			= rcar_du_unload,
 	.preclose		= rcar_du_preclose,
 	.lastclose		= rcar_du_lastclose,
-	.irq_handler		= rcar_du_irq,
 	.get_vblank_counter	= drm_vblank_count,
 	.enable_vblank		= rcar_du_enable_vblank,
 	.disable_vblank		= rcar_du_disable_vblank,
