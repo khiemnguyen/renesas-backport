@@ -1,6 +1,7 @@
 /*
  * Block driver for media (i.e., flash cards)
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright 2002 Hewlett-Packard Company
  * Copyright 2005-2008 Pierre Ossman
  *
@@ -1137,6 +1138,11 @@ static void mmc_blk_rw_rq_prep(struct mmc_queue_req *mqrq,
 		/* Some controllers can't do multiblock reads due to hw bugs */
 		if (card->host->caps2 & MMC_CAP2_NO_MULTI_READ &&
 		    rq_data_dir(req) == READ)
+			brq->data.blocks = 1;
+		/* Some controllers can't do multiblock reads for 2 blocks
+		 due to hw bugs */
+		if (card->host->caps2 & MMC_CAP2_NO_2BLKS_READ &&
+		    rq_data_dir(req) == READ && brq->data.blocks == 2)
 			brq->data.blocks = 1;
 	}
 
