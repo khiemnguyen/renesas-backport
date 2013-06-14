@@ -74,7 +74,8 @@ static void tmio_mmc_start_dma_rx(struct tmio_mmc_host *host)
 
 	if (sg->length < TMIO_MMC_MIN_DMA_LEN) {
 		host->force_pio = true;
-		return;
+		ret = 0;
+		goto pio;
 	}
 
 	tmio_mmc_disable_mmc_irqs(host, TMIO_STAT_RXRDY);
@@ -106,6 +107,7 @@ pio:
 		/* DMA failed, fall back to PIO */
 		if (ret >= 0)
 			ret = -EIO;
+		tmio_mmc_enable_dma(host, false);
 		host->chan_rx = NULL;
 		dma_release_channel(chan);
 		/* Free the Tx channel too */
@@ -116,7 +118,6 @@ pio:
 		}
 		dev_warn(&host->pdev->dev,
 			 "DMA failed: %d, falling back to PIO\n", ret);
-		tmio_mmc_enable_dma(host, false);
 	}
 
 	dev_dbg(&host->pdev->dev, "%s(): desc %p, cookie %d, sg[%d]\n", __func__,
@@ -151,7 +152,8 @@ static void tmio_mmc_start_dma_tx(struct tmio_mmc_host *host)
 
 	if (sg->length < TMIO_MMC_MIN_DMA_LEN) {
 		host->force_pio = true;
-		return;
+		ret = 0;
+		goto pio;
 	}
 
 	tmio_mmc_disable_mmc_irqs(host, TMIO_STAT_TXRQ);
@@ -187,6 +189,7 @@ pio:
 		/* DMA failed, fall back to PIO */
 		if (ret >= 0)
 			ret = -EIO;
+		tmio_mmc_enable_dma(host, false);
 		host->chan_tx = NULL;
 		dma_release_channel(chan);
 		/* Free the Rx channel too */
@@ -197,7 +200,6 @@ pio:
 		}
 		dev_warn(&host->pdev->dev,
 			 "DMA failed: %d, falling back to PIO\n", ret);
-		tmio_mmc_enable_dma(host, false);
 	}
 
 	dev_dbg(&host->pdev->dev, "%s(): desc %p, cookie %d\n", __func__,
