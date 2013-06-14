@@ -281,7 +281,13 @@ void tmio_mmc_request_dma(struct tmio_mmc_host *host, struct tmio_mmc_data *pdat
 		dma_cap_zero(mask);
 		dma_cap_set(DMA_SLAVE, mask);
 
-		host->chan_tx = dma_request_channel(mask, tmio_mmc_filter,
+		if (pdata->dma_filter)
+			host->chan_tx = dma_request_channel(mask,
+						pdata->dma_filter,
+						    pdata->dma->chan_priv_tx);
+		else
+			host->chan_tx = dma_request_channel(mask,
+						tmio_mmc_filter,
 						    pdata->dma->chan_priv_tx);
 		dev_dbg(&host->pdev->dev, "%s: TX: got channel %p\n", __func__,
 			host->chan_tx);
@@ -289,7 +295,13 @@ void tmio_mmc_request_dma(struct tmio_mmc_host *host, struct tmio_mmc_data *pdat
 		if (!host->chan_tx)
 			return;
 
-		host->chan_rx = dma_request_channel(mask, tmio_mmc_filter,
+		if (pdata->dma_filter)
+			host->chan_rx = dma_request_channel(mask,
+						pdata->dma_filter,
+						    pdata->dma->chan_priv_rx);
+		else
+			host->chan_rx = dma_request_channel(mask,
+						tmio_mmc_filter,
 						    pdata->dma->chan_priv_rx);
 		dev_dbg(&host->pdev->dev, "%s: RX: got channel %p\n", __func__,
 			host->chan_rx);

@@ -7,6 +7,7 @@
 #include <linux/jiffies.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/dmaengine.h>
 
 #define tmio_ioread8(addr) readb(addr)
 #define tmio_ioread16(addr) readw(addr)
@@ -127,6 +128,7 @@ struct tmio_mmc_data {
 	int (*get_cd)(struct platform_device *host);
 	int (*get_ro)(struct platform_device *host);
 	int (*write16_hook)(struct tmio_mmc_host *host, int addr);
+	bool (*dma_filter)(struct dma_chan *chan, void *arg);
 	/* clock management callbacks */
 	int (*clk_enable)(struct platform_device *pdev, unsigned int *f);
 	void (*clk_disable)(struct platform_device *pdev);
