@@ -907,6 +907,8 @@ static int tmio_mmc_get_ro(struct mmc_host *mmc)
 	int ret = mmc_gpio_get_ro(mmc);
 	if (ret >= 0)
 		return ret;
+	if (pdata->get_ro)
+		return pdata->get_ro(host->pdev);
 
 	return !((pdata->flags & TMIO_MMC_WRPROTECT_DISABLE) ||
 		 (sd_ctrl_read32(host, CTL_STATUS) & TMIO_STAT_WRPROTECT));

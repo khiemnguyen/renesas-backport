@@ -76,6 +76,14 @@ static int sh_mobile_sdhi_get_cd(struct platform_device *pdev)
 	return p->get_cd(pdev);
 }
 
+static int sh_mobile_sdhi_get_ro(struct platform_device *pdev)
+{
+	struct sh_mobile_sdhi_info *p = pdev->dev.platform_data;
+
+	return p->get_ro(pdev);
+
+}
+
 static int sh_mobile_sdhi_wait_idle(struct tmio_mmc_host *host)
 {
 	int timeout = 1000;
@@ -168,6 +176,8 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 			mmc_data->set_pwr = sh_mobile_sdhi_set_pwr;
 		if (p->get_cd)
 			mmc_data->get_cd = sh_mobile_sdhi_get_cd;
+		if (p->get_ro)
+			mmc_data->get_ro = sh_mobile_sdhi_get_ro;
 
 		if (p->dma_slave_tx > 0 && p->dma_slave_rx > 0) {
 			priv->param_tx.shdma_slave.slave_id = p->dma_slave_tx;
