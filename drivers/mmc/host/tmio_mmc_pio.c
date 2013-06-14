@@ -1,6 +1,7 @@
 /*
  * linux/drivers/mmc/host/tmio_mmc_pio.c
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2011 Guennadi Liakhovetski
  * Copyright (C) 2007 Ian Molton
  * Copyright (C) 2004 Ian Molton
@@ -190,15 +191,18 @@ static void tmio_mmc_clk_start(struct tmio_mmc_host *host)
 static void tmio_mmc_reset(struct tmio_mmc_host *host)
 {
 	struct resource *res = platform_get_resource(host->pdev, IORESOURCE_MEM, 0);
+	struct tmio_mmc_data *pdata = host->pdata;
 
 	/* FIXME - should we set stop clock reg here */
 	sd_ctrl_write16(host, CTL_RESET_SD, 0x0000);
 	/* implicit BUG_ON(!res) */
-	if (resource_size(res) > 0x100)
+	if (!(pdata->flags & TMIO_MMC_NO_CTL_RESET_SDIO)
+		&& resource_size(res) > 0x100)
 		sd_ctrl_write16(host, CTL_RESET_SDIO, 0x0000);
 	msleep(10);
 	sd_ctrl_write16(host, CTL_RESET_SD, 0x0001);
-	if (resource_size(res) > 0x100)
+	if (!(pdata->flags & TMIO_MMC_NO_CTL_RESET_SDIO)
+		&& resource_size(res) > 0x100)
 		sd_ctrl_write16(host, CTL_RESET_SDIO, 0x0001);
 	msleep(10);
 }
