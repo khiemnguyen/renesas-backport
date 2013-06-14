@@ -534,7 +534,7 @@ static void __init usbh_pci_int_enable(int ch)
 static int __init usbh_init(void)
 {
 	struct clk *clk_hs, *clk_ehci;
-	u32 hs_usb = 0xE6590000;
+	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
 	unsigned int ch;
 
 	clk_hs = clk_get(NULL, "hs_usb");
@@ -550,7 +550,7 @@ static int __init usbh_init(void)
 	clk_enable(clk_ehci);
 
 	/* Set EHCI for UGCTRL2 */
-	__raw_writel(0x00000011, (hs_usb + 0x184));
+	iowrite32(0x00000011, (hs_usb + 0x184));
 
 	for (ch = 0; ch < SHUSBH_MAX_CH; ch++) {
 		/* internal pci-bus bridge initialize */
@@ -565,6 +565,7 @@ static int __init usbh_init(void)
 		/* pci int enable */
 		usbh_pci_int_enable(ch);
 	}
+	iounmap(hs_usb);
 
 	return 0;
 }
