@@ -82,6 +82,9 @@
  */
 #define TMIO_MMC_USE_GPIO_CD		(1 << 5)
 
+/* Switch the register of controller to access the buffer of 16 bit. */
+#define TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH	(1 << 6)
+
 int tmio_core_mmc_enable(void __iomem *cnf, int shift, unsigned long base);
 int tmio_core_mmc_resume(void __iomem *cnf, int shift, unsigned long base);
 void tmio_core_mmc_pwr(void __iomem *cnf, int shift, int state);

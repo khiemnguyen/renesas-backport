@@ -1,6 +1,7 @@
 /*
  * SuperH Mobile SDHI
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2009 Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
@@ -192,6 +193,10 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	ret = tmio_mmc_host_probe(&host, pdev, mmc_data);
 	if (ret < 0)
 		goto eprobe;
+
+	/* Set 16bit access */
+	if (mmc_data->flags & TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH)
+		sd_ctrl_write16(host, 0xe4, 1);
 
 	/*
 	 * Allow one or more specific (named) ISRs or
