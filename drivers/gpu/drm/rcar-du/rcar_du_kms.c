@@ -21,10 +21,9 @@
 
 #include "rcar_du_crtc.h"
 #include "rcar_du_drv.h"
+#include "rcar_du_encoder.h"
 #include "rcar_du_kms.h"
-#include "rcar_du_lvds.h"
 #include "rcar_du_regs.h"
-#include "rcar_du_vga.h"
 
 static bool rcar_du_fbdev_pan = true;
 module_param_named(fb_cma_pan, rcar_du_fbdev_pan, bool, 0444);
@@ -108,35 +107,6 @@ const struct rcar_du_format_info *rcar_du_format_info(u32 fourcc)
 	}
 
 	return NULL;
-}
-
-/* -----------------------------------------------------------------------------
- * Common connector and encoder functions
- */
-
-struct drm_encoder *
-rcar_du_connector_best_encoder(struct drm_connector *connector)
-{
-	struct rcar_du_connector *rcon = to_rcar_connector(connector);
-
-	return &rcon->encoder->encoder;
-}
-
-void rcar_du_encoder_mode_prepare(struct drm_encoder *encoder)
-{
-}
-
-void rcar_du_encoder_mode_set(struct drm_encoder *encoder,
-			      struct drm_display_mode *mode,
-			      struct drm_display_mode *adjusted_mode)
-{
-	struct rcar_du_encoder *renc = to_rcar_encoder(encoder);
-
-	rcar_du_crtc_route_output(encoder->crtc, renc->output);
-}
-
-void rcar_du_encoder_mode_commit(struct drm_encoder *encoder)
-{
 }
 
 /* -----------------------------------------------------------------------------
@@ -235,6 +205,9 @@ int rcar_du_modeset_init(struct rcar_du_device *rcdu)
 		const struct rcar_du_encoder_data *pdata =
 			&rcdu->pdata->encoders[i];
 
+		if (pdata->encoder == RCAR_DU_ENCODER_UNUSED)
+			continue;
+
 		if (pdata->output >= ARRAY_SIZE(rcdu->crtcs)) {
 			dev_warn(rcdu->dev,
 				 "encoder %u references unexisting output %u, skipping\n",
@@ -242,18 +215,8 @@ int rcar_du_modeset_init(struct rcar_du_device *rcdu)
 			continue;
 		}
 
-		switch (pdata->encoder) {
-		case RCAR_DU_ENCODER_VGA:
-			rcar_du_vga_init(rcdu, &pdata->u.vga, pdata->output);
-			break;
-
-		case RCAR_DU_ENCODER_LVDS:
-			rcar_du_lvds_init(rcdu, &pdata->u.lvds, pdata->output);
-			break;
-
-		default:
-			break;
-		}
+		rcar_du_encoder_init(rcdu, pdata->encoder, pdata->output,
+				     pdata);
 	}
 
 	/* Set the possible CRTCs and possible clones. All encoders can be
