@@ -187,71 +187,6 @@ static struct platform_device powervr_device = {
 	.num_resources  = ARRAY_SIZE(powervr_resources),
 };
 
-static struct resource rcar_du_resources[] = {
-	[0] = {
-		.name	= "Display Unit",
-		.start	= 0xfeb00000,
-		.end	= 0xfeb6002c,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= 0xfeb90000,
-		.end	= 0xfeb9001c,
-		.flags	= IORESOURCE_MEM,
-	},
-	[2] = {
-		.start	= 0xfeb94000,
-		.end	= 0xfeb9401c,
-		.flags	= IORESOURCE_MEM,
-	},
-	[3] = {
-		.start	= gic_spi(256),
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct rcar_du_encoder_data rcar_du_encoders[] = {
-	{
-		.encoder = RCAR_DU_ENCODER_VGA,
-		.output = 0,
-	},
-	{
-		.encoder = RCAR_DU_ENCODER_LVDS,
-		.output = 1,
-		.u.lvds.panel = {
-			.width_mm = 210,
-			.height_mm = 158,
-			.mode = {
-				.clock = 65000,
-				.hdisplay = 1024,
-				.hsync_start = 1048,
-				.hsync_end = 1184,
-				.htotal = 1344,
-				.vdisplay = 768,
-				.vsync_start = 771,
-				.vsync_end = 777,
-				.vtotal = 806,
-				.flags = 0,
-			},
-		},
-	},
-};
-
-static struct rcar_du_platform_data rcar_du_pdata = {
-	.encoders = rcar_du_encoders,
-	.num_encoders = ARRAY_SIZE(rcar_du_encoders),
-};
-
-static struct platform_device rcar_du_device = {
-	.name		= "rcar-du",
-	.num_resources	= ARRAY_SIZE(rcar_du_resources),
-	.resource	= rcar_du_resources,
-	.dev	= {
-		.platform_data = &rcar_du_pdata,
-		.coherent_dma_mask = ~0,
-	},
-};
-
 static u64 usb_dmamask = ~(u32)0;
 
 struct usb_ehci_pdata ehci_pdata = {
@@ -1342,7 +1277,6 @@ static struct platform_device scu_device = {
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
-	&rcar_du_device,
 	&ehci0_device,
 	&ohci0_device,
 	&ehci1_device,
