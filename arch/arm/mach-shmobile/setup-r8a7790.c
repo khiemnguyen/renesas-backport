@@ -35,6 +35,10 @@
 #include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/regulator/fixed.h>
 #include <linux/regulator/machine.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
@@ -763,6 +767,73 @@ static struct platform_device sdhi3_device = {
 	}
 };
 
+/* QSPI resource */
+static struct resource qspi_resources[] = {
+	[0] = {
+		.name = "QSPI",
+		.start = 0xe6b10000,
+		.end = 0xe6b10fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(184),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+/* SPI Flash memory (Spansion S25FL512SAGMFIG11) */
+static struct mtd_partition spiflash_part[] = {
+	/* Reserved for user loader program, read-only */
+	[0] = {
+		.name = "loader_prg",
+		.offset = 0,
+		.size = SZ_256K,
+		.mask_flags = MTD_WRITEABLE,	/* read only */
+	},
+	/* Reserved for user program, read-only */
+	[1] = {
+		.name = "user_prg",
+		.offset = MTDPART_OFS_APPEND,
+		.size = SZ_4M,
+		.mask_flags = MTD_WRITEABLE,	/* read only */
+	},
+	/* All else is writable (e.g. JFFS2) */
+	[2] = {
+		.name = "flash_fs",
+		.offset = MTDPART_OFS_APPEND,
+		.size = MTDPART_SIZ_FULL,
+		.mask_flags = 0,
+	},
+};
+
+static struct flash_platform_data spiflash_data = {
+	.name		= "m25p80",
+	.parts		= spiflash_part,
+	.nr_parts	= ARRAY_SIZE(spiflash_part),
+	.type		= "s25fl512s",
+};
+
+static struct platform_device qspi_device = {
+	.name = "qspi",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(qspi_resources),
+	.resource	= qspi_resources,
+	.dev  = {
+		.platform_data = &spiflash_data,
+	},
+};
+
+static struct spi_board_info spi_info[] __initdata = {
+	{
+		.modalias		= "m25p80",
+		.platform_data		= &spiflash_data,
+		.mode			= SPI_MODE_0,
+		.max_speed_hz		= 30000000,
+		.bus_num		= 0,
+		.chip_select		= 0,
+	},
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -777,6 +848,7 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&sdhi1_device,
 	&sdhi2_device,
 	&sdhi3_device,
+	&qspi_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
@@ -831,6 +903,9 @@ void __init r8a7790_add_standard_devices(void)
 			     ARRAY_SIZE(r8a7790_early_devices));
 
 	r8a7790_add_device_to_domain(&r8a7790_rgx, &powervr_device);
+
+	/* QSPI flash memory */
+	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
 }
 
 void __init r8a7790_timer_init(void)

@@ -110,6 +110,10 @@ static struct clk hp_clk = {
 	.parent		= &pll1_d2_clk,
 };
 
+static struct clk qspi_clk = {
+	.rate		= 97500000,
+};
+
 static struct clk mp_clk = {
 	.rate		= 52000000,
 	.mapping	= &cpg_mapping,
@@ -127,6 +131,7 @@ static struct clk *main_clks[] = {
 	&pll1_d4_clk,
 	&zg_clk,
 	&hp_clk,
+	&qspi_clk,
 	&mp_clk,
 	&cp_clk,
 };
@@ -174,7 +179,7 @@ enum {
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP726, MSTP725, MSTP724, MSTP723, MSTP721, MSTP720, MSTP704, MSTP703,
 	MSTP314, MSTP313, MSTP312, MSTP311,
-	MSTP929, MSTP922,
+	MSTP929, MSTP922, MSTP917,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, \
 	MSTP1014, MSTP1005,
 	MSTP_NR };
@@ -199,6 +204,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP720] = SH_CLK_MSTP32(&cp_clk, SMSTPCR7, 20, 0),
 	[MSTP704] = SH_CLK_MSTP32(&mp_clk, SMSTPCR7, 04, 0),
 	[MSTP703] = SH_CLK_MSTP32(&mp_clk, SMSTPCR7, 03, 0),
+	[MSTP917] = SH_CLK_MSTP32(&qspi_clk, SMSTPCR9, 17, 0),
 	[MSTP929] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 29, 0),
 	[MSTP922] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 22, 0),
 	[MSTP1031] = SH_CLK_MSTP32(&hp_clk, SMSTPCR10, 31, 0),
@@ -243,6 +249,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]),
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]),
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]),
+	CLKDEV_DEV_ID("qspi.0", &mstp_clks[MSTP917]),
 	CLKDEV_DEV_ID("i2c-rcar.2", &mstp_clks[MSTP929]),
 	CLKDEV_DEV_ID("adg", &mstp_clks[MSTP922]),
 	CLKDEV_DEV_ID("src0", &mstp_clks[MSTP1031]),
