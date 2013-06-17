@@ -31,7 +31,12 @@ struct rcar_du_device {
 	const struct rcar_du_platform_data *pdata;
 
 	void __iomem *mmio;
+	void __iomem *lvds0_mmio;
+	void __iomem *lvds1_mmio;
 	struct clk *clock;
+	struct clk *clock_du1;
+	struct clk *clock_lvds0;
+	struct clk *clock_lvds1;
 	unsigned int use_count;
 
 	struct drm_device *ddev;

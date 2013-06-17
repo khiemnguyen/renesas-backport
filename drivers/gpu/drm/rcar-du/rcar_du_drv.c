@@ -55,11 +55,24 @@ int rcar_du_get(struct rcar_du_device *rcdu)
 	if (ret < 0)
 		return ret;
 
+	ret = clk_enable(rcdu->clock_du1);
+	if (ret < 0)
+		return ret;
+
+	ret = clk_enable(rcdu->clock_lvds0);
+	if (ret < 0)
+		return ret;
+
+	ret = clk_enable(rcdu->clock_lvds1);
+	if (ret < 0)
+		return ret;
+
 	/* Enable extended features */
 	rcar_du_write(rcdu, DEFR, DEFR_CODE | DEFR_DEFE);
 	rcar_du_write(rcdu, DEFR2, DEFR2_CODE | DEFR2_DEFE2G);
 	rcar_du_write(rcdu, DEFR3, DEFR3_CODE | DEFR3_DEFE3);
 	rcar_du_write(rcdu, DEFR4, DEFR4_CODE);
+	rcar_du_write(rcdu, DEFR5, DEFR5_CODE | DEFR5_DEFE5);
 
 	/* Use DS1PR and DS2PR to configure planes priorities and connects the
 	 * superposition 0 to DU0 pins. DU1 pins will be configured dynamically.
@@ -84,6 +97,9 @@ void rcar_du_put(struct rcar_du_device *rcdu)
 		return;
 
 	clk_disable_unprepare(rcdu->clock);
+	clk_disable(rcdu->clock_du1);
+	clk_disable(rcdu->clock_lvds0);
+	clk_disable(rcdu->clock_lvds1);
 }
 
 /* -----------------------------------------------------------------------------
@@ -113,7 +129,11 @@ static int rcar_du_load(struct drm_device *dev, unsigned long flags)
 	struct rcar_du_platform_data *pdata = pdev->dev.platform_data;
 	struct rcar_du_device *rcdu;
 	struct resource *ioarea;
+	struct resource *lvds0_ioarea;
+	struct resource *lvds1_ioarea;
 	struct resource *mem;
+	struct resource *lvds0_mem;
+	struct resource *lvds1_mem;
 	int ret;
 
 	if (pdata == NULL) {
@@ -156,9 +176,78 @@ static int rcar_du_load(struct drm_device *dev, unsigned long flags)
 		goto done;
 	}
 
+	/* LVDS0 */
+	lvds0_mem = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	if (lvds0_mem == NULL) {
+		dev_err(&pdev->dev, "failed to get memory lvds0 resource\n");
+		ret = -EINVAL;
+		goto done;
+	}
+
+	lvds0_ioarea = devm_request_mem_region(&pdev->dev, lvds0_mem->start,
+					 resource_size(lvds0_mem), pdev->name);
+	if (lvds0_ioarea == NULL) {
+		dev_err(&pdev->dev, "failed to request memory lvds0 region\n");
+		ret = -EBUSY;
+		goto done;
+	}
+
+	rcdu->lvds0_mmio = devm_ioremap_nocache(&pdev->dev, lvds0_ioarea->start,
+					  resource_size(lvds0_ioarea));
+	if (rcdu->lvds0_mmio == NULL) {
+		dev_err(&pdev->dev, "failed to remap memory lvds0 resource\n");
+		ret = -ENOMEM;
+		goto done;
+	}
+
+	/* LVDS1 */
+	lvds1_mem = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+	if (lvds1_mem == NULL) {
+		dev_err(&pdev->dev, "failed to get memory lvds1 resource\n");
+		ret = -EINVAL;
+		goto done;
+	}
+
+	lvds1_ioarea = devm_request_mem_region(&pdev->dev, lvds1_mem->start,
+					 resource_size(lvds1_mem), pdev->name);
+	if (lvds1_ioarea == NULL) {
+		dev_err(&pdev->dev, "failed to request memory lvds1 region\n");
+		ret = -EBUSY;
+		goto done;
+	}
+
+	rcdu->lvds1_mmio = devm_ioremap_nocache(&pdev->dev, lvds1_ioarea->start,
+					  resource_size(lvds1_ioarea));
+	if (rcdu->lvds1_mmio == NULL) {
+		dev_err(&pdev->dev, "failed to remap memory lvds1 resource\n");
+		ret = -ENOMEM;
+		goto done;
+	}
+
 	rcdu->clock = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(rcdu->clock)) {
 		dev_err(&pdev->dev, "failed to get clock\n");
+		ret = -ENOENT;
+		goto done;
+	}
+
+	rcdu->clock_du1 = clk_get(NULL, "rcar-du.1");
+	if (IS_ERR(rcdu->clock_du1)) {
+		dev_err(&pdev->dev, "failed to get rcar-du.1 clock\n");
+		ret = -ENOENT;
+		goto done;
+	}
+
+	rcdu->clock_lvds0 = clk_get(NULL, "lvds.0");
+	if (IS_ERR(rcdu->clock_lvds0)) {
+		dev_err(&pdev->dev, "failed to get lvds.0 clock\n");
+		ret = -ENOENT;
+		goto done;
+	}
+
+	rcdu->clock_lvds1 = clk_get(NULL, "lvds.1");
+	if (IS_ERR(rcdu->clock_lvds1)) {
+		dev_err(&pdev->dev, "failed to get lvds.1 clock\n");
 		ret = -ENOENT;
 		goto done;
 	}

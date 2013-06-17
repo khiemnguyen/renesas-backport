@@ -29,6 +29,7 @@
 #include "rcar_du_vga.h"
 
 #define to_rcar_crtc(c)	container_of(c, struct rcar_du_crtc, crtc)
+#define WORK_AROUND
 
 static u32 rcar_du_crtc_read(struct rcar_du_crtc *rcrtc, u32 reg)
 {
@@ -67,6 +68,118 @@ static void rcar_du_crtc_clr_set(struct rcar_du_crtc *rcrtc, u32 reg,
 	u32 value = rcar_du_read(rcdu, rcrtc->mmio_offset + reg);
 
 	rcar_du_write(rcdu, rcrtc->mmio_offset + reg, (value & ~clr) | set);
+}
+
+static inline u32 rcar_du_lvds0_read(struct rcar_du_device *rcdu, u32 reg)
+{
+	return ioread32(rcdu->lvds0_mmio + reg);
+}
+
+static inline void rcar_du_lvds0_write(struct rcar_du_device *rcdu,
+				 u32 reg, u32 data)
+{
+	iowrite32(data, rcdu->lvds0_mmio + reg);
+}
+
+static inline u32 rcar_du_lvds1_read(struct rcar_du_device *rcdu, u32 reg)
+{
+	return ioread32(rcdu->lvds1_mmio + reg);
+}
+
+static inline void rcar_du_lvds1_write(struct rcar_du_device *rcdu,
+				 u32 reg, u32 data)
+{
+	iowrite32(data, rcdu->lvds1_mmio + reg);
+}
+
+static void rcar_du_lvds0_setting(struct rcar_du_device *rcdu)
+{
+	u32 set_clock;
+
+	set_clock = rcdu->crtcs->crtc.mode.clock * 1000;
+
+	/* 3. PLL, CTR, CH register setting */
+	if ((0 < set_clock) && (set_clock <= (38 * 1000 * 1000)))
+		rcar_du_lvds0_write(rcdu, LVDPLLCR, 0x0000577B);
+	else if ((set_clock > (38 * 1000 * 1000))
+		 && (set_clock <= (60 * 1000 * 1000)))
+		rcar_du_lvds0_write(rcdu, LVDPLLCR, 0x0000569A);
+	else if ((set_clock > (61 * 1000 * 1000))
+		 && (set_clock <= (121 * 1000 * 1000)))
+		rcar_du_lvds0_write(rcdu, LVDPLLCR, 0x0000522C);
+	else if ((set_clock > (121 * 1000 * 1000))
+		 && (set_clock <= (150 * 1000 * 1000)))
+		rcar_du_lvds0_write(rcdu, LVDPLLCR, 0x000001C7);
+	else
+		dev_dbg(rcdu->dev, "error. out of dotclok in lvds input\n");
+
+#ifdef WORK_AROUND /* work around */
+	rcar_du_lvds0_write(rcdu, LVDCHCR, 0x00002020); /* work around */
+#else
+	rcar_du_lvds0_write(rcdu, LVDCHCR, 0x00000000);
+#endif
+
+	/* 4. set LVDCR0.BEN/LVEN=1, Enable LVDS IO */
+	rcar_du_lvds0_write(rcdu, LVDCR0,
+		 (rcar_du_lvds0_read(rcdu, LVDCR0) | 0x00000005));
+
+	/* 5. Set LVDCR1.CHnSTBY = 11, LVDS IO ON */
+	rcar_du_lvds0_write(rcdu, LVDCR1,
+		 (rcar_du_lvds0_read(rcdu, LVDCR1) | 0x000003FF));
+
+	/* 6. Set LVDCR0.PLLON=1 PLL ON */
+	rcar_du_lvds0_write(rcdu, LVDCR0,
+		 (rcar_du_lvds0_read(rcdu, LVDCR0) | 0x00000010));
+	udelay(100); /* wait for 100us */
+
+	/* 7. Set LVDCR.LVRES=1 */
+	rcar_du_lvds0_write(rcdu, LVDCR0,
+		 (rcar_du_lvds0_read(rcdu, LVDCR0) | 0x00000002));
+}
+
+static void rcar_du_lvds1_setting(struct rcar_du_device *rcdu)
+{
+	u32 set_clock;
+
+	set_clock = rcdu->crtcs->crtc.mode.clock * 1000;
+
+	/* 3. PLL, CTR, CH register setting */
+	if ((0 < set_clock) && (set_clock <= (38 * 1000 * 1000)))
+		rcar_du_lvds1_write(rcdu, LVDPLLCR, 0x0000577B);
+	else if ((set_clock > (38 * 1000 * 1000))
+		 && (set_clock <= (60 * 1000 * 1000)))
+		rcar_du_lvds1_write(rcdu, LVDPLLCR, 0x0000569A);
+	else if ((set_clock > (61 * 1000 * 1000))
+		 && (set_clock <= (121 * 1000 * 1000)))
+		rcar_du_lvds1_write(rcdu, LVDPLLCR, 0x0000522C);
+	else if ((set_clock > (121 * 1000 * 1000))
+		 && (set_clock <= (150 * 1000 * 1000)))
+		rcar_du_lvds1_write(rcdu, LVDPLLCR, 0x000001C7);
+	else
+		dev_dbg(rcdu->dev, "error. out of dotclok in lvds input\n");
+
+#ifdef WORK_AROUND /* work around */
+	rcar_du_lvds1_write(rcdu, LVDCHCR, 0x00002020); /* work around */
+#else
+	rcar_du_lvds1_write(rcdu, LVDCHCR, 0x00000000);
+#endif
+
+	/* 4. set LVDCR0.BEN/LVEN=1, Enable LVDS IO */
+	rcar_du_lvds1_write(rcdu, LVDCR0,
+		 (rcar_du_lvds1_read(rcdu, LVDCR0) | 0x00000005));
+
+	/* 5. Set LVDCR1.CHnSTBY = 11, LVDS IO ON */
+	rcar_du_lvds1_write(rcdu, LVDCR1,
+		 (rcar_du_lvds1_read(rcdu, LVDCR1) | 0x000003FF));
+
+	/* 6. Set LVDCR0.PLLON=1 PLL ON */
+	rcar_du_lvds1_write(rcdu, LVDCR0,
+		 (rcar_du_lvds1_read(rcdu, LVDCR0) | 0x00000010));
+	udelay(100); /* wait for 100us */
+
+	/* 7. Set LVDCR.LVRES=1 */
+	rcar_du_lvds1_write(rcdu, LVDCR0,
+		 (rcar_du_lvds1_read(rcdu, LVDCR0) | 0x00000002));
 }
 
 static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
@@ -284,6 +397,9 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 	rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_TVM_MASK, DSYSR_TVM_MASTER);
 
 	rcar_du_start_stop(rcdu, true);
+
+	rcar_du_lvds0_setting(rcdu);
+	rcar_du_lvds1_setting(rcdu);
 
 	rcrtc->started = true;
 }
