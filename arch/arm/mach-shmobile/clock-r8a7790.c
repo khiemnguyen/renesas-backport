@@ -283,6 +283,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
 	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
 	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
+	CLKDEV_ICK_ID("lvds.0", "rcar-du-r8a7790", &mstp_clks[MSTP726]),
+	CLKDEV_ICK_ID("lvds.1", "rcar-du-r8a7790", &mstp_clks[MSTP725]),
 	CLKDEV_ICK_ID("du.0", "rcar-du-r8a7790", &mstp_clks[MSTP724]),
 	CLKDEV_ICK_ID("du.1", "rcar-du-r8a7790", &mstp_clks[MSTP723]),
 	CLKDEV_ICK_ID("du.2", "rcar-du-r8a7790", &mstp_clks[MSTP722]),
