@@ -8,23 +8,9 @@ config DRM_RCAR_DU
 	  Choose this option if you have an R-Car chipset.
 	  If M is selected the module will be called rcar-du-drm.
 
-config ANALOG_RGB_CH
-	int "Display analog RGB output channel"
-	range 0 1
-	default 0
+config DRM_RCAR_LVDS
+	bool "R-Car DU LVDS Encoder Support"
 	depends on DRM_RCAR_DU
 	help
-	  This option is selection of DU channel for analog RGB
-	  output.
-	  if you want to set Analog RGB output to DU0, you set "0".
-	  if you want to set Analog RGB output to DU1, you set "1".
-
-config LVDS_CH
-	int "Display LVDS output channel"
-	range 1 1
-	default 1
-	depends on DRM_RCAR_DU
-	help
-	  This option is selection of DU channel for LVDS
-	  output.
-	  if you want to set LVDS output to DU1, you set "1".
+	  Enable support the R-Car Display Unit embedded LVDS encoders
+	  (currently only on R8A7790).
