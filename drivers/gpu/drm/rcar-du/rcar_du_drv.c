@@ -74,6 +74,13 @@ int rcar_du_get(struct rcar_du_device *rcdu)
 	rcar_du_write(rcdu, DEFR4, DEFR4_CODE);
 	rcar_du_write(rcdu, DEFR5, DEFR5_CODE | DEFR5_DEFE5);
 
+	if (CONFIG_ANALOG_RGB_CH == 2)
+		rcar_du_write(rcdu, DEFR8, DEFR8_CODE | DEFR8_DRGBS_DU2);
+	else if (CONFIG_ANALOG_RGB_CH == 1)
+		rcar_du_write(rcdu, DEFR8, DEFR8_CODE | DEFR8_DRGBS_DU1);
+	else
+		rcar_du_write(rcdu, DEFR8, DEFR8_CODE | DEFR8_DRGBS_DU0);
+
 	/* Use DS1PR and DS2PR to configure planes priorities and connects the
 	 * superposition 0 to DU0 pins. DU1 pins will be configured dynamically.
 	 */
