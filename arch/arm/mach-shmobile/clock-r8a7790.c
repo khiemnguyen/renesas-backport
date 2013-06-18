@@ -11,7 +11,7 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -35,8 +35,8 @@
 #define SMSTPCR10	0xE6150998
 
 static struct clk_mapping cpg_mapping = {
-	.phys   = CPG_BASE,
-	.len    = CPG_LEN,
+	.phys	= CPG_BASE,
+	.len	= CPG_LEN,
 };
 
 static unsigned long d12_recalc(struct clk *clk)
@@ -172,6 +172,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("cp_clk", &cp_clk),
 	CLKDEV_CON_ID("peripheral_clk", &hp_clk),
 
+	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
 	CLKDEV_CON_ID("g6400", &mstp_clks[MSTP112]),
 	CLKDEV_DEV_ID("rcar-du.0", &mstp_clks[MSTP724]),
 	CLKDEV_DEV_ID("sh-sci.0", &mstp_clks[MSTP204]),
@@ -196,6 +197,19 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("ssi", &mstp_clks[MSTP1005]),
 };
 
+static void __init r8a7790_rgx_control_init(void)
+{
+	void __iomem *cpgp;
+	unsigned int val;
+
+#define RGXCR		0x0B4
+
+	cpgp = ioremap(CPG_BASE, PAGE_SIZE);
+	val = ioread32(cpgp + RGXCR);
+	iowrite32(val | (1 << 16), cpgp + RGXCR);
+	iounmap(cpgp);
+}
+
 void __init r8a7790_clock_init(void)
 {
 	int k, ret = 0;
@@ -212,4 +226,6 @@ void __init r8a7790_clock_init(void)
 		shmobile_clk_init();
 	else
 		panic("failed to setup r8a7790 clocks\n");
+
+	r8a7790_rgx_control_init();
 }
