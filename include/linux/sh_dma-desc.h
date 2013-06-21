@@ -38,6 +38,9 @@ struct sh_dmadesc_slave_config {
 	dma_addr_t	addr;
 	u32		chcr;
 	char		mid_rid;
+	char		desc_mode:2;
+	u16		desc_offset;
+	u16		desc_stepnum;
 };
 
 struct sh_dmadesc_channel {

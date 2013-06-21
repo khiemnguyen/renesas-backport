@@ -100,6 +100,7 @@ struct shdma_ops {
 	struct shdma_desc *(*embedded_desc)(void *, int);
 	bool (*chan_irq)(struct shdma_chan *, int);
 	size_t (*get_partial)(struct shdma_chan *, struct shdma_desc *);
+	bool (*dmae_desc_use)(struct shdma_chan *);
 };
 
 struct shdma_dev {

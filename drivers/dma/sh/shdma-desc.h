@@ -38,6 +38,9 @@ struct sh_dmadesc_chan {
 	u32 __iomem *base;
 	char dev_id[16];		/* unique name per DMAC of channel */
 	int pm_error;
+	u32 __iomem *descmem_start;
+	u32 __iomem *descmem_end;
+	u32 *descmem_ptr;
 };
 
 struct sh_dmadesc_device {
@@ -73,15 +76,29 @@ struct sh_dmadesc_desc {
 #define DAR	0x04
 #define TCR	0x08
 #define CHCR	0x0C
+#define CHCRB	0x1C
+#define DPBASE	0x50
 #define DMAOR	0x60
 
 #define TEND	0x18 /* USB-DMAC */
+
+/* DMA descriptor memory */
+#define DESCMEM_BASE	0xa000
+#define DESCMEM_SIZE	0x800
+#define DESC_STEP_SIZE	0x10
 
 /* DMAOR definitions */
 #define DMAOR_AE	0x00000004
 #define DMAOR_DME	0x00000001
 
 /* CHCR definitions */
+#define DPM_MSK	0x30000000
+#define RPT_SRC	0x08000000
+#define RPT_DST	0x04000000
+#define RPT_TC	0x02000000
+#define DPB	0x00400000
+#define DSE	0x00080000
+#define DSIE	0x00040000
 #define DM_INC	0x00004000
 #define DM_DEC	0x00008000
 #define DM_FIX	0x0000c000

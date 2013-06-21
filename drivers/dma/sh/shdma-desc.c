@@ -75,6 +75,11 @@ static u32 sh_dmae_readl(struct sh_dmadesc_chan *sh_dc, u32 reg)
 	return __raw_readl(sh_dc->base + reg / sizeof(u32));
 }
 
+static void sh_descmem_writel(struct sh_dmadesc_chan *sh_dc, u32 data, u32 reg)
+{
+	__raw_writel(data, sh_dc->descmem_ptr + reg / sizeof(u32));
+}
+
 static u16 dmaor_read(struct sh_dmadesc_device *shdev)
 {
 	u32 __iomem *addr = shdev->chan_reg + DMAOR / sizeof(u32);
@@ -170,6 +175,16 @@ static bool dmae_is_busy(struct sh_dmadesc_chan *sh_chan)
 	return false; /* waiting */
 }
 
+static bool dmae_desc_is_used(struct sh_dmadesc_chan *sh_chan)
+{
+	u32 chcr = chcr_read(sh_chan);
+
+	if ((chcr & DPM_MSK) != 0)
+		return true; /* descriptor mode */
+
+	return false; /* normal mode */
+}
+
 static unsigned int calc_xmit_shift(struct sh_dmadesc_chan *sh_chan, u32 chcr)
 {
 	struct sh_dmadesc_device *shdev = to_sh_dev(sh_chan);
@@ -206,6 +221,19 @@ static void dmae_set_reg(struct sh_dmadesc_chan *sh_chan,
 	sh_dmae_writel(sh_chan, hw->sar, SAR);
 	sh_dmae_writel(sh_chan, hw->dar, DAR);
 	sh_dmae_writel(sh_chan, hw->tcr >> sh_chan->xmit_shift, TCR);
+}
+
+static void dmae_set_descmem(struct sh_dmadesc_chan *sh_chan,
+					struct sh_dmadesc_regs *hw)
+{
+	sh_descmem_writel(sh_chan, hw->sar, SAR);
+	sh_descmem_writel(sh_chan, hw->dar, DAR);
+	sh_descmem_writel(sh_chan, hw->tcr >> sh_chan->xmit_shift, TCR);
+
+	/* Update descriptor pointer */
+	sh_chan->descmem_ptr += DESC_STEP_SIZE / sizeof(u32);
+	if (sh_chan->descmem_ptr >= sh_chan->descmem_end)
+		sh_chan->descmem_ptr = sh_chan->descmem_start;
 }
 
 static void dmae_start(struct sh_dmadesc_chan *sh_chan)
@@ -245,6 +273,29 @@ static int dmae_set_chcr(struct sh_dmadesc_chan *sh_chan, u32 val)
 	return 0;
 }
 
+static void dmae_desc_init(struct sh_dmadesc_chan *sh_chan,
+				const struct sh_dmadesc_slave_config *cfg)
+{
+	struct sh_dmadesc_device *shdev = to_sh_dev(sh_chan);
+	u32 chcr = cfg->chcr;
+
+	sh_chan->descmem_start = shdev->chan_reg +
+		((DESCMEM_BASE + cfg->desc_offset) / sizeof(u32));
+	sh_chan->descmem_end = sh_chan->descmem_start +
+		(cfg->desc_stepnum * DESC_STEP_SIZE / sizeof(u32));
+	sh_chan->descmem_ptr = sh_chan->descmem_start;
+	sh_chan->xmit_shift = calc_xmit_shift(sh_chan, cfg->chcr);
+
+	sh_dmae_writel(sh_chan, ((u32)sh_chan->descmem_start & 0xfffffff0UL),
+			DPBASE);
+	sh_dmae_writel(sh_chan, (1 << 15), CHCRB);
+	sh_dmae_writel(sh_chan, (cfg->desc_stepnum - 1) << 24, CHCRB);
+
+	chcr |= (cfg->desc_mode << 28);	/* DPM */
+	chcr |= (RPT_SRC | RPT_DST | RPT_TC | DPB | DSIE);
+	chcr_write(sh_chan, chcr);
+}
+
 static int dmae_set_dmars(struct sh_dmadesc_chan *sh_chan, u16 val)
 {
 	struct sh_dmadesc_device *shdev = to_sh_dev(sh_chan);
@@ -281,7 +332,8 @@ static void sh_dmae_start_xfer(struct shdma_chan *schan,
 		sdesc->async_tx.cookie, sh_chan->shdma_chan.id,
 		sh_desc->hw.tcr, sh_desc->hw.sar, sh_desc->hw.dar);
 	/* Get the ld start address from ld_queue */
-	dmae_set_reg(sh_chan, &sh_desc->hw);
+	if (sh_chan->config->desc_mode == 0)
+		dmae_set_reg(sh_chan, &sh_desc->hw);
 	dmae_start(sh_chan);
 }
 
@@ -295,6 +347,16 @@ static bool sh_dmae_channel_busy(struct shdma_chan *schan)
 	return ret;
 }
 
+static bool sh_dmae_desc_use(struct shdma_chan *schan)
+{
+	struct sh_dmadesc_chan *sh_chan =
+		container_of(schan, struct sh_dmadesc_chan, shdma_chan);
+	bool ret;
+
+	ret = dmae_desc_is_used(sh_chan);
+	return ret;
+}
+
 static void sh_dmae_setup_xfer(struct shdma_chan *schan, int slave_id)
 {
 	struct sh_dmadesc_chan *sh_chan =
@@ -304,7 +366,8 @@ static void sh_dmae_setup_xfer(struct shdma_chan *schan, int slave_id)
 		const struct sh_dmadesc_slave_config *cfg = sh_chan->config;
 
 		dmae_set_dmars(sh_chan, cfg->mid_rid);
-		dmae_set_chcr(sh_chan, cfg->chcr);
+		if (cfg->desc_mode == 0)
+			dmae_set_chcr(sh_chan, cfg->chcr);
 	} else {
 		dmae_init(sh_chan);
 	}
@@ -340,8 +403,18 @@ static int sh_dmae_set_slave(struct shdma_chan *schan,
 	if (!cfg)
 		return -ENODEV;
 
-	if (!try)
+	if (!try) {
 		sh_chan->config = cfg;
+		if (cfg->desc_mode != 0) {
+			if (((cfg->desc_offset & 0xf) != 0) ||
+			    (cfg->desc_offset + cfg->desc_stepnum *
+			    DESC_STEP_SIZE > DESCMEM_SIZE) ||
+			    (cfg->desc_stepnum <= 1))
+				return -EINVAL;
+
+			dmae_desc_init(sh_chan, cfg);
+		}
+	}
 
 	return 0;
 }
@@ -351,7 +424,15 @@ static void dmae_halt(struct sh_dmadesc_chan *sh_chan)
 	struct sh_dmadesc_device *shdev = to_sh_dev(sh_chan);
 	u32 chcr = chcr_read(sh_chan);
 
-	chcr &= ~(CHCR_DE | CHCR_TE | shdev->chcr_ie_bit);
+	chcr &= ~(DSE | CHCR_DE | CHCR_TE | shdev->chcr_ie_bit);
+	chcr_write(sh_chan, chcr);
+}
+
+static void dmae_desc_halt(struct sh_dmadesc_chan *sh_chan)
+{
+	u32 chcr = chcr_read(sh_chan);
+
+	chcr &= ~(DPM_MSK | RPT_SRC | RPT_DST | RPT_TC | DPB | DSIE);
 	chcr_write(sh_chan, chcr);
 }
 
@@ -359,8 +440,10 @@ static int sh_dmae_desc_setup(struct shdma_chan *schan,
 			      struct shdma_desc *sdesc,
 			      dma_addr_t src, dma_addr_t dst, size_t *len)
 {
-	struct sh_dmadesc_desc *sh_desc = container_of(sdesc,
-					struct sh_dmadesc_desc, shdma_desc);
+	struct sh_dmadesc_chan *sh_chan =
+		container_of(schan, struct sh_dmadesc_chan, shdma_chan);
+	struct sh_dmadesc_desc *sh_desc =
+		container_of(sdesc, struct sh_dmadesc_desc, shdma_desc);
 
 	if (*len > schan->max_xfer_len)
 		*len = schan->max_xfer_len;
@@ -368,6 +451,9 @@ static int sh_dmae_desc_setup(struct shdma_chan *schan,
 	sh_desc->hw.sar = src;
 	sh_desc->hw.dar = dst;
 	sh_desc->hw.tcr = *len;
+
+	if (sh_chan->config->desc_mode != 0)
+		dmae_set_descmem(sh_chan, &sh_desc->hw);
 
 	return 0;
 }
@@ -379,6 +465,8 @@ static void sh_dmae_halt(struct shdma_chan *schan)
 
 	/* DMA stop */
 	dmae_halt(sh_chan);
+	if (sh_chan->config->desc_mode != 0)
+		dmae_desc_halt(sh_chan);
 }
 
 static bool sh_dmae_chan_irq(struct shdma_chan *schan, int irq)
@@ -386,7 +474,8 @@ static bool sh_dmae_chan_irq(struct shdma_chan *schan, int irq)
 	struct sh_dmadesc_chan *sh_chan =
 		container_of(schan, struct sh_dmadesc_chan, shdma_chan);
 
-	if (!(chcr_read(sh_chan) & CHCR_TE))
+	if ((sh_chan->config->desc_mode == 0) &&
+	    !(chcr_read(sh_chan) & CHCR_TE))
 		return false;
 
 	/* DMA stop */
@@ -440,14 +529,20 @@ static bool sh_dmae_desc_completed(struct shdma_chan *schan,
 					struct sh_dmadesc_chan, shdma_chan);
 	struct sh_dmadesc_desc *sh_desc = container_of(sdesc,
 					struct sh_dmadesc_desc, shdma_desc);
+	u32 sar_buf;
+	u32 dar_buf;
 
-	u32 sar_buf = sh_dmae_readl(sh_chan, SAR);
-	u32 dar_buf = sh_dmae_readl(sh_chan, DAR);
+	if (sh_chan->config->desc_mode != 0)
+		return true;
+	else {
+		sar_buf = sh_dmae_readl(sh_chan, SAR);
+		dar_buf = sh_dmae_readl(sh_chan, DAR);
 
-	return	(sdesc->direction == DMA_DEV_TO_MEM &&
-		 (sh_desc->hw.dar + sh_desc->hw.tcr) == dar_buf) ||
-		(sdesc->direction != DMA_DEV_TO_MEM &&
-		 (sh_desc->hw.sar + sh_desc->hw.tcr) == sar_buf);
+		return	(sdesc->direction == DMA_DEV_TO_MEM &&
+			 (sh_desc->hw.dar + sh_desc->hw.tcr) == dar_buf) ||
+			(sdesc->direction != DMA_DEV_TO_MEM &&
+			 (sh_desc->hw.sar + sh_desc->hw.tcr) == sar_buf);
+	}
 }
 
 static int __devinit sh_dmae_chan_probe(struct sh_dmadesc_device *shdev, int id,
@@ -564,7 +659,8 @@ static int sh_dmae_resume(struct device *dev)
 			const struct sh_dmadesc_slave_config *cfg =
 							sh_chan->config;
 			dmae_set_dmars(sh_chan, cfg->mid_rid);
-			dmae_set_chcr(sh_chan, cfg->chcr);
+			if (sh_chan->config->desc_mode == 0)
+				dmae_set_chcr(sh_chan, cfg->chcr);
 		} else {
 			dmae_init(sh_chan);
 		}
@@ -614,6 +710,7 @@ static const struct shdma_ops sh_dmae_shdma_ops = {
 	.embedded_desc = sh_dmae_embedded_desc,
 	.chan_irq = sh_dmae_chan_irq,
 	.get_partial = sh_dmae_get_partial,
+	.dmae_desc_use = sh_dmae_desc_use,
 };
 
 static int __devinit sh_dmae_probe(struct platform_device *pdev)
