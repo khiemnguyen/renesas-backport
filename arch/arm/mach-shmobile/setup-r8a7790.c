@@ -1127,6 +1127,16 @@ static bool sysdma_filter(struct platform_device *pdev)
 	return true;
 }
 
+static struct clk *sysdma_clk_get(struct platform_device *pdev)
+{
+	if (pdev->id == SHDMA_DEVID_SYS_LO)
+		return clk_get(NULL, "sysdmac_lo");
+	else if (pdev->id == SHDMA_DEVID_SYS_UP)
+		return clk_get(NULL, "sysdmac_up");
+	else
+		return NULL;
+}
+
 static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
 	{
 		.slave_id	= SHDMA_SLAVE_SDHI0_TX,
@@ -1203,6 +1213,7 @@ static struct sh_dmadesc_pdata sysdma_platform_data = {
 	.dmaor_init	= DMAOR_DME,
 	.chclr_present	= 1,
 	.dma_filter	= sysdma_filter,
+	.clk_get	= sysdma_clk_get,
 };
 
 static struct resource r8a7790_sysdmal_resources[] = {
