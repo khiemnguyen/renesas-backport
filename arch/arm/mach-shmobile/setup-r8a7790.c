@@ -1332,6 +1332,7 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&audmal_device,
 	&audmau_device,
 	&audmapp_device,
+	&sysdmal_device,
 	&sysdmau_device,
 	&alsa_soc_platform_device,
 	&scu_device,
