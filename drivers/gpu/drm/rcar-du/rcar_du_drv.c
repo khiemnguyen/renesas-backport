@@ -247,7 +247,7 @@ static const struct rcar_du_device_info rcar_du_r8a7779_info = {
 
 static const struct rcar_du_device_info rcar_du_r8a7790_info = {
 	.features = RCAR_DU_FEATURE_CRTC_IRQ_CLOCK | RCAR_DU_FEATURE_ALIGN_128B
-		  | RCAR_DU_FEATURE_DEFR8
+		  | RCAR_DU_FEATURE_DEFR8 | RCAR_DU_FEATURE_VSP1_SOURCE
 		  | RCAR_DU_FEATURE_LVDCHCR_WORKAROUND
 		  | RCAR_DU_FEATURE_EXTERAL_CLOCK,
 	.num_crtcs = 3,
