@@ -951,6 +951,11 @@ static const struct sh_dmadesc_slave_config r8a7790_audma_slaves[] = {
 		.addr		= 0xec004400,
 		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
 		.mid_rid	= 0x9c,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_CMD1_MEM,
+		.addr		= 0xec008400,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0xbe,
 	},
 };
 
@@ -960,6 +965,11 @@ static const struct sh_audmapp_slave_config r8a7790_audmapp_slaves[] = {
 		.sar		= 0xec304000,
 		.dar		= 0xec400000,
 		.chcr		= 0x2d000000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_CMD0_SSI0,
+		.sar		= 0xec308000,
+		.dar		= 0xec400000,
+		.chcr		= 0x37000000,
 	}, {
 		.slave_id	= SHDMA_SLAVE_PCM_SSI1_SRC1,
 		.sar		= 0xec401000,
