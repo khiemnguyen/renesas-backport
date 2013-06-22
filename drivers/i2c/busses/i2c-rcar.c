@@ -51,6 +51,10 @@
 #define ICSAR	0x1C	/* slave address */
 #define ICMAR	0x20	/* master address */
 #define ICRXTX	0x24	/* data port */
+#define ICCCR2	0x28	/* clock ctrl */
+#define ICMPR	0x2C	/* scl mask ctrl */
+#define ICHPR	0x30	/* scl high ctrl */
+#define ICLPR	0x34	/* scl low ctrl */
 
 /* ICMCR */
 #define MDBS	(1 << 7)	/* non-fifo mode switch */
@@ -114,6 +118,10 @@ struct rcar_i2c_priv {
 	int pos;
 	int irq;
 	u32 icccr;
+	u32 icccr2;
+	u32 icmpr;
+	u32 ichpr;
+	u32 iclpr;
 	u32 flags;
 };
 
@@ -218,6 +226,19 @@ static void rcar_i2c_bus_phase(struct rcar_i2c_priv *priv, int phase)
 /*
  *		clock function
  */
+static int rcar_i2c_clock_fix(struct rcar_i2c_priv *priv, struct device *dev)
+{
+	struct i2c_rcar_platform_data *pdata = dev->platform_data;
+
+	priv->icccr = pdata->icccr;
+	priv->icccr2 = pdata->icccr2;
+	priv->icmpr = pdata->icmpr;
+	priv->ichpr = pdata->ichpr;
+	priv->iclpr = pdata->iclpr;
+
+	return 0;
+}
+
 static int rcar_i2c_clock_calculate(struct rcar_i2c_priv *priv,
 				    u32 bus_speed,
 				    struct device *dev)
@@ -301,6 +322,10 @@ scgd_find:
 
 static void rcar_i2c_clock_start(struct rcar_i2c_priv *priv)
 {
+	rcar_i2c_write(priv, ICMPR, priv->icmpr);
+	rcar_i2c_write(priv, ICHPR, priv->ichpr);
+	rcar_i2c_write(priv, ICLPR, priv->iclpr);
+	rcar_i2c_write(priv, ICCCR2, priv->icccr2);
 	rcar_i2c_write(priv, ICCCR, priv->icccr);
 }
 
@@ -645,7 +670,10 @@ static int __devinit rcar_i2c_probe(struct platform_device *pdev)
 	bus_speed = 100000; /* default 100 kHz */
 	if (pdata && pdata->bus_speed)
 		bus_speed = pdata->bus_speed;
-	ret = rcar_i2c_clock_calculate(priv, bus_speed, dev);
+	if (pdata && pdata->icccr2)
+		ret = rcar_i2c_clock_fix(priv, dev);
+	else
+		ret = rcar_i2c_clock_calculate(priv, bus_speed, dev);
 	if (ret < 0)
 		return ret;
 
