@@ -813,9 +813,24 @@ static struct spi_board_info spi_info[] __initdata = {
 };
 
 /* I2C */
-static struct i2c_rcar_platform_data i2c_pd = {
-	.bus_speed	= 400000,
-	.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+static struct i2c_rcar_platform_data i2c_pd[] = {
+	{
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	}, {
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	}, {
+		/* Recommended values of bus speed 100kHz by H2 H/W spec. */
+		.icccr	= 6,
+		.icccr2	= 7,
+		.icmpr	= 10,
+		.ichpr	= 632,
+		.iclpr	= 640,
+	}, {
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	},
 };
 
 static struct resource rcar_i2c0_res[] = {
@@ -866,7 +881,7 @@ static struct platform_device i2c0_device = {
 	.name		= "i2c-rcar",
 	.id		= 0,
 	.dev = {
-		.platform_data = &i2c_pd,
+		.platform_data = &i2c_pd[0],
 	},
 	.num_resources	= ARRAY_SIZE(rcar_i2c0_res),
 	.resource	= rcar_i2c0_res,
@@ -876,7 +891,7 @@ static struct platform_device i2c1_device = {
 	.name		= "i2c-rcar",
 	.id		= 1,
 	.dev = {
-		.platform_data = &i2c_pd,
+		.platform_data = &i2c_pd[1],
 	},
 	.num_resources	= ARRAY_SIZE(rcar_i2c1_res),
 	.resource	= rcar_i2c1_res,
@@ -886,7 +901,7 @@ static struct platform_device i2c2_device = {
 	.name		= "i2c-rcar",
 	.id		= 2,
 	.dev = {
-		.platform_data = &i2c_pd,
+		.platform_data = &i2c_pd[2],
 	},
 	.num_resources	= ARRAY_SIZE(rcar_i2c2_res),
 	.resource	= rcar_i2c2_res,
@@ -896,7 +911,7 @@ static struct platform_device i2c3_device = {
 	.name		= "i2c-rcar",
 	.id		= 3,
 	.dev = {
-		.platform_data = &i2c_pd,
+		.platform_data = &i2c_pd[3],
 	},
 	.num_resources	= ARRAY_SIZE(rcar_i2c3_res),
 	.resource	= rcar_i2c3_res,
