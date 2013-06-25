@@ -298,6 +298,8 @@ static struct clk_lookup lookups[] = {
 	/* DIV6 */
 	CLKDEV_CON_ID("ssp",		&div6_clks[DIV6_SSP]),
 	CLKDEV_CON_ID("ssprs",		&div6_clks[DIV6_SSPRS]),
+	CLKDEV_CON_ID("sdhi2",		&div6_clks[DIV6_SD2]),
+	CLKDEV_CON_ID("sdhi3",		&div6_clks[DIV6_SD3]),
 
 	/* MSTP */
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
@@ -376,6 +378,25 @@ static void __init r8a7790_rgx_control_init(void)
 		SH_CLK_SET_RATIO(&pll3_clk_ratio, p30, 1)
 
 
+static void __init r8a7790_sdhi_clock_init(void)
+{
+	struct clk *sdhi2_clk, *sdhi3_clk;
+
+	/* set SDHI2 clock to 97.5 MHz */
+	sdhi2_clk = clk_get(NULL, "sdhi2");
+	if (!IS_ERR(sdhi2_clk)) {
+		clk_set_rate(sdhi2_clk, 97500000);
+		clk_put(sdhi2_clk);
+	}
+
+	/* set SDHI3 clock to 97.5 MHz */
+	sdhi3_clk = clk_get(NULL, "sdhi3");
+	if (!IS_ERR(sdhi3_clk)) {
+		clk_set_rate(sdhi3_clk, 97500000);
+		clk_put(sdhi3_clk);
+	}
+}
+
 void __init r8a7790_clock_init(void)
 {
 	void __iomem *modemr = ioremap_nocache(MODEMR, PAGE_SIZE);
@@ -431,4 +452,5 @@ void __init r8a7790_clock_init(void)
 		panic("failed to setup r8a7790 clocks\n");
 
 	r8a7790_rgx_control_init();
+	r8a7790_sdhi_clock_init();
 }
