@@ -45,6 +45,7 @@
 #include <linux/mtd/partitions.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
+#include <linux/dma-mapping.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
@@ -1362,6 +1363,57 @@ static struct platform_device scu_device = {
 	.resource	= scu_resources,
 };
 
+/* SATA0 */
+static struct resource sata0_resources[] = {
+	[0] = {
+		.name	= "sata0",
+		.start  = 0xee300000,
+		.end    = (0xee500000 - 1),
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start  = gic_spi(105),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device sata0_device = {
+	.name		= "sata_rcar",
+	.id		= 0,
+	.resource	= sata0_resources,
+	.num_resources	= ARRAY_SIZE(sata0_resources),
+	.dev = {
+		.dma_mask	= &sata0_device.dev.coherent_dma_mask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+
+/* SATA1 */
+static struct resource sata1_resources[] = {
+	[0] = {
+		.name	= "sata1",
+		.start  = 0xee500000,
+		.end    = (0xee700000 - 1),
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start  = gic_spi(106),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device sata1_device = {
+	.name		= "sata_rcar",
+	.id		= 1,
+	.resource	= sata1_resources,
+	.num_resources	= ARRAY_SIZE(sata1_resources),
+	.dev = {
+		.dma_mask	= &sata1_device.dev.coherent_dma_mask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -1387,6 +1439,8 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&sysdmau_device,
 	&alsa_soc_platform_device,
 	&scu_device,
+	&sata0_device,
+	&sata1_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {

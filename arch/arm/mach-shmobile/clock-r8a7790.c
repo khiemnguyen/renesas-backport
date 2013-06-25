@@ -53,6 +53,7 @@
 #define SMSTPCR3	0xE615013C
 #define SMSTPCR5	0xE6150144
 #define SMSTPCR7	0xe615014c
+#define SMSTPCR8	0xE6150990
 #define SMSTPCR9	0xE6150994
 #define SMSTPCR10	0xE6150998
 
@@ -116,6 +117,16 @@ SH_FIXED_RATIO_CLK_SET(zb3d2_clk,		pll3_clk,	1, 8);
 SH_FIXED_RATIO_CLK_SET(ddr_clk,			pll3_clk,	1, 8);
 SH_FIXED_RATIO_CLK_SET(mp_clk,			pll1_div2_clk,	1, 15);
 
+static struct clk sata0_clk = {
+	.rate		= 100000000,
+	.mapping	= &cpg_mapping,
+};
+
+static struct clk sata1_clk = {
+	.rate		= 100000000,
+	.mapping	= &cpg_mapping,
+};
+
 static struct clk *main_clks[] = {
 	&extal_clk,
 	&extal_div2_clk,
@@ -142,6 +153,8 @@ static struct clk *main_clks[] = {
 	&ddr_clk,
 	&mp_clk,
 	&cp_clk,
+	&sata0_clk,
+	&sata1_clk,
 };
 
 /* SDHI (DIV4) clock */
@@ -193,6 +206,7 @@ enum {
 	MSTP219, MSTP218,
 	MSTP502, MSTP501,
 	MSTP704, MSTP703,
+	MSTP815, MSTP814,
 	MSTP917, MSTP931, MSTP930, MSTP929, MSTP928, MSTP922,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, MSTP1014,
 	MSTP1005,
@@ -229,6 +243,8 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP501] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 1, 0),
 	[MSTP704] = SH_CLK_MSTP32(&mp_clk, SMSTPCR7, 04, 0),
 	[MSTP703] = SH_CLK_MSTP32(&mp_clk, SMSTPCR7, 03, 0),
+	[MSTP815] = SH_CLK_MSTP32(&sata0_clk, SMSTPCR8, 15, 0),
+	[MSTP814] = SH_CLK_MSTP32(&sata1_clk, SMSTPCR8, 14, 0),
 	[MSTP917] = SH_CLK_MSTP32(&qspi_clk, SMSTPCR9, 17, 0),
 	[MSTP931] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 31, 0),
 	[MSTP930] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 30, 0),
@@ -331,6 +347,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("ssi0", &mstp_clks[MSTP1015]),
 	CLKDEV_CON_ID("ssi1", &mstp_clks[MSTP1014]),
 	CLKDEV_CON_ID("ssi", &mstp_clks[MSTP1005]),
+	CLKDEV_DEV_ID("sata_rcar.0", &mstp_clks[MSTP815]),
+	CLKDEV_DEV_ID("sata_rcar.1", &mstp_clks[MSTP814]),
 };
 
 static void __init r8a7790_rgx_control_init(void)
