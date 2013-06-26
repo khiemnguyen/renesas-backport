@@ -138,9 +138,12 @@ static void scu_ssi_control(int master_ch, int slave_ch)
 {
 	FNC_ENTRY
 	/* SSI setting */
-	writel(SSICR_P4643_ST, &rinfo->ssireg[master_ch]->cr);
-	writel(SSIWS_ST, &rinfo->ssireg[master_ch]->wsr);
-	writel(SSICR_C4643_ST, &rinfo->ssireg[slave_ch]->cr);
+	if ((readl(&rinfo->ssireg[master_ch]->cr) & SSICR_ENABLE) == 0) {
+		writel(SSICR_P4643_ST, &rinfo->ssireg[master_ch]->cr);
+		writel(SSIWS_ST, &rinfo->ssireg[master_ch]->wsr);
+	}
+	if ((readl(&rinfo->ssireg[slave_ch]->cr) & SSICR_ENABLE) == 0)
+		writel(SSICR_C4643_ST, &rinfo->ssireg[slave_ch]->cr);
 
 	FNC_EXIT
 	return;

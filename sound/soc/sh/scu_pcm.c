@@ -159,10 +159,9 @@ static int scu_dmae_req_chan(int sid, int did, struct snd_pcm_substream *ss)
 	return ret;
 }
 
-static int scu_dmae_rel_chan(int sid, struct snd_pcm_substream *ss)
+static void scu_dmae_rel_chan(int sid, struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
-	int ret = 0;
 
 	FNC_ENTRY
 
@@ -173,22 +172,7 @@ static int scu_dmae_rel_chan(int sid, struct snd_pcm_substream *ss)
 	}
 
 	FNC_EXIT
-	return ret;
-}
-
-static int scu_dmae_rel_allchan(struct snd_pcm_substream *ss)
-{
-	int i;
-	int ret = 0;
-
-	FNC_ENTRY
-
-	/* release all dma channel */
-	for (i = 0; i < SHDMA_SLAVE_PCM_MAX; i++)
-		ret = scu_dmae_rel_chan(i, ss);
-
-	FNC_EXIT
-	return ret;
+	return;
 }
 
 static int scu_dmae_request(struct snd_pcm_substream *ss)
@@ -241,26 +225,26 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 		/* ssi1 via src1 */
 		if (pcminfo->routeinfo->ccb.init_ssi_src &&
 		    pcminfo->routeinfo->ccb.init_src) {
-			/* dma(ssi->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
-						SHDMA_DEVID_AUDIOPP, ss);
-
 			/* dma(src->mem) channel allocation */
 			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC1_MEM,
 						SHDMA_DEVID_AUDIO, ss);
+
+			/* dma(ssi->src) channel allocation */
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
+						SHDMA_DEVID_AUDIOPP, ss);
 		}
 
 		/* ssi1 via src1,dvc1 */
 		if (pcminfo->routeinfo->ccb.init_ssi_dvc &&
 		    pcminfo->routeinfo->ccb.init_src_dvc &&
 		    pcminfo->routeinfo->ccb.init_dvc) {
-			/* dma(ssi->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
-						SHDMA_DEVID_AUDIOPP, ss);
-
 			/* dma(cmd->mem) channel allocation */
 			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD1_MEM,
 						SHDMA_DEVID_AUDIO, ss);
+
+			/* dma(ssi->src) channel allocation */
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
+						SHDMA_DEVID_AUDIOPP, ss);
 		}
 	}
 
@@ -278,36 +262,40 @@ static int scu_dmae_release(struct snd_pcm_substream *ss)
 	if (!dir) { /* playback */
 		/* ssi */
 		if (pcminfo->routeinfo->pcb.init_ssi)
-			ret = scu_dmae_rel_allchan(ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
 
 		/* ssi via src */
 		if (pcminfo->routeinfo->pcb.init_ssi_src &&
 		    pcminfo->routeinfo->pcb.init_src) {
-			ret = scu_dmae_rel_allchan(ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SRC0_SSI0, ss);
 		}
 
 		/* ssi via src/dvc */
 		if (pcminfo->routeinfo->pcb.init_ssi_dvc &&
 		    pcminfo->routeinfo->pcb.init_src &&
 		    pcminfo->routeinfo->pcb.init_dvc) {
-			ret = scu_dmae_rel_allchan(ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_CMD0_SSI0, ss);
 		}
 	} else { /* capture */
 		/* ssi */
 		if (pcminfo->routeinfo->ccb.init_ssi)
-			ret = scu_dmae_rel_allchan(ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
 
 		/* ssi via src */
 		if (pcminfo->routeinfo->ccb.init_ssi_src &&
 		    pcminfo->routeinfo->ccb.init_src) {
-			ret = scu_dmae_rel_allchan(ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
 		}
 
 		/* ssi via src/dvc */
 		if (pcminfo->routeinfo->ccb.init_ssi_dvc &&
 		    pcminfo->routeinfo->ccb.init_src_dvc &&
 		    pcminfo->routeinfo->ccb.init_dvc) {
-			ret = scu_dmae_rel_allchan(ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
+			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
 		}
 	}
 
@@ -371,7 +359,7 @@ static int scu_audma_start(int sid, struct snd_pcm_substream *ss)
 	return 0;
 }
 
-static int scu_audma_stop(struct snd_pcm_substream *ss)
+static int scu_audma_stop(int sid, struct snd_pcm_substream *ss)
 {
 	FNC_ENTRY
 	FNC_EXIT
@@ -497,7 +485,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 			/* stop ssi */
 			pcminfo->routeinfo->pcb.deinit_ssi();
 			/* stop dma */
-			scu_audma_stop(ss);
+			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
 		}
 
 		/* ssi via src */
@@ -509,7 +497,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 			/* stop ssi */
 			pcminfo->routeinfo->pcb.deinit_ssi_src();
 			/* stop dma */
-			scu_audma_stop(ss);
+			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 		}
 
 		/* ssi via src/dvc */
@@ -523,7 +511,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 			/* stop ssi */
 			pcminfo->routeinfo->pcb.deinit_ssi_dvc();
 			/* stop dma */
-			scu_audma_stop(ss);
+			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 		}
 	} else { /* capture */
 		/* ssi */
@@ -532,7 +520,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 			/* stop ssi */
 			pcminfo->routeinfo->ccb.deinit_ssi();
 			/* stop dma */
-			scu_audma_stop(ss);
+			scu_audma_stop(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
 		}
 
 		/* ssi via src */
@@ -544,7 +532,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 			/* stop ssi */
 			pcminfo->routeinfo->ccb.deinit_ssi_src();
 			/* stop dma */
-			scu_audma_stop(ss);
+			scu_audma_stop(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
 		}
 
 		/* ssi via src/dvc */
@@ -558,7 +546,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 			/* start ssi */
 			pcminfo->routeinfo->ccb.deinit_ssi_dvc();
 			/* start dma */
-			scu_audma_stop(ss);
+			scu_audma_stop(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
 		}
 	}
 
