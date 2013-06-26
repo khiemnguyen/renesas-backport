@@ -156,7 +156,9 @@
 #define	SRC_OUT			2
 
 /* SRC_MODE */
-#define	SRC_MODE_UF_DATA_0	(1<<16)
+#define	SRC_MODE_OUT_SYNC	(1<<25)
+#define	SRC_MODE_IN_SYNC	(1<<24)
+#define	SRC_MODE_UF_DATA	(1<<16)
 #define	SRC_MODE_SRCUSE		(1<<0)
 
 /* SRC_CONTROL */
@@ -194,10 +196,41 @@
 #define	SRCADIN_CHNUM_6		(6<<0)
 #define	SRCADIN_CHNUM_8		(8<<0)
 
+/* SRC_SRCCR */
+#define	SRC_CR_BIT16		(1<<16)
+#define	SRC_CR_BIT12		(1<<12)
+#define	SRC_CR_BIT8		(1<<8)
+#define	SRC_CR_BIT4		(1<<4)
+#define	SRC_CR_SYNC		(1<<0)
+#define	SRC_CR_ASYNC		(0<<0)
+
 /* SRC_IFSVR */
 #define	SRC_IFS_FSO	0x00400000ULL	/* 2^22 */
 #define	SRC_IFS_44KHZ	44100ULL
 #define	SRC_IFS_48KHZ	48000ULL
+
+/* SRC_BSDSR */
+#define	SRC_BSD012349_BUFDATA_1_6	(0x180 << 16)
+#define	SRC_BSD012349_BUFDATA_1_4	(0x100 << 16)
+#define	SRC_BSD012349_BUFDATA_1_3	(0x0c0 << 16)
+#define	SRC_BSD012349_BUFDATA_1_2	(0x080 << 16)
+#define	SRC_BSD012349_BUFDATA_2_3	(0x060 << 16)
+#define	SRC_BSD012349_BUFDATA_1_1	(0x040 << 16)
+#define	SRC_BSD5678_BUFDATA_1_6		(0x240 << 16)
+#define	SRC_BSD5678_BUFDATA_1_4		(0x180 << 16)
+#define	SRC_BSD5678_BUFDATA_1_3		(0x120 << 16)
+#define	SRC_BSD5678_BUFDATA_1_2		(0x0c0 << 16)
+#define	SRC_BSD5678_BUFDATA_2_3		(0x090 << 16)
+#define	SRC_BSD5678_BUFDATA_1_1		(0x060 << 16)
+
+/* SRC_BSISR */
+#define	SRC_BSI_IJECPREC		(0x10 << 16)
+#define	SRC_BSI_IJECSIZE_1_6		0x60
+#define	SRC_BSI_IJECSIZE_1_4		0x40
+#define	SRC_BSI_IJECSIZE_1_3		0x30
+#define	SRC_BSI_IJECSIZE_1_2		0x20
+#define	SRC_BSI_IJECSIZE_2_3		0x20
+#define	SRC_BSI_IJECSIZE_1_1		0x20
 
 /*
  *	DVC

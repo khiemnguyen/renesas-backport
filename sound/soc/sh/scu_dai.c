@@ -189,11 +189,21 @@ static void scu_ssi_stop(int ssi_ch)
 	writel(0, (u32 *)(rinfo->ssiureg + reg));
 }
 
-static void scu_src_init(int src_ch)
+static void scu_src_init(int src_ch, unsigned int sync_sw)
 {
+	u32 val;
+
 	FNC_ENTRY
+	if (sync_sw == 1) { /* Synchronous SRC */
+		if (src_ch == 0) /* playback */
+			val = (SRC_MODE_IN_SYNC | SRC_MODE_SRCUSE);
+		else /* capture */
+			val = (SRC_MODE_OUT_SYNC | SRC_MODE_SRCUSE);
+	} else /* Asynchronous SRC */
+		val = SRC_MODE_SRCUSE;
+
 	/* SCU SRC_MODE */
-	writel(SRC_MODE_SRCUSE, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
+	writel(val, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
 	FNC_EXIT
 	return;
 }
@@ -207,9 +217,57 @@ static void scu_src_deinit(int src_ch)
 	return;
 }
 
-void scu_src_control(int src_ch, unsigned int rate)
+static u32 scu_src_calc_bsdsr(u32 ratio)
+{
+	u32 val;
+
+	/* check FSO/FSI ratio */
+	/*  1/4=25, 1/3=33, 1/2=50, 2/3=66, 1/1=100  */
+	if (ratio < 25)
+		val = SRC_BSD012349_BUFDATA_1_6;
+	else if (ratio >= 25 && ratio < 33)
+		val = SRC_BSD012349_BUFDATA_1_4;
+	else if (ratio >= 33 && ratio < 50)
+		val = SRC_BSD012349_BUFDATA_1_3;
+	else if (ratio >= 50 && ratio < 66)
+		val = SRC_BSD012349_BUFDATA_1_2;
+	else if (ratio >= 66 && ratio < 100)
+		val = SRC_BSD012349_BUFDATA_2_3;
+	else /* ratio >= 100 */
+		val = SRC_BSD012349_BUFDATA_1_1;
+
+	return val;
+}
+
+static u32 scu_src_calc_bsisr(u32 ratio)
+{
+	u32 val;
+
+	/* check FSO/FSI ratio */
+	/*  1/4=25, 1/3=33, 1/2=50, 2/3=66, 1/1=100  */
+	if (ratio < 25)
+		val = SRC_BSI_IJECSIZE_1_6;
+	else if (ratio >= 25 && ratio < 33)
+		val = SRC_BSI_IJECSIZE_1_4;
+	else if (ratio >= 33 && ratio < 50)
+		val = SRC_BSI_IJECSIZE_1_3;
+	else if (ratio >= 50 && ratio < 66)
+		val = SRC_BSI_IJECSIZE_1_2;
+	else if (ratio >= 66 && ratio < 100)
+		val = SRC_BSI_IJECSIZE_2_3;
+	else /* ratio >= 100 */
+		val = SRC_BSI_IJECSIZE_1_1;
+
+	/* IJECPREC */
+	val |= SRC_BSI_IJECPREC;
+
+	return val;
+}
+
+static void scu_src_control(int src_ch, unsigned int rate, unsigned int sync_sw)
 {
 	u64 val = 0;
+	u32 reg;
 
 	FNC_ENTRY
 	/* SRC Activation (SRC_SWRSR) Figure42.7 */
@@ -237,17 +295,29 @@ void scu_src_control(int src_ch, unsigned int rate)
 	writel((u32)val, (u32 *)&rinfo->srcreg[src_ch]->ifsvr);
 
 	/* SRC_SRCCR */
-	writel(0x00010111, (u32 *)&rinfo->srcreg[src_ch]->srccr);
+	writel((SRC_CR_BIT16 | SRC_CR_BIT12 | SRC_CR_BIT8 | SRC_CR_BIT4 |
+		sync_sw), (u32 *)&rinfo->srcreg[src_ch]->srccr);
 
 	/* SRC_MNFSR MINFS calculation */
 	val = div_u64(val * 98, 100);	/* 98% */
 	writel(val, (u32 *)&rinfo->srcreg[src_ch]->mnfsr);
 
-	/* SRC_BSDSR (FSO/FSI Ratio is 6-1) */
-	writel(0x00400000, (u32 *)&rinfo->srcreg[src_ch]->bsdsr);
+	/* FSO/FSI(*100) */
+#ifdef CONVERT_48KHZ
+	/* Convert example (48kHz) */
+	val = (SRC_IFS_48KHZ * 100) / rate;
+#else
+	/* Not convert example (CODEC driver converts by itself) */
+	val = 100;
+#endif
 
-	/* SRC_BSISR (FSO/FSI Ratio is 6-1) */
-	writel(0x00100020, (u32 *)&rinfo->srcreg[src_ch]->bsisr);
+	/* SRC_BSDSR (FSO/FSI Ratio is 6-1/6) */
+	reg = scu_src_calc_bsdsr((u32)val);
+	writel(reg, (u32 *)&rinfo->srcreg[src_ch]->bsdsr);
+
+	/* SRC_BSISR (FSO/FSI Ratio is 6-1/6) */
+	reg = scu_src_calc_bsisr((u32)val);
+	writel(reg, (u32 *)&rinfo->srcreg[src_ch]->bsisr);
 
 	/* SRC_SRCIR */
 	writel(0, (u32 *)&rinfo->srcreg[src_ch]->srcir);
@@ -457,8 +527,8 @@ EXPORT_SYMBOL(scu_deinit_ssi0_dvc0);
 
 void scu_init_src0(unsigned int rate)
 {
-	scu_src_init(0);
-	scu_src_control(0, rate);
+	scu_src_init(0, 1);
+	scu_src_control(0, rate, 1);
 	/* start src */
 	scu_src_start(0, SRC_INOUT);
 }
@@ -579,8 +649,8 @@ EXPORT_SYMBOL(scu_deinit_ssi1_dvc1);
 
 void scu_init_src1(unsigned int rate)
 {
-	scu_src_init(1);
-	scu_src_control(1, rate);
+	scu_src_init(1, 1);
+	scu_src_control(1, rate, 1);
 	/* start src */
 	scu_src_start(1, SRC_INOUT);
 }
@@ -596,8 +666,8 @@ EXPORT_SYMBOL(scu_deinit_src1);
 
 void scu_init_src1_dvc1(unsigned int rate)
 {
-	scu_src_init(1);
-	scu_src_control(1, rate);
+	scu_src_init(1, 0);
+	scu_src_control(1, rate, 0);
 	/* start src */
 	scu_src_start(1, SRC_INOUT);
 }
