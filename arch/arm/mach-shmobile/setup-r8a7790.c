@@ -379,6 +379,29 @@ struct platform_device ohci2_device = {
 	.resource	= ohci2_resources,
 };
 
+static struct resource xhci0_resources[] = {
+	[0] = {
+		.start	= SHUSBH_XHCI_BASE,
+		.end	= SHUSBH_XHCI_BASE + SHUSBH_XHCI_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(101),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+struct platform_device xhci0_device = {
+	.name	= "xhci-hcd",
+	.id	= 0,
+	.dev	= {
+		.dma_mask		= &usb_dmamask,
+		.coherent_dma_mask	= 0xffffffff,
+	},
+	.num_resources	= ARRAY_SIZE(xhci0_resources),
+	.resource	= xhci0_resources,
+};
+
 static void __init usbh_internal_pci_bridge_init(int ch)
 {
 	u32 data;
@@ -520,6 +543,9 @@ static void __init usbh_pci_int_enable(int ch)
 static int __init usbh_init(void)
 {
 	struct clk *clk_hs, *clk_ehci;
+#if defined(CONFIG_USB_XHCI_HCD)
+	struct clk *clk_xhci;
+#endif /* CONFIG_USB_XHCI_HCD */
 	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
 	unsigned int ch;
 
@@ -535,8 +561,19 @@ static int __init usbh_init(void)
 
 	clk_enable(clk_ehci);
 
+#if defined(CONFIG_USB_XHCI_HCD)
+	clk_xhci = clk_get(NULL, "ss_usb");
+	if (IS_ERR(clk_xhci))
+		clk_xhci = NULL;
+
+	clk_enable(clk_xhci);
+
+	/* Select XHCI for ch2 and EHCI for ch0 */
+	iowrite32(0x80000011, (hs_usb + 0x184));
+#else
 	/* Set EHCI for UGCTRL2 */
 	iowrite32(0x00000011, (hs_usb + 0x184));
+#endif /* CONFIG_USB_XHCI_HCD */
 
 	for (ch = 0; ch < SHUSBH_MAX_CH; ch++) {
 		/* internal pci-bus bridge initialize */
@@ -1421,8 +1458,12 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&ohci0_device,
 	&ehci1_device,
 	&ohci1_device,
+#if defined(CONFIG_USB_XHCI_HCD)
+	&xhci0_device,
+#else
 	&ehci2_device,
 	&ohci2_device,
+#endif /* CONFIG_USB_XHCI_HCD */
 	&sdhi0_device,
 	&sdhi1_device,
 	&sdhi2_device,
