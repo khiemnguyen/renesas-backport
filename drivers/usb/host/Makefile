@@ -16,7 +16,11 @@ xhci-hcd-y += xhci-ring.o xhci-hub.o xhci-dbg.o
 xhci-hcd-$(CONFIG_PCI)	+= xhci-pci.o
 
 ifneq ($(CONFIG_USB_XHCI_PLATFORM), )
+ifneq ($(CONFIG_USB_XHCI_RCAR), )
+	xhci-hcd-y		+= xhci-rcar.o
+else
 	xhci-hcd-y		+= xhci-plat.o
+endif
 endif
 
 obj-$(CONFIG_USB_WHCI_HCD)	+= whci/

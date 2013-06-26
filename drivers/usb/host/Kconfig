@@ -31,6 +31,11 @@ config USB_XHCI_PLATFORM
 	tristate
 	depends on USB_XHCI_HCD
 
+config USB_XHCI_RCAR
+	tristate
+	depends on USB_XHCI_HCD
+	select USB_XHCI_PLATFORM
+
 config USB_XHCI_HCD_DEBUGGING
 	bool "Debugging for the xHCI host controller"
 	depends on USB_XHCI_HCD
