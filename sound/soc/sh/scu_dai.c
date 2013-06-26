@@ -115,7 +115,9 @@ static void adg_init(void)
 		(u32 *)(rinfo->adgreg + ADG_SRCOUT_TIMSEL0));
 
 	/* CMD Output Timing */
-	/* not implement */
+	scu_or_writel((ADG_CMDOUT_CMD1_DIVCLK_SSI_WS0 |
+		ADG_CMDOUT_CMD0_DIVCLK_SSI_WS0),
+		(u32 *)(rinfo->adgreg + ADG_CMDOUT_TIMSEL));
 
 	/* division enable */
 	scu_or_writel(ADG_DIVEN_AUDIO_CLKA,
@@ -288,6 +290,92 @@ static void scu_src_stop(int src_ch, int src_dir)
 	return;
 }
 
+static void scu_dvc_init(int dvc_ch)
+{
+	FNC_ENTRY
+	/* SCU CMD_ROUTE_SELECT */
+	if (dvc_ch == 0) /* SRC0 route */
+		writel((CMD_ROUTE_SELECT_CASE_CTU2 |
+			CMD_ROUTE_SELECT_CTU2_SRC0),
+			(u32 *)&rinfo->scucmdreg[dvc_ch]->route_select);
+	else /* SRC1 route */
+		writel((CMD_ROUTE_SELECT_CASE_CTU2 |
+			CMD_ROUTE_SELECT_CTU2_SRC1),
+			(u32 *)&rinfo->scucmdreg[dvc_ch]->route_select);
+
+	/* SCU CMD_CONTROL */
+	writel(CMD_CONTROL_START_OUT,
+		(u32 *)&rinfo->scucmdreg[dvc_ch]->control);
+
+	FNC_EXIT
+	return;
+}
+
+static void scu_dvc_deinit(int dvc_ch)
+{
+	FNC_ENTRY
+	/* SCU CMD_CONTROL */
+	writel(0, (u32 *)&rinfo->scucmdreg[dvc_ch]->control);
+
+	/* SCU CMD_ROUTE_SELECT */
+	writel(0, (u32 *)&rinfo->scucmdreg[dvc_ch]->route_select);
+	FNC_EXIT
+	return;
+}
+
+void scu_dvc_control(int dvc_ch)
+{
+	FNC_ENTRY
+	/* DVC Activation (DVC_SWRSR) Figure42.27 */
+	writel(0, (u32 *)&rinfo->dvcreg[dvc_ch]->swrsr);
+	writel(1, (u32 *)&rinfo->dvcreg[dvc_ch]->swrsr);
+
+	/* DVC_DVUIR */
+	writel(1, (u32 *)&rinfo->dvcreg[dvc_ch]->dvuir);
+
+	/* General Information */
+	/*  DVC_ADINR  *//* only stereo now */
+	writel((DVCADIN_OTBL_16BIT | DVCADIN_CHNUM_2),
+		(u32 *)&rinfo->dvcreg[dvc_ch]->adinr);
+
+	/*  DVC_DVUCR  */
+	writel((DVCDVUC_VVMD_USE | DVCDVUC_ZCMD_USE),
+		(u32 *)&rinfo->dvcreg[dvc_ch]->dvucr);
+
+	/* Digital Volume Function Parameter */
+	/*  DVC_VOL*R  */
+	writel(0x100000, (u32 *)&rinfo->dvcreg[dvc_ch]->vol0r);
+	writel(0x100000, (u32 *)&rinfo->dvcreg[dvc_ch]->vol1r);
+
+	/* Zero Cross Mute Function */
+	/*  0:no mute 1:R 2:L 3:LR  */
+	writel(0x0, (u32 *)&rinfo->dvcreg[dvc_ch]->zcmcr);
+
+	/* DVC_DVUIR */
+	writel(0, (u32 *)&rinfo->dvcreg[dvc_ch]->dvuir);
+
+	FNC_EXIT
+	return;
+}
+
+static void scu_dvc_start(int dvc_ch)
+{
+	FNC_ENTRY
+	/* DVC_DVUER */
+	writel(1, (u32 *)&rinfo->dvcreg[dvc_ch]->dvuer);
+	FNC_EXIT
+	return;
+}
+
+static void scu_dvc_stop(int dvc_ch)
+{
+	FNC_ENTRY
+	/* DVC_DVUER */
+	writel(0, (u32 *)&rinfo->dvcreg[dvc_ch]->dvuer);
+	FNC_EXIT
+	return;
+}
+
 /************************************************************************
 
 	DAPM callback function
@@ -347,13 +435,23 @@ EXPORT_SYMBOL(scu_deinit_ssi0_src0);
 
 void scu_init_ssi0_dvc0(void)
 {
-	/* no process (not implement ) */
+	/* SSI0_0_BUSIF_ADINR */
+	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
+	/* SSI init */
+	scu_ssi_control(0, 1);
+	/* SSI start */
+	scu_ssi_start(0);
 }
 EXPORT_SYMBOL(scu_init_ssi0_dvc0);
 
 void scu_deinit_ssi0_dvc0(void)
 {
-	/* no process (not implement ) */
+	/* SSI stop */
+	scu_ssi_stop(0);
+	/* SSI0_0_BUSIF_ADINR */
+	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
 }
 EXPORT_SYMBOL(scu_deinit_ssi0_dvc0);
 
@@ -376,13 +474,18 @@ EXPORT_SYMBOL(scu_deinit_src0);
 
 void scu_init_dvc0(void)
 {
-	/* no process (not implement ) */
+	scu_dvc_init(0);
+	scu_dvc_control(0);
+	/* start dvc */
+	scu_dvc_start(0);
 }
 EXPORT_SYMBOL(scu_init_dvc0);
 
 void scu_deinit_dvc0(void)
 {
-	/* no process (not implement ) */
+	/* stop dvc */
+	scu_dvc_stop(0);
+	scu_dvc_deinit(0);
 }
 EXPORT_SYMBOL(scu_deinit_dvc0);
 
@@ -448,13 +551,29 @@ EXPORT_SYMBOL(scu_deinit_ssi1_src1);
 
 void scu_init_ssi1_dvc1(void)
 {
-	/* no process (not implement ) */
+	/* SSI1_0_BUSIF_ADINR */
+	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
+	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
+	scu_or_writel(SSI_MODE1_SSI1_MASTER,
+			(u32 *)(rinfo->ssiureg + SSI_MODE1));
+	/* SSI init */
+	scu_ssi_control(0, 1);
+	/* SSI start */
+	scu_ssi_start(1);
 }
 EXPORT_SYMBOL(scu_init_ssi1_dvc1);
 
 void scu_deinit_ssi1_dvc1(void)
 {
-	/* no process (not implement ) */
+	/* SSI stop */
+	scu_ssi_stop(1);
+	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
+	scu_and_writel(~SSI_MODE1_SSI1_MASTER,
+			(u32 *)(rinfo->ssiureg + SSI_MODE1));
+	/* SSI0_0_BUSIF_ADINR */
+	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
 }
 EXPORT_SYMBOL(scu_deinit_ssi1_dvc1);
 
@@ -475,27 +594,37 @@ void scu_deinit_src1(void)
 }
 EXPORT_SYMBOL(scu_deinit_src1);
 
-void scu_init_src1_dvc1(void)
+void scu_init_src1_dvc1(unsigned int rate)
 {
-	/* no process (not implement ) */
+	scu_src_init(1);
+	scu_src_control(1, rate);
+	/* start src */
+	scu_src_start(1, SRC_INOUT);
 }
 EXPORT_SYMBOL(scu_init_src1_dvc1);
 
 void scu_deinit_src1_dvc1(void)
 {
-	/* no process (not implement ) */
+	/* stop src */
+	scu_src_stop(1, SRC_INOUT);
+	scu_src_deinit(1);
 }
 EXPORT_SYMBOL(scu_deinit_src1_dvc1);
 
 void scu_init_dvc1(void)
 {
-	/* no process (not implement ) */
+	scu_dvc_init(1);
+	scu_dvc_control(1);
+	/* start dvc */
+	scu_dvc_start(1);
 }
 EXPORT_SYMBOL(scu_init_dvc1);
 
 void scu_deinit_dvc1(void)
 {
-	/* no process (not implement ) */
+	/* stop dvc */
+	scu_dvc_stop(1);
+	scu_dvc_deinit(1);
 }
 EXPORT_SYMBOL(scu_deinit_dvc1);
 

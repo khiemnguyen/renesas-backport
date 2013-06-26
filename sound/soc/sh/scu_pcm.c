@@ -219,7 +219,17 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 		}
 
 		/* ssi0 via src0,dvc0 */
-		/* not implement */
+		if (pcminfo->routeinfo->pcb.init_ssi_dvc &&
+		    pcminfo->routeinfo->pcb.init_src &&
+		    pcminfo->routeinfo->pcb.init_dvc) {
+			/* dma(mem->src) channel allocation */
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0,
+						SHDMA_DEVID_AUDIO, ss);
+
+			/* dma(cmd->ssi) channel allocation */
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD0_SSI0,
+						SHDMA_DEVID_AUDIOPP, ss);
+		}
 	} else { /* capture */
 		/* ssi1 */
 		if (pcminfo->routeinfo->ccb.init_ssi) {
@@ -241,7 +251,17 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 		}
 
 		/* ssi1 via src1,dvc1 */
-		/* not implement */
+		if (pcminfo->routeinfo->ccb.init_ssi_dvc &&
+		    pcminfo->routeinfo->ccb.init_src_dvc &&
+		    pcminfo->routeinfo->ccb.init_dvc) {
+			/* dma(ssi->src) channel allocation */
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
+						SHDMA_DEVID_AUDIOPP, ss);
+
+			/* dma(cmd->mem) channel allocation */
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD1_MEM,
+						SHDMA_DEVID_AUDIO, ss);
+		}
 	}
 
 	FNC_EXIT
@@ -267,8 +287,11 @@ static int scu_dmae_release(struct snd_pcm_substream *ss)
 		}
 
 		/* ssi via src/dvc */
-		/* not implement */
-
+		if (pcminfo->routeinfo->pcb.init_ssi_dvc &&
+		    pcminfo->routeinfo->pcb.init_src &&
+		    pcminfo->routeinfo->pcb.init_dvc) {
+			ret = scu_dmae_rel_allchan(ss);
+		}
 	} else { /* capture */
 		/* ssi */
 		if (pcminfo->routeinfo->ccb.init_ssi)
@@ -281,7 +304,11 @@ static int scu_dmae_release(struct snd_pcm_substream *ss)
 		}
 
 		/* ssi via src/dvc */
-		/* not implement */
+		if (pcminfo->routeinfo->ccb.init_ssi_dvc &&
+		    pcminfo->routeinfo->ccb.init_src_dvc &&
+		    pcminfo->routeinfo->ccb.init_dvc) {
+			ret = scu_dmae_rel_allchan(ss);
+		}
 	}
 
 	FNC_EXIT
@@ -386,8 +413,24 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 		}
 
 		/* ssi via src/dvc */
-		/* not implement */
+		if (pcminfo->routeinfo->pcb.init_ssi_dvc &&
+		    pcminfo->routeinfo->pcb.init_src &&
+		    pcminfo->routeinfo->pcb.init_dvc) {
+			/* start dma */
+			scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 
+			if (first_flag) {
+				/* start ssi */
+				pcminfo->routeinfo->pcb.init_ssi_dvc();
+
+				/* start dvc */
+				pcminfo->routeinfo->pcb.init_dvc();
+
+				/* start src */
+				pcminfo->routeinfo->pcb.init_src(
+					ss->runtime->rate);
+			}
+		}
 	} else { /* capture */
 		/* ssi */
 		if (pcminfo->routeinfo->ccb.init_ssi) {
@@ -417,7 +460,24 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 		}
 
 		/* ssi via src/dvc */
-		/* not implement */
+		if (pcminfo->routeinfo->ccb.init_ssi_dvc &&
+		    pcminfo->routeinfo->ccb.init_src_dvc &&
+		    pcminfo->routeinfo->ccb.init_dvc) {
+			/* start dma */
+			scu_audma_start(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
+
+			if (first_flag) {
+				/* start ssi */
+				pcminfo->routeinfo->ccb.init_ssi_dvc();
+
+				/* start dvc */
+				pcminfo->routeinfo->ccb.init_dvc();
+
+				/* start src */
+				pcminfo->routeinfo->ccb.init_src_dvc(
+					ss->runtime->rate);
+			}
+		}
 	}
 
 	FNC_EXIT
@@ -453,8 +513,18 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		}
 
 		/* ssi via src/dvc */
-		/* not implement */
-
+		if (pcminfo->routeinfo->pcb.deinit_ssi_dvc &&
+		    pcminfo->routeinfo->pcb.deinit_src &&
+		    pcminfo->routeinfo->pcb.deinit_dvc) {
+			/* stop src */
+			pcminfo->routeinfo->pcb.deinit_src();
+			/* stop dvc */
+			pcminfo->routeinfo->pcb.deinit_dvc();
+			/* stop ssi */
+			pcminfo->routeinfo->pcb.deinit_ssi_dvc();
+			/* stop dma */
+			scu_audma_stop(ss);
+		}
 	} else { /* capture */
 		/* ssi */
 		if (pcminfo->routeinfo->ccb.deinit_ssi) {
@@ -478,7 +548,18 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		}
 
 		/* ssi via src/dvc */
-		/* not implement */
+		if (pcminfo->routeinfo->ccb.deinit_ssi_dvc &&
+		    pcminfo->routeinfo->ccb.deinit_src_dvc &&
+		    pcminfo->routeinfo->ccb.deinit_dvc) {
+			/* start src */
+			pcminfo->routeinfo->ccb.deinit_src_dvc();
+			/* start dvc */
+			pcminfo->routeinfo->ccb.deinit_dvc();
+			/* start ssi */
+			pcminfo->routeinfo->ccb.deinit_ssi_dvc();
+			/* start dma */
+			scu_audma_stop(ss);
+		}
 	}
 
 	FNC_EXIT

@@ -141,11 +141,11 @@
 #define	SRC9_INT_ENABLE0	0x0138
 #define	CMD0OUT_BUSIF_MODE	0x0184
 #define	CMD0_BUSIF_DALIGN	0x0188
-#define	CMD0_MODE		0x018c
+#define	CMD0_ROUTE_SELECT	0x018c
 #define	CMD0_CONTROL		0x0190
 #define	CMD1OUT_BUSIF_MODE	0x01a4
 #define	CMD1_BUSIF_DALIGN	0x01a8
-#define	CMD1_MODE		0x01ac
+#define	CMD1_ROUTE_SELECT	0x01ac
 #define	CMD1_CONTROL		0x01b0
 #define	SCU_SYSTEM_STATUS0	0x01c8
 #define	SCU_SYSTEM_INT_ENABLE0	0x01cc
@@ -162,6 +162,20 @@
 /* SRC_CONTROL */
 #define	SRC_MODE_START_OUT	(1<<4)
 #define	SRC_MODE_START_IN	(1<<0)
+
+/* CMD_ROUTE_SELECT */
+#define	CMD_ROUTE_SELECT_CASE_CTU_ALL	(0<<16)
+#define	CMD_ROUTE_SELECT_CASE_CTU0	(1<<16)
+#define	CMD_ROUTE_SELECT_CASE_CTU1	(2<<16)
+#define	CMD_ROUTE_SELECT_CASE_CTU2	(3<<16)
+#define	CMD_ROUTE_SELECT_CASE_CTU3	(4<<16)
+#define	CMD_ROUTE_SELECT_CTU3_SRC2	(0<<8)
+#define	CMD_ROUTE_SELECT_CTU3_SRC5	(1<<8)
+#define	CMD_ROUTE_SELECT_CTU2_SRC0	(0<<0)
+#define	CMD_ROUTE_SELECT_CTU2_SRC1	(1<<0)
+
+/* CMD_CONTROL */
+#define	CMD_CONTROL_START_OUT	(1<<4)
 
 /*
  *	SRC
@@ -184,6 +198,33 @@
 #define	SRC_IFS_FSO	0x00400000ULL	/* 2^22 */
 #define	SRC_IFS_44KHZ	44100ULL
 #define	SRC_IFS_48KHZ	48000ULL
+
+/*
+ *	DVC
+ */
+/* DVC_ADINR */
+#define	DVCADIN_OTBL_24BIT	(0<<16)
+#define	DVCADIN_OTBL_22BIT	(2<<16)
+#define	DVCADIN_OTBL_20BIT	(4<<16)
+#define	DVCADIN_OTBL_18BIT	(6<<16)
+#define	DVCADIN_OTBL_16BIT	(8<<16)
+#define	DVCADIN_OTBL_8BIT	(16<<16)
+#define	DVCADIN_CHNUM_0		(0<<0)
+#define	DVCADIN_CHNUM_1		(1<<0)
+#define	DVCADIN_CHNUM_2		(2<<0)
+#define	DVCADIN_CHNUM_4		(4<<0)
+#define	DVCADIN_CHNUM_6		(6<<0)
+#define	DVCADIN_CHNUM_8		(8<<0)
+
+/* DVC_DVUCR */
+#define	DVCDVUC_HWMD_DISABLE	(0<<16)
+#define	DVCDVUC_HWMD_ENABLE	(1<<16)
+#define	DVCDVUC_VVMD_SLEEP	(0<<8)
+#define	DVCDVUC_VVMD_USE	(1<<8)
+#define	DVCDVUC_VRMD_SLEEP	(0<<4)
+#define	DVCDVUC_VRMD_USE	(1<<4)
+#define	DVCDVUC_ZCMD_SLEEP	(0<<0)
+#define	DVCDVUC_ZCMD_USE	(1<<0)
 
 /*
  *	SSIU
@@ -1849,7 +1890,7 @@ struct scu_src_regs {
 struct scu_cmd_regs {
 	u32	out_busif_mode;
 	u32	dalign;
-	u32	mode;
+	u32	route_select;
 	u32	control;
 };
 
@@ -1990,7 +2031,7 @@ struct scu_capture_callback {
 	void (*init_ssi_src)(void);
 	void (*init_ssi_dvc)(void);
 	void (*init_src)(unsigned int);
-	void (*init_src_dvc)(void);
+	void (*init_src_dvc)(unsigned int);
 	void (*init_dvc)(void);
 	void (*deinit_ssi)(void);
 	void (*deinit_ssi_src)(void);
@@ -2071,7 +2112,7 @@ extern void scu_init_ssi1(void);
 extern void scu_init_ssi1_src1(void);
 extern void scu_init_ssi1_dvc1(void);
 extern void scu_init_src1(unsigned int);
-extern void scu_init_src1_dvc1(void);
+extern void scu_init_src1_dvc1(unsigned int);
 extern void scu_init_dvc1(void);
 extern void scu_deinit_ssi1(void);
 extern void scu_deinit_ssi1_src1(void);
