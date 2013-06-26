@@ -179,7 +179,7 @@ static void scu_ssi_stop(int ssi_ch)
 	FNC_ENTRY
 	/* SSI disable (figure.39.13 flow) */
 	val = readl(&rinfo->ssireg[ssi_ch]->cr);
-	val &= ~(SSICR_DMEN | SSICR_UIEN | SSICR_UIEN | SSICR_ENABLE);
+	val &= ~(SSICR_DMEN | SSICR_UIEN | SSICR_OIEN | SSICR_ENABLE);
 	writel(val, &rinfo->ssireg[ssi_ch]->cr);
 	FNC_EXIT
 
