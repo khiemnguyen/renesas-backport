@@ -105,11 +105,13 @@ static void adg_init(void)
 		(u32 *)(rinfo->adgreg + ADG_AUDIO_CLK_SEL0));
 
 	/* SRC Input Timing */
-	scu_or_writel(ADG_SRCIN0_SRC0_DIVCLK_SSI_WS0,
+	scu_or_writel((ADG_SRCIN0_SRC1_DIVCLK_SSI_WS0 |
+		ADG_SRCIN0_SRC0_DIVCLK_SSI_WS0),
 		(u32 *)(rinfo->adgreg + ADG_SRCIN_TIMSEL0));
 
 	/* SRC Output Timing */
-	scu_or_writel(ADG_SRCOUT0_SRC0_DIVCLK_SSI_WS0,
+	scu_or_writel((ADG_SRCOUT0_SRC1_DIVCLK_SSI_WS0 |
+		ADG_SRCOUT0_SRC0_DIVCLK_SSI_WS0),
 		(u32 *)(rinfo->adgreg + ADG_SRCOUT_TIMSEL0));
 
 	/* CMD Output Timing */
