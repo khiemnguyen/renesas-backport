@@ -2128,7 +2128,8 @@ struct scu_pcm_info {
 	spinlock_t pcm_lock;		/* for trigger process */
 	struct dma_chan *de_chan[SHDMA_SLAVE_PCM_MAX];
 	struct sh_dmadesc_slave de_param[SHDMA_SLAVE_PCM_MAX];
-	struct work_struct	work;
+	struct work_struct work;
+	struct workqueue_struct *workq;
 	struct scu_route_info *routeinfo;
 	struct snd_pcm_substream *ss;
 };

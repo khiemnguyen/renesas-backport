@@ -88,7 +88,7 @@ static void scu_dma_callback(struct snd_pcm_substream *ss)
 	if (pcminfo->flag_start == 0)
 		return;
 
-	schedule_work(&pcminfo->work);
+	queue_work(pcminfo->workq, &pcminfo->work);
 
 	FNC_EXIT
 }
@@ -607,7 +607,7 @@ static int scu_audio_start(struct snd_pcm_substream *ss)
 	/* PCM 1st process */
 	pcminfo->flag_first = 1;
 
-	schedule_work(&pcminfo->work);
+	queue_work(pcminfo->workq, &pcminfo->work);
 
 	FNC_EXIT
 	return ret;
@@ -653,6 +653,7 @@ static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 
 	spin_lock_init(&pcminfo->pcm_lock);
 
+	pcminfo->workq = create_workqueue("sh_scu_pcm");
 	INIT_WORK(&pcminfo->work, scu_dma_do_work);
 	FNC_EXIT
 	return pcminfo;
@@ -666,6 +667,7 @@ static void scu_pcm_free_stream(struct snd_pcm_runtime *runtime)
 
 	/* post process */
 	cancel_work_sync(&pcminfo->work);
+	destroy_workqueue(pcminfo->workq);
 	kfree(runtime->private_data);	/* free pcminfo structure */
 
 	FNC_EXIT
