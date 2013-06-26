@@ -1976,7 +1976,7 @@ struct scu_playback_callback {
 	void (*init_ssi)(void);
 	void (*init_ssi_src)(void);
 	void (*init_ssi_dvc)(void);
-	void (*init_src)(void);
+	void (*init_src)(unsigned int);
 	void (*init_dvc)(void);
 	void (*deinit_ssi)(void);
 	void (*deinit_ssi_src)(void);
@@ -1989,7 +1989,7 @@ struct scu_capture_callback {
 	void (*init_ssi)(void);
 	void (*init_ssi_src)(void);
 	void (*init_ssi_dvc)(void);
-	void (*init_src)(void);
+	void (*init_src)(unsigned int);
 	void (*init_src_dvc)(void);
 	void (*init_dvc)(void);
 	void (*deinit_ssi)(void);
@@ -2055,12 +2055,11 @@ struct scu_pcm_info {
 extern struct snd_soc_platform_driver scu_platform;
 
 extern struct scu_route_info *scu_get_route_info(void);
-extern void scu_src_control(int src_ch, struct snd_pcm_substream *ss);
 
 extern void scu_init_ssi0(void);
 extern void scu_init_ssi0_src0(void);
 extern void scu_init_ssi0_dvc0(void);
-extern void scu_init_src0(void);
+extern void scu_init_src0(unsigned int);
 extern void scu_init_dvc0(void);
 extern void scu_deinit_ssi0(void);
 extern void scu_deinit_ssi0_src0(void);
@@ -2071,7 +2070,7 @@ extern void scu_deinit_dvc0(void);
 extern void scu_init_ssi1(void);
 extern void scu_init_ssi1_src1(void);
 extern void scu_init_ssi1_dvc1(void);
-extern void scu_init_src1(void);
+extern void scu_init_src1(unsigned int);
 extern void scu_init_src1_dvc1(void);
 extern void scu_init_dvc1(void);
 extern void scu_deinit_ssi1(void);

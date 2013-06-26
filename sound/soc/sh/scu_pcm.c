@@ -376,14 +376,12 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 			scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 
 			if (first_flag) {
-				/* control src */
-				scu_src_control(0, ss);
-
 				/* start ssi */
 				pcminfo->routeinfo->pcb.init_ssi_src();
 
 				/* start src */
-				pcminfo->routeinfo->pcb.init_src();
+				pcminfo->routeinfo->pcb.init_src(
+					ss->runtime->rate);
 			}
 		}
 
@@ -409,14 +407,12 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 			scu_audma_start(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
 
 			if (first_flag) {
-				/* control src */
-				scu_src_control(1, ss);
-
 				/* start ssi */
 				pcminfo->routeinfo->ccb.init_ssi_src();
 
 				/* start src */
-				pcminfo->routeinfo->ccb.init_src();
+				pcminfo->routeinfo->ccb.init_src(
+					ss->runtime->rate);
 			}
 		}
 

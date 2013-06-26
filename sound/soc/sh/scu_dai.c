@@ -187,7 +187,25 @@ static void scu_ssi_stop(int ssi_ch)
 	writel(0, (u32 *)(rinfo->ssiureg + reg));
 }
 
-void scu_src_control(int src_ch, struct snd_pcm_substream *ss)
+static void scu_src_init(int src_ch)
+{
+	FNC_ENTRY
+	/* SCU SRC_MODE */
+	writel(SRC_MODE_SRCUSE, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
+	FNC_EXIT
+	return;
+}
+
+static void scu_src_deinit(int src_ch)
+{
+	FNC_ENTRY
+	/* SCU SRC_MODE */
+	writel(0, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
+	FNC_EXIT
+	return;
+}
+
+void scu_src_control(int src_ch, unsigned int rate)
 {
 	u64 val = 0;
 
@@ -209,7 +227,7 @@ void scu_src_control(int src_ch, struct snd_pcm_substream *ss)
 	/* SRC_IFSVR INTIFS calculation */
 #ifdef CONVERT_48KHZ
 	/* Convert example (48kHz) */
-	val = div_u64(SRC_IFS_FSO * ss->runtime->rate, SRC_IFS_48KHZ);
+	val = div_u64(SRC_IFS_FSO * rate, SRC_IFS_48KHZ);
 #else
 	/* Not convert example (CODEC driver converts by itself) */
 	val = SRC_IFS_FSO;
@@ -235,14 +253,10 @@ void scu_src_control(int src_ch, struct snd_pcm_substream *ss)
 	FNC_EXIT
 	return;
 }
-EXPORT_SYMBOL(scu_src_control);
 
 static void scu_src_start(int src_ch, int src_dir)
 {
 	FNC_ENTRY
-	/* SCU SRC_MODE */
-	writel(SRC_MODE_SRCUSE, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
-
 	/* SRC_CONTROL */
 	if (src_dir == SRC_INOUT)
 		scu_or_writel((SRC_MODE_START_IN | SRC_MODE_START_OUT),
@@ -270,10 +284,6 @@ static void scu_src_stop(int src_ch, int src_dir)
 	else /* SRC_IN */
 		scu_and_writel(~SRC_MODE_START_IN,
 			(u32 *)&rinfo->scusrcreg[src_ch]->control);
-
-	/* SCU SRC_MODE */
-	writel(0, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
-
 	FNC_EXIT
 	return;
 }
@@ -347,8 +357,10 @@ void scu_deinit_ssi0_dvc0(void)
 }
 EXPORT_SYMBOL(scu_deinit_ssi0_dvc0);
 
-void scu_init_src0(void)
+void scu_init_src0(unsigned int rate)
 {
+	scu_src_init(0);
+	scu_src_control(0, rate);
 	/* start src */
 	scu_src_start(0, SRC_INOUT);
 }
@@ -358,6 +370,7 @@ void scu_deinit_src0(void)
 {
 	/* stop src */
 	scu_src_stop(0, SRC_INOUT);
+	scu_src_deinit(0);
 }
 EXPORT_SYMBOL(scu_deinit_src0);
 
@@ -445,8 +458,10 @@ void scu_deinit_ssi1_dvc1(void)
 }
 EXPORT_SYMBOL(scu_deinit_ssi1_dvc1);
 
-void scu_init_src1(void)
+void scu_init_src1(unsigned int rate)
 {
+	scu_src_init(1);
+	scu_src_control(1, rate);
 	/* start src */
 	scu_src_start(1, SRC_INOUT);
 }
@@ -456,6 +471,7 @@ void scu_deinit_src1(void)
 {
 	/* stop src */
 	scu_src_stop(1, SRC_INOUT);
+	scu_src_deinit(1);
 }
 EXPORT_SYMBOL(scu_deinit_src1);
 
