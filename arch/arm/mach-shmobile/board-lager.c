@@ -42,10 +42,13 @@ static struct i2c_board_info lager_i2c_devices[] = {
 
 /* DU */
 static struct rcar_du_encoder_data lager_du_encoders[] = {
+#if defined(CONFIG_DRM_ADV7511)
 	{
-		.type = RCAR_DU_ENCODER_VGA,
-		.output = RCAR_DU_OUTPUT_DPAD0,
-	}, {
+		.type = RCAR_DU_ENCODER_HDMI,
+		.output = RCAR_DU_OUTPUT_LVDS0,
+	},
+#endif
+	{
 		.type = RCAR_DU_ENCODER_NONE,
 		.output = RCAR_DU_OUTPUT_LVDS1,
 		.connector.lvds.panel = {
@@ -64,6 +67,9 @@ static struct rcar_du_encoder_data lager_du_encoders[] = {
 				.flags = 0,
 			},
 		},
+	}, {
+		.type = RCAR_DU_ENCODER_VGA,
+		.output = RCAR_DU_OUTPUT_DPAD0,
 	},
 };
 
