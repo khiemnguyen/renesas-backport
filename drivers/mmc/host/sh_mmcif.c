@@ -1,6 +1,7 @@
 /*
  * MMCIF eMMC driver.
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2010 Renesas Solutions Corp.
  * Yusuke Goda <yusuke.goda.sx@renesas.com>
  *
@@ -153,10 +154,17 @@
 #define MASK_MRBSYTO		(1 << 1)
 #define MASK_MRSPTO		(1 << 0)
 
+#ifdef CONFIG_ARCH_R8A7790
+#define MASK_START_CMD		(MASK_MCMDVIO | MASK_MBUFVIO | MASK_MWDATERR | \
+				 MASK_MRDATERR | MASK_MRIDXERR | MASK_MRSPERR | \
+				 MASK_MCRCSTO | MASK_MWDATTO | \
+				 MASK_MRDATTO | MASK_MRBSYTO | MASK_MRSPTO)
+#else
 #define MASK_START_CMD		(MASK_MCMDVIO | MASK_MBUFVIO | MASK_MWDATERR | \
 				 MASK_MRDATERR | MASK_MRIDXERR | MASK_MRSPERR | \
 				 MASK_MCCSTO | MASK_MCRCSTO | MASK_MWDATTO | \
 				 MASK_MRDATTO | MASK_MRBSYTO | MASK_MRSPTO)
+#endif
 
 /* CE_HOST_STS1 */
 #define STS1_CMDSEQ		(1 << 31)
@@ -482,8 +490,14 @@ static void sh_mmcif_sync_reset(struct sh_mmcif_host *host)
 
 	sh_mmcif_writel(host->addr, MMCIF_CE_VERSION, SOFT_RST_ON);
 	sh_mmcif_writel(host->addr, MMCIF_CE_VERSION, SOFT_RST_OFF);
+#ifdef CONFIG_ARCH_R8A7790
+	sh_mmcif_writel(host->addr, MMCIF_CE_CLK_CTRL2, 0x0F0F0000);
+	sh_mmcif_bitset(host, MMCIF_CE_CLK_CTRL, tmp |
+		SRSPTO_256 | SRBSYTO_29 | SRWDTO_29);
+#else
 	sh_mmcif_bitset(host, MMCIF_CE_CLK_CTRL, tmp |
 		SRSPTO_256 | SRBSYTO_29 | SRWDTO_29 | SCCSTO_29);
+#endif
 	/* byte swap on */
 	sh_mmcif_bitset(host, MMCIF_CE_BUF_ACC, BUF_ACC_ATYP);
 }

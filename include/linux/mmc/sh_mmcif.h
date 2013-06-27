@@ -62,6 +62,7 @@ struct sh_mmcif_plat_data {
 #define MMCIF_CE_INT_MASK	0x00000044
 #define MMCIF_CE_HOST_STS1	0x00000048
 #define MMCIF_CE_HOST_STS2	0x0000004C
+#define MMCIF_CE_CLK_CTRL2	0x00000070
 #define MMCIF_CE_VERSION	0x0000007C
 
 /* CE_BUF_ACC */
@@ -94,6 +95,10 @@ static inline u32 sh_mmcif_readl(void __iomem *addr, int reg)
 
 static inline void sh_mmcif_writel(void __iomem *addr, int reg, u32 val)
 {
+#ifdef CONFIG_ARCH_R8A7790
+	if (reg == MMCIF_CE_INT)
+		val |= 0xF80C30E0;
+#endif
 	__raw_writel(val, addr + reg);
 }
 
