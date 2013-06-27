@@ -70,6 +70,9 @@
 #define CTRL_CAPTURE	1
 /*  rate  */
 #define	RATE_MAX	0x7fffffff
+/*  volume  */
+#define	VOLUME_MAX_DVC	0x007fffff
+#define	VOLUME_DEFAULT	0x00100000
 
 /*
  *	SCU
@@ -2113,6 +2116,8 @@ struct scu_audio_info {
 	struct scu_clock_info clockinfo;
 	spinlock_t scu_lock;		/* for common register */
 	unsigned int rate[2];
+	unsigned int volume[2][2];
+	unsigned int mute[2];
 };
 
 struct scu_pcm_info {
