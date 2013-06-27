@@ -65,6 +65,12 @@
 #define	MAXCH_SSI	10
 #define	MAXCH_SSIDATA	22	/* SSI0,1,2,9=4ch, SSI3-8=1ch */
 
+/* DAI Control */
+#define CTRL_PLAYBACK	0
+#define CTRL_CAPTURE	1
+/*  rate  */
+#define	RATE_MAX	0x7fffffff
+
 /*
  *	SCU
  */
@@ -2106,6 +2112,7 @@ struct scu_audio_info {
 	struct scu_route_info routeinfo;
 	struct scu_clock_info clockinfo;
 	spinlock_t scu_lock;		/* for common register */
+	unsigned int rate[2];
 };
 
 struct scu_pcm_info {
@@ -2155,5 +2162,6 @@ extern void scu_deinit_src1_dvc1(void);
 extern void scu_deinit_dvc1(void);
 
 extern int scu_check_route(int dir, struct scu_route_info *routeinfo);
+extern int scu_dai_add_control(struct snd_card *card);
 
 #endif /* SH_SCU_H */

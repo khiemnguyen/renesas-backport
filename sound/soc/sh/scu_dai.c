@@ -288,13 +288,10 @@ static void scu_src_control(int src_ch, unsigned int rate, unsigned int sync_sw)
 	writel(1, (u32 *)&rinfo->srcreg[src_ch]->ifscr);
 
 	/* SRC_IFSVR INTIFS calculation */
-#ifdef CONVERT_48KHZ
-	/* Convert example (48kHz) */
-	val = div_u64(SRC_IFS_FSO * rate, SRC_IFS_48KHZ);
-#else
-	/* Not convert example (CODEC driver converts by itself) */
-	val = SRC_IFS_FSO;
-#endif
+	if (ainfo->rate[src_ch])
+		val = div_u64(SRC_IFS_FSO * rate, ainfo->rate[src_ch]);
+	else /* not convert */
+		val = SRC_IFS_FSO;
 	writel((u32)val, (u32 *)&rinfo->srcreg[src_ch]->ifsvr);
 
 	/* SRC_SRCCR */
@@ -306,13 +303,10 @@ static void scu_src_control(int src_ch, unsigned int rate, unsigned int sync_sw)
 	writel(val, (u32 *)&rinfo->srcreg[src_ch]->mnfsr);
 
 	/* FSO/FSI(*100) */
-#ifdef CONVERT_48KHZ
-	/* Convert example (48kHz) */
-	val = (SRC_IFS_48KHZ * 100) / rate;
-#else
-	/* Not convert example (CODEC driver converts by itself) */
-	val = 100;
-#endif
+	if (ainfo->rate[src_ch])
+		val = (ainfo->rate[src_ch] * 100) / rate;
+	else /* not convert */
+		val = 100;
 
 	/* SRC_BSDSR (FSO/FSI Ratio is 6-1/6) */
 	reg = scu_src_calc_bsdsr((u32)val);
@@ -724,6 +718,108 @@ static struct snd_pcm_hardware scu_dai_pcm_hw = {
 	.periods_min		= SCU_PERIODS_MIN,
 	.periods_max		= SCU_PERIODS_MAX,
 };
+
+static int scu_dai_info_rate(struct snd_kcontrol *kctrl,
+			       struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = 1;
+	uinfo->value.integer.min = 0;
+	uinfo->value.integer.max = RATE_MAX;
+
+	return 0;
+}
+
+static int scu_dai_get_rate(struct snd_kcontrol *kctrl,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct scu_audio_info *ainfo = snd_kcontrol_chip(kctrl);
+
+	switch (kctrl->private_value) {
+	case CTRL_PLAYBACK:
+		ucontrol->value.integer.value[0] = ainfo->rate[0];
+		break;
+	case CTRL_CAPTURE:
+		ucontrol->value.integer.value[0] = ainfo->rate[1];
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int scu_dai_put_rate(struct snd_kcontrol *kctrl,
+			      struct snd_ctl_elem_value *ucontrol)
+{
+	struct scu_audio_info *ainfo = snd_kcontrol_chip(kctrl);
+	int change = 0;
+
+	switch (kctrl->private_value) {
+	case CTRL_PLAYBACK:
+		change |= (ainfo->rate[0] != ucontrol->value.integer.value[0]);
+		if (change)
+			ainfo->rate[0] = ucontrol->value.integer.value[0];
+		break;
+	case CTRL_CAPTURE:
+		change |= (ainfo->rate[1] != ucontrol->value.integer.value[0]);
+		if (change)
+			ainfo->rate[1] = ucontrol->value.integer.value[0];
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	return change;
+}
+
+static struct snd_kcontrol_new playback_rate_controls = {
+	.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+	.name		= "PCM Playback Sampling Rate",
+	.index		= 0,
+	.info		= scu_dai_info_rate,
+	.get		= scu_dai_get_rate,
+	.put		= scu_dai_put_rate,
+	.private_value	= CTRL_PLAYBACK,
+};
+
+static struct snd_kcontrol_new capture_rate_controls = {
+	.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+	.name		= "PCM Capture Sampling Rate",
+	.index		= 0,
+	.info		= scu_dai_info_rate,
+	.get		= scu_dai_get_rate,
+	.put		= scu_dai_put_rate,
+	.private_value	= CTRL_CAPTURE,
+};
+
+int scu_dai_add_control(struct snd_card *card)
+{
+	struct device *dev = card->dev;
+	struct snd_kcontrol *kctrl;
+	int i, ret;
+
+	/* initial value */
+	for (i = 0; i < 2; i++)
+		ainfo->rate[i] = 0;
+
+	kctrl = snd_ctl_new1(&playback_rate_controls, ainfo);
+	ret = snd_ctl_add(card, kctrl);
+	if (ret < 0) {
+		dev_err(dev, "failed to add playback rate err=%d\n", ret);
+		return ret;
+	}
+
+	kctrl = snd_ctl_new1(&capture_rate_controls, ainfo);
+	ret = snd_ctl_add(card, kctrl);
+	if (ret < 0) {
+		dev_err(dev, "failed to add capture rate err=%d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(scu_dai_add_control);
 
 static int scu_dai_startup(struct snd_pcm_substream *substream,
 			   struct snd_soc_dai *dai)

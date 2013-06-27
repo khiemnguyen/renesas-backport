@@ -784,6 +784,10 @@ static int scu_pcm_new(struct snd_soc_pcm_runtime *rtd)
 	struct snd_card *card = rtd->card->snd_card;
 
 	FNC_ENTRY
+	ret = scu_dai_add_control(card);
+	if (ret)
+		return ret;
+
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &dma_mask;
 
