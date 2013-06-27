@@ -39,6 +39,7 @@
 #include <linux/usb/ohci_pdriver.h>
 #include <linux/mfd/tmio.h>
 #include <linux/mmc/sh_mobile_sdhi.h>
+#include <linux/mmc/sh_mmcif.h>
 #include <linux/regulator/fixed.h>
 #include <linux/regulator/machine.h>
 #include <linux/mtd/mtd.h>
@@ -1260,6 +1261,26 @@ static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
 		.addr		= 0xee160030 + 0x2000,
 		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
 		.mid_rid	= 0xd4,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MMC0_TX,
+		.addr		= 0xee200034,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0xd1,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MMC0_RX,
+		.addr		= 0xee200034,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0xd2,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MMC1_TX,
+		.addr		= 0xee220034,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0xe1,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MMC1_RX,
+		.addr		= 0xee220034,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0xe2,
 	},
 };
 
@@ -1455,6 +1476,93 @@ static struct platform_device sata1_device = {
 	},
 };
 
+static void shmmcif_set_pwr(struct platform_device *pdev, int state)
+{
+}
+
+static void shmmcif_down_pwr(struct platform_device *pdev)
+{
+}
+
+static int shmmcif_get_cd(struct platform_device *pdev)
+{
+	return 1;
+}
+
+static struct resource sh_mmcif0_resources[] = {
+	[0] = {
+		.name	= "mmc0",
+		.start	= 0xEE200000,
+		.end	= 0xEE200080-1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(169),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mmcif_plat_data sh_mmcif0_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC0_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC0_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
+static struct platform_device mmc0_device = {
+	.name		= "sh_mmcif",
+	.num_resources	= ARRAY_SIZE(sh_mmcif0_resources),
+	.resource	= sh_mmcif0_resources,
+	.id		= 0,
+	.dev = {
+		.platform_data	= &sh_mmcif0_plat,
+	}
+};
+
+static struct resource sh_mmcif1_resources[] = {
+	[0] = {
+		.name	= "mmc1",
+		.start	= 0xEE220000,
+		.end	= 0xEE220080-1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(170),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mmcif_plat_data sh_mmcif1_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC1_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC1_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
+static struct platform_device mmc1_device = {
+	.name		= "sh_mmcif",
+	.num_resources	= ARRAY_SIZE(sh_mmcif1_resources),
+	.resource	= sh_mmcif1_resources,
+	.id		= 1,
+	.dev = {
+		.platform_data	= &sh_mmcif1_plat,
+	}
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -1486,6 +1594,8 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&scu_device,
 	&sata0_device,
 	&sata1_device,
+	&mmc0_device,
+	&mmc1_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {

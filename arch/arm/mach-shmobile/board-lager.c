@@ -151,6 +151,11 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 	/* USB2 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.2", "pfc-r8a7790",
 				  "usb2", "usb2"),
+	/* MMC1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
+				  "mmc1_data8", "mmc1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
+				  "mmc1_ctrl", "mmc1"),
 };
 
 static void __init lager_add_standard_devices(void)

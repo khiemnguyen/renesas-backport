@@ -324,6 +324,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.9", &mstp_clks[MSTP716]),
 	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
 	CLKDEV_DEV_ID("sh_mmcif.0", &mstp_clks[MSTP315]),
+	CLKDEV_CON_ID("mmc.0", &div6_clks[DIV6_MMC0]),
 	CLKDEV_DEV_ID("ee100000.sdhi", &mstp_clks[MSTP314]),
 	CLKDEV_DEV_ID("sh_mobile_sdhi.0", &mstp_clks[MSTP314]),
 	CLKDEV_DEV_ID("ee120000.sdhi", &mstp_clks[MSTP313]),
@@ -334,6 +335,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh_mobile_sdhi.3", &mstp_clks[MSTP311]),
 	CLKDEV_DEV_ID("ee220000.mmcif", &mstp_clks[MSTP305]),
 	CLKDEV_DEV_ID("sh_mmcif.1", &mstp_clks[MSTP305]),
+	CLKDEV_CON_ID("mmc.1", &div6_clks[DIV6_MMC1]),
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]),
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]),
 	CLKDEV_CON_ID("ss_usb", &mstp_clks[MSTP328]),
@@ -402,6 +404,7 @@ void __init r8a7790_clock_init(void)
 	void __iomem *modemr = ioremap_nocache(MODEMR, PAGE_SIZE);
 	u32 mode;
 	int k, ret = 0;
+	struct clk *mmc1_clk;
 
 	BUG_ON(!modemr);
 	mode = ioread32(modemr);
@@ -449,8 +452,18 @@ void __init r8a7790_clock_init(void)
 	if (!ret)
 		shmobile_clk_init();
 	else
-		panic("failed to setup r8a7790 clocks\n");
+		goto epanic;
 
 	r8a7790_rgx_control_init();
 	r8a7790_sdhi_clock_init();
+
+	mmc1_clk = clk_get(NULL, "mmc.1");
+	ret = clk_set_rate(mmc1_clk, 97500000);
+	if (ret)
+		goto epanic;
+
+	return;
+
+epanic:
+	panic("failed to setup r8a7790 clocks\n");
 }
