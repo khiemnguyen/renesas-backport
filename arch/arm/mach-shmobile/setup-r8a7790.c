@@ -29,6 +29,7 @@
 #include <linux/sh_eth.h>
 #include <linux/i2c/i2c-rcar.h>
 #include <linux/sh_dma-desc.h>
+#include <linux/dma-mapping.h>
 #include <linux/sh_audma-pp.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
@@ -48,6 +49,7 @@
 #include <linux/spi/flash.h>
 #include <linux/dma-mapping.h>
 #include <linux/spi/sh_msiof.h>
+#include <media/vin.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
@@ -1669,6 +1671,196 @@ static struct platform_device mmc1_device = {
 	}
 };
 
+/* VIN */
+static struct resource vin0_resources[] = {
+	[0] = {
+		.name = "VIN0",
+		.start = 0xe6ef0000,
+		.end = 0xe6ef0fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(188),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource vin1_resources[] = {
+	[0] = {
+		.name = "VIN1",
+		.start = 0xe6ef1000,
+		.end = 0xe6ef1fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(189),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource vin2_resources[] = {
+	[0] = {
+		.name = "VIN2",
+		.start = 0xe6ef2000,
+		.end = 0xe6ef2fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(190),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource vin3_resources[] = {
+	[0] = {
+		.name = "VIN3",
+		.start = 0xe6ef3000,
+		.end = 0xe6ef3fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(191),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct vin_info vin_info[] = {
+	[0] = {
+		.input = VIN_INPUT_ITUR_BT709_24BIT,
+		.flags = 0,
+	},
+	[1] = {
+		.input = VIN_INPUT_ITUR_BT656_8BIT,
+		.flags = 0,
+	},
+	[2] = {
+		.input = VIN_INPUT_UNDEFINED,
+		.flags = 0,
+	},
+	[3] = {
+		.input = VIN_INPUT_UNDEFINED,
+		.flags = 0,
+	},
+};
+
+static u64 vin_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device vin0_device = {
+	.name  = "vin",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(vin0_resources),
+	.resource  = vin0_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[0],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct platform_device vin1_device = {
+	.name  = "vin",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(vin1_resources),
+	.resource  = vin1_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[1],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct platform_device vin2_device = {
+	.name  = "vin",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(vin2_resources),
+	.resource  = vin2_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[2],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct platform_device vin3_device = {
+	.name  = "vin",
+	.id = 3,
+	.num_resources = ARRAY_SIZE(vin3_resources),
+	.resource  = vin3_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[3],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct i2c_board_info lager_i2c_camera[] = {
+	{ I2C_BOARD_INFO("adv7612", 0x4C), },
+	{ I2C_BOARD_INFO("adv7180", 0x20), },
+};
+
+static void camera_power_on(void)
+{
+	return;
+}
+
+static void camera_power_off(void)
+{
+	return;
+}
+
+static int adv7612_power(struct device *dev, int mode)
+{
+	if (mode)
+		camera_power_on();
+	else
+		camera_power_off();
+
+	return 0;
+}
+
+static int adv7180_power(struct device *dev, int mode)
+{
+	if (mode)
+		camera_power_on();
+	else
+		camera_power_off();
+
+	return 0;
+}
+
+static struct soc_camera_link adv7612_ch0_link = {
+	.bus_id = 0,
+	.power  = adv7612_power,
+	.board_info = &lager_i2c_camera[0],
+	.i2c_adapter_id = 2,
+	.module_name = "adv7612",
+};
+
+static struct soc_camera_link adv7180_ch1_link = {
+	.bus_id = 1,
+	.power  = adv7180_power,
+	.board_info = &lager_i2c_camera[1],
+	.i2c_adapter_id = 2,
+	.module_name = "adv7180",
+};
+
+static struct platform_device soc_camera_device[] = {
+	{
+		.name = "soc-camera-pdrv",
+		.id = 0,
+		.dev = {
+			.platform_data = &adv7612_ch0_link,
+		},
+	},
+	{
+		.name = "soc-camera-pdrv",
+		.id = 1,
+		.dev = {
+			 .platform_data = &adv7180_ch1_link,
+		},
+	},
+};
+
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&eth_device,
 	&powervr_device,
@@ -1706,6 +1898,12 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&sata1_device,
 	&mmc0_device,
 	&mmc1_device,
+	&vin0_device,
+	&vin1_device,
+	&vin2_device,
+	&vin3_device,
+	&soc_camera_device[0],
+	&soc_camera_device[1],
 };
 
 static struct renesas_irqc_config irqc0_data = {
@@ -1783,7 +1981,7 @@ void __init r8a7790_timer_init(void)
 }
 
 struct sys_timer r8a7790_timer = {
-        .init           = r8a7790_timer_init,
+	.init		= r8a7790_timer_init,
 };
 
 #ifdef CONFIG_USE_OF

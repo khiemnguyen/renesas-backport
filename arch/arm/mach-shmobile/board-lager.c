@@ -163,6 +163,28 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "msiof1_ctrl", "msiof1"),
 	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
 				  "msiof1_data", "msiof1"),
+	/* VIN0 */
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_data_g", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_data_r", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_data_b", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_hsync_signal", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_vsync_signal", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_field_signal", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_data_enable", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7790",
+				  "vin0_clk", "vin0"),
+	/* VIN1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.1", "pfc-r8a7790",
+				  "vin1_data", "vin1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.1", "pfc-r8a7790",
+				  "vin1_clk", "vin1"),
 };
 
 static void __init lager_add_standard_devices(void)
