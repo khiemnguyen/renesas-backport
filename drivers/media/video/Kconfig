@@ -1115,6 +1115,17 @@ config VIDEO_OMAP2
 	---help---
 	  This is a v4l2 driver for the TI OMAP2 camera capture interface
 
+config VIDEO_VIN
+	tristate "VIN Unit Interface driver"
+	depends on VIDEO_DEV && SOC_CAMERA && HAS_DMA && HAVE_CLK
+	select VIDEOBUF2_DMA_CONTIG
+	---help---
+	  This is a v4l2 driver for the Video Input Unit Interface.
+	  This module controls the Video Input Unit
+	  and provides the video capture function.
+
+	  Say Y here if you have enabled, otherwise say N.
+
 config VIDEO_MX2_HOSTSUPPORT
 	bool
 
