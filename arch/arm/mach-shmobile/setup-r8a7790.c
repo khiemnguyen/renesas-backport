@@ -643,9 +643,10 @@ static struct resource sdhi0_resources[] = {
 static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
-	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
 	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_SDIO_STATUS_QUIRK
 				| TMIO_MMC_HAS_IDLE_WAIT
 				| TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH
 				| TMIO_MMC_NO_CTL_RESET_SDIO
@@ -682,9 +683,10 @@ static struct resource sdhi1_resources[] = {
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
-	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
 	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_SDIO_STATUS_QUIRK
 				| TMIO_MMC_HAS_IDLE_WAIT
 				| TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH
 				| TMIO_MMC_NO_CTL_RESET_SDIO
@@ -721,9 +723,10 @@ static struct resource sdhi2_resources[] = {
 static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI2_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI2_RX,
-	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
 	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_SDIO_STATUS_QUIRK
 				| TMIO_MMC_HAS_IDLE_WAIT
 				| TMIO_MMC_NO_CTL_RESET_SDIO
 				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
@@ -760,9 +763,10 @@ static struct resource sdhi3_resources[] = {
 static struct sh_mobile_sdhi_info sdhi3_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI3_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI3_RX,
-	.tmio_caps = MMC_CAP_SD_HIGHSPEED,
+	.tmio_caps = MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
 	.tmio_caps2 = MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= (TMIO_MMC_WRPROTECT_DISABLE
+				| TMIO_MMC_SDIO_STATUS_QUIRK
 				| TMIO_MMC_HAS_IDLE_WAIT
 				| TMIO_MMC_NO_CTL_RESET_SDIO
 				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
