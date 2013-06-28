@@ -1,6 +1,7 @@
 /*
  * SuperH MSIOF SPI Master Interface
  *
+ * Copyright (c) 2013 Renesas Electronics Corporation
  * Copyright (c) 2009 Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
@@ -420,7 +421,8 @@ static void sh_msiof_spi_chipselect(struct spi_device *spi, int is_on)
 	}
 
 	/* use spi->controller data for CS (same strategy as spi_gpio) */
-	gpio_set_value((unsigned)spi->controller_data, value);
+	if (spi->controller_data)
+		gpio_set_value((unsigned)spi->controller_data, value);
 
 	if (is_on == BITBANG_CS_INACTIVE) {
 		if (test_and_clear_bit(0, &p->flags)) {
