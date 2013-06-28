@@ -47,6 +47,7 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/dma-mapping.h>
+#include <linux/spi/sh_msiof.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
@@ -855,6 +856,111 @@ static struct spi_board_info spi_info[] __initdata = {
 	},
 };
 
+/* MSIOF */
+static struct sh_msiof_spi_info sh_msiof_info = {
+	.rx_fifo_override	= 256,
+	.num_chipselect		= 1,
+};
+
+static struct resource sh_msiof0_resources[] = {
+	[0] = {
+		.start	= 0xe6e20000,
+		.end	= 0xe6e20064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(156),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource sh_msiof1_resources[] = {
+	[0] = {
+		.start	= 0xe6e10000,
+		.end	= 0xe6e10064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(157),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource sh_msiof2_resources[] = {
+	[0] = {
+		.start	= 0xe6e00000,
+		.end	= 0xe6e00064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(158),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource sh_msiof3_resources[] = {
+	[0] = {
+		.start	= 0xe6c90000,
+		.end	= 0xe6c90064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(159),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device sh_msiof0_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 0,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof0_resources),
+	.resource	= sh_msiof0_resources,
+};
+
+static struct platform_device sh_msiof1_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 1,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof1_resources),
+	.resource	= sh_msiof1_resources,
+};
+
+static struct platform_device sh_msiof2_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 2,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof2_resources),
+	.resource	= sh_msiof2_resources,
+};
+
+static struct platform_device sh_msiof3_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 3,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof3_resources),
+	.resource	= sh_msiof3_resources,
+};
+
+/* spidev for MSIOF */
+static struct spi_board_info spi_bus[] __initdata = {
+	{
+		.modalias	= "spidev",
+		.max_speed_hz	= 6000000,
+		.mode		= SPI_MODE_3,
+		.bus_num	= 1,
+		.chip_select	= 0,
+	},
+};
+
 /* I2C */
 static struct i2c_rcar_platform_data i2c_pd[] = {
 	{
@@ -1581,6 +1687,10 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&sdhi2_device,
 	&sdhi3_device,
 	&qspi_device,
+	&sh_msiof0_device,
+	&sh_msiof1_device,
+	&sh_msiof2_device,
+	&sh_msiof3_device,
 	&i2c0_device,
 	&i2c1_device,
 	&i2c2_device,
@@ -1655,6 +1765,9 @@ void __init r8a7790_add_standard_devices(void)
 
 	/* QSPI flash memory */
 	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
+
+	/* spidev for MSIOF */
+	spi_register_board_info(spi_bus, ARRAY_SIZE(spi_bus));
 }
 
 void __init r8a7790_timer_init(void)
