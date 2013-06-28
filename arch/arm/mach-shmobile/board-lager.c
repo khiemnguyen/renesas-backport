@@ -156,6 +156,13 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "mmc1_data8", "mmc1"),
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
 				  "mmc1_ctrl", "mmc1"),
+	/* MSIOF1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_clk", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_ctrl", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_data", "msiof1"),
 };
 
 static void __init lager_add_standard_devices(void)
