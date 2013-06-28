@@ -206,6 +206,7 @@ enum {
 	MSTP328, MSTP315, MSTP314, MSTP313, MSTP312, MSTP311, MSTP305, MSTP304,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP131, MSTP130, MSTP128, MSTP127,
+	MSTP124,
 	MSTP112,
 	MSTP000, MSTP208, MSTP205, MSTP215,
 	MSTP219, MSTP218,
@@ -252,6 +253,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP130] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 30, MSTPSR1, 0), /* VSP1 (RT) */
 	[MSTP128] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 28, MSTPSR1, 0), /* VSP1 (DU0) */
 	[MSTP127] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 27, MSTPSR1, 0), /* VSP1 (DU1) */
+	[MSTP124] = SH_CLK_MSTP32(&rclk_clk, SMSTPCR1, 24, 0), /* CMT0 */
 	[MSTP112] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 12, 0),
 	[MSTP219] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 19, 0),
 	[MSTP218] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 18, 0),
@@ -359,6 +361,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("vsp1.1", &mstp_clks[MSTP130]),
 	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
 	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
+	CLKDEV_DEV_ID("sh_cmt.0", &mstp_clks[MSTP124]),
 	CLKDEV_CON_ID("mmc.1", &div6_clks[DIV6_MMC1]),
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]),
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]),

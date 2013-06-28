@@ -35,6 +35,8 @@
 #include <linux/platform_data/rcar-du.h>
 #include <linux/platform_data/irq-renesas-irqc.h>
 #include <linux/platform_data/vsp1.h>
+#include <linux/serial_sci.h>
+#include <linux/sh_timer.h>
 #include <linux/platform_data/rcar-du.h>
 #include <linux/clk.h>
 #include <linux/usb/ehci_pdriver.h>
@@ -1769,6 +1771,25 @@ static struct resource thermal_resources[] __initdata = {
 					thermal_resources,		\
 					ARRAY_SIZE(thermal_resources))
 
+static struct sh_timer_config cmt00_platform_data = {
+	.name = "CMT00",
+	.timer_bit = 0,
+	.clockevent_rating = 80,
+};
+
+static struct resource cmt00_resources[] = {
+	DEFINE_RES_MEM(0xffca0510, 0x0c),
+	DEFINE_RES_MEM(0xffca0500, 0x04),
+	DEFINE_RES_IRQ(gic_spi(142)), /* CMT0_0 */
+};
+
+#define r8a7790_register_cmt(idx)					\
+	platform_device_register_resndata(&platform_bus, "sh_cmt",	\
+					  idx, cmt##idx##_resources,	\
+					  ARRAY_SIZE(cmt##idx##_resources), \
+					  &cmt##idx##_platform_data,	\
+					  sizeof(struct sh_timer_config))
+
 void __init r8a7790_add_standard_devices(void)
 {
 	r8a7790_pm_init();
@@ -1806,6 +1827,7 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_add_device_to_domain(&r8a7790_rgx, &powervr_device);
 
 	r8a7790_register_thermal();
+	r8a7790_register_cmt(00);
 }
 
 void __init r8a7790_timer_init(void)
