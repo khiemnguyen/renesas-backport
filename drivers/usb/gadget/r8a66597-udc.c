@@ -84,32 +84,33 @@ static const char usbhs_dma_name[] = "USBHS-DMA1";
 
 struct r8a66597_pipe_config {
 	const char *ep_name;
+	u16 maxpacket;
 	u16 bufnum;
 };
 
-#define R8A66597_PIPE(_ep_name, _bufnum) \
-	{ .ep_name = _ep_name, .bufnum = _bufnum, }
+#define R8A66597_PIPE(_ep_name, _maxpacket, _bufnum) \
+	{ .ep_name = _ep_name, .maxpacket = _maxpacket, .bufnum = _bufnum }
 
 static const struct r8a66597_pipe_config r8a66597_pipe[R8A66597_MAX_NUM_PIPE] = {
-	R8A66597_PIPE("ep0", 0),
-	R8A66597_PIPE("ep1-iso", 0x08),
-	R8A66597_PIPE("ep2-iso", 0x28),
-	R8A66597_PIPE("ep3-bulk", 0x48),
-	R8A66597_PIPE("ep4-bulk", 0x58),
-	R8A66597_PIPE("ep5-bulk", 0x68),
-	R8A66597_PIPE("ep6-int", 0x04),
-	R8A66597_PIPE("ep7-int", 0x05),
-	R8A66597_PIPE("ep8-int", 0x06),
+	R8A66597_PIPE("ep0", 64, 0),
+	R8A66597_PIPE("ep1-iso", 1024, 0x08),
+	R8A66597_PIPE("ep2-iso", 1024, 0x28),
+	R8A66597_PIPE("ep3-bulk", 512, 0x48),
+	R8A66597_PIPE("ep4-bulk", 512, 0x58),
+	R8A66597_PIPE("ep5-bulk", 512, 0x68),
+	R8A66597_PIPE("ep6-int", 64, 0x04),
+	R8A66597_PIPE("ep7-int", 64, 0x05),
+	R8A66597_PIPE("ep8-int", 64, 0x06),
 #ifdef CONFIG_USB_R8A66597_TYPE_BULK_PIPES_12
-	R8A66597_PIPE("ep9-bulk", 0x78),
-	R8A66597_PIPE("ep10-bulk", 0x88),
-	R8A66597_PIPE("ep11-bulk", 0x98),
-	R8A66597_PIPE("ep12-bulk", 0xa8),
-	R8A66597_PIPE("ep13-bulk", 0xb8),
-	R8A66597_PIPE("ep14-bulk", 0xc8),
-	R8A66597_PIPE("ep15-bulk", 0xd8),
+	R8A66597_PIPE("ep9-bulk", 512, 0x78),
+	R8A66597_PIPE("ep10-bulk", 512, 0x88),
+	R8A66597_PIPE("ep11-bulk", 512, 0x98),
+	R8A66597_PIPE("ep12-bulk", 512, 0xa8),
+	R8A66597_PIPE("ep13-bulk", 512, 0xb8),
+	R8A66597_PIPE("ep14-bulk", 512, 0xc8),
+	R8A66597_PIPE("ep15-bulk", 512, 0xd8),
 #else
-	R8A66597_PIPE("ep9-int", 0x07),
+	R8A66597_PIPE("ep9-int", 64, 0x07),
 #endif
 };
 
@@ -596,6 +597,9 @@ static void r8a66597_ep_setting(struct r8a66597 *r8a66597,
 
 static void r8a66597_ep_release(struct r8a66597_ep *ep)
 {
+	/* reset .maxpacket in preparation for next ep_matches */
+	ep->ep.maxpacket = r8a66597_pipe[ep->pipenum].maxpacket;
+
 	if (ep->pipenum == 0)
 		return;
 	ep->pipenum = 0;
@@ -2403,9 +2407,8 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 		INIT_LIST_HEAD(&ep->queue);
 		ep->ep.name = r8a66597_pipe[i].ep_name;
 		ep->ep.ops = &r8a66597_ep_ops;
-		ep->ep.maxpacket = 512;
+		ep->ep.maxpacket = r8a66597_pipe[i].maxpacket;
 	}
-	r8a66597->ep[0].ep.maxpacket = 64;
 	r8a66597->ep[0].pipenum = 0;
 	r8a66597->ep[0].fifoaddr = CFIFO;
 	r8a66597->ep[0].fifosel = CFIFOSEL;
