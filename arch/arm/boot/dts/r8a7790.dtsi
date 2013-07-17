@@ -1,7 +1,6 @@
 /*
  * Device Tree Source for the r8a7790 SoC
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2013 Renesas Solutions Corp.
  *
  * This file is licensed under the terms of the GNU General Public License
@@ -46,6 +45,34 @@
 			reg = <3>;
 			clock-frequency = <1300000000>;
 		};
+
+		cpu4: cpu@4 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0x100>;
+			clock-frequency = <780000000>;
+		};
+
+		cpu5: cpu@5 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0x101>;
+			clock-frequency = <780000000>;
+		};
+
+		cpu6: cpu@6 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0x102>;
+			clock-frequency = <780000000>;
+		};
+
+		cpu7: cpu@7 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a7";
+			reg = <0x103>;
+			clock-frequency = <780000000>;
+		};
 	};
 
 	gic: interrupt-controller@f1001000 {
@@ -64,22 +91,7 @@
 			cpuif-id = <4>;
 			cpu = <&cpu0>;
 		};
-		gic-cpuif@5 {
-			compatible = "arm,gic-cpuif";
-			cpuif-id = <5>;
-			cpu = <&cpu1>;
-		};
-		gic-cpuif@6 {
-			compatible = "arm,gic-cpuif";
-			cpuif-id = <6>;
-			cpu = <&cpu2>;
-		};
-		gic-cpuif@7 {
-			compatible = "arm,gic-cpuif";
-			cpuif-id = <7>;
-			cpu = <&cpu3>;
-		};
-};
+	};
 
 	timer {
 		compatible = "arm,armv7-timer";
@@ -87,7 +99,6 @@
 				<1 14 0xf08>,
 				<1 11 0xf08>,
 				<1 10 0xf08>;
-		clock-frequency = <10000000>;
 	};
 
 	irqc0: interrupt-controller@e61c0000 {
