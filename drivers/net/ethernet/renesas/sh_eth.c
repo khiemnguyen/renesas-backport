@@ -80,7 +80,7 @@ static void sh_eth_select_mii(struct net_device *ndev)
 
 /* There is CPU dependent code */
 #if defined(CONFIG_CPU_SUBTYPE_SH7724) || defined(CONFIG_ARCH_R8A7779) \
-	|| defined(CONFIG_ARCH_R8A7790)
+	|| defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 #define SH_ETH_RESET_DEFAULT	1
 static void sh_eth_set_duplex(struct net_device *ndev)
 {
@@ -97,7 +97,8 @@ static void sh_eth_set_rate(struct net_device *ndev)
 	struct sh_eth_private *mdp = netdev_priv(ndev);
 	unsigned int bits = ECMR_RTM;
 
-#if defined(CONFIG_ARCH_R8A7779) || defined(CONFIG_ARCH_R8A7790)
+#if defined(CONFIG_ARCH_R8A7779) || defined(CONFIG_ARCH_R8A7790) \
+	|| defined(CONFIG_ARCH_R8A7791)
 	bits |= ECMR_ELB;
 #endif
 
@@ -1458,7 +1459,7 @@ static int sh_eth_phy_start(struct net_device *ndev)
 	/* reset phy - this also wakes it from PDOWN */
 	phy_write(mdp->phydev, MII_BMCR, BMCR_RESET);
 
-#if defined(CONFIG_ARCH_R8A7790)
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 	ret = phy_read(mdp->phydev, 0x1e);
 	ret &= ~0xc000;
 	ret |= 0x4000;

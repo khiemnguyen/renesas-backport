@@ -61,7 +61,7 @@ enum {
 	EDOCR,
 	TFUCR,
 	RFOCR,
-#if defined(CONFIG_ARCH_R8A7790)
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 	RMIIMODE,
 #endif
 	FCFTR,
@@ -301,7 +301,7 @@ static const u16 sh_eth_offset_fast_sh4[SH_ETH_MAX_REGISTER_OFFSET] = {
 	[RMCR]	= 0x0058,
 	[TFUCR]	= 0x0064,
 	[RFOCR]	= 0x0068,
-#if defined(CONFIG_ARCH_R8A7790)
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 	[RMIIMODE]	= 0x006c,
 #endif
 	[FCFTR]	= 0x0070,
