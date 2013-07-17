@@ -36,7 +36,7 @@
 #define RESCNT		0x010050
 #define CA15WUPCR	0x004010
 #define SYSCSR		0x030000
-#define MERAM		0xe8080000
+#define MERAM		0xe6300000
 #define CCI_BASE	0xf0190000
 #define CCI_SLAVE3	0x4000
 #define CCI_SLAVE4	0x5000

@@ -69,6 +69,11 @@ extern void r8a7790_clock_init(void);
 extern void r8a7790_pinmux_init(void);
 extern void r8a7790_pm_init(void);
 
+extern void r8a7791_add_early_devices(void);
+extern void r8a7791_add_standard_devices(void);
+extern void r8a7791_clock_init(void);
+extern void r8a7791_pinmux_init(void);
+
 extern void shmobile_init_late(void);
 
 #ifdef CONFIG_SUSPEND
