@@ -11,6 +11,7 @@ obj-$(CONFIG_ARCH_SH73A0)	+= setup-sh73a0.o clock-sh73a0.o intc-sh73a0.o
 obj-$(CONFIG_ARCH_R8A7740)	+= setup-r8a7740.o clock-r8a7740.o intc-r8a7740.o
 obj-$(CONFIG_ARCH_R8A7779)	+= setup-r8a7779.o clock-r8a7779.o intc-r8a7779.o
 obj-$(CONFIG_ARCH_R8A7790)	+= setup-r8a7790.o clock-r8a7790.o intc-r8a7790.o
+obj-$(CONFIG_ARCH_R8A7791)	+= setup-r8a7791.o clock-r8a7791.o intc-r8a7790.o
 obj-$(CONFIG_ARCH_EMEV2)	+= setup-emev2.o clock-emev2.o
 
 # SMP objects
@@ -20,6 +21,7 @@ smp-$(CONFIG_ARCH_SH73A0)	+= smp-sh73a0.o
 smp-$(CONFIG_ARCH_R8A7779)	+= smp-r8a7779.o
 smp-$(CONFIG_ARCH_EMEV2)	+= smp-emev2.o
 smp-$(CONFIG_ARCH_R8A7790)	+= smp-r8a7790.o
+smp-$(CONFIG_ARCH_R8A7791)	+= smp-r8a7790.o
 
 # IRQ objects
 obj-$(CONFIG_ARCH_SH7372)	+= entry-intc.o
@@ -33,6 +35,7 @@ obj-$(CONFIG_ARCH_SH7372)	+= pm-sh7372.o sleep-sh7372.o
 obj-$(CONFIG_ARCH_R8A7740)	+= pm-r8a7740.o
 obj-$(CONFIG_ARCH_R8A7779)	+= pm-r8a7779.o
 obj-$(CONFIG_ARCH_R8A7790)	+= pm-r8a7790.o
+obj-$(CONFIG_ARCH_R8A7791)	+= pm-r8a7790.o
 
 # Board objects
 obj-$(CONFIG_MACH_G3EVM)	+= board-g3evm.o
@@ -44,6 +47,7 @@ obj-$(CONFIG_MACH_KOTA2)	+= board-kota2.o
 obj-$(CONFIG_MACH_BONITO)	+= board-bonito.o
 obj-$(CONFIG_MACH_MARZEN)	+= board-marzen.o
 obj-$(CONFIG_MACH_LAGER)	+= board-lager.o
+obj-$(CONFIG_MACH_KOELSCH)	+= board-koelsch.o
 obj-$(CONFIG_MACH_ARMADILLO800EVA)	+= board-armadillo800eva.o
 obj-$(CONFIG_MACH_KZM9D)	+= board-kzm9d.o
 obj-$(CONFIG_MACH_KZM9G)	+= board-kzm9g.o
