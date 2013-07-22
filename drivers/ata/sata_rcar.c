@@ -126,7 +126,7 @@ struct sata_rcar_priv {
 	struct clk *clk;
 };
 
-#ifndef CONFIG_ARCH_R8A7790
+#if !(defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791))
 static void sata_rcar_phy_initialize(struct sata_rcar_priv *priv)
 {
 	/* idle state */
@@ -708,7 +708,7 @@ static void sata_rcar_setup_port(struct ata_host *host)
 	ap->ops		= &sata_rcar_port_ops;
 	ap->pio_mask	= ATA_PIO4;
 	ap->udma_mask	= ATA_UDMA6;
-#ifdef CONFIG_ARCH_R8A7790
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 	ap->flags	|= (ATA_FLAG_SATA | ATA_FLAG_NO_DIPM);
 #else
 	ap->flags	|= ATA_FLAG_SATA;
@@ -736,7 +736,7 @@ static void sata_rcar_init_controller(struct ata_host *host)
 	struct sata_rcar_priv *priv = host->private_data;
 	u32 val;
 
-#ifndef CONFIG_ARCH_R8A7790
+#if !(defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791))
 	/* reset and setup phy */
 	sata_rcar_phy_initialize(priv);
 	sata_rcar_phy_write(priv, SATAPCTLR1_REG, 0x00200188, 0);
