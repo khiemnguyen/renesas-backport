@@ -248,7 +248,8 @@ void check_and_switch_context(struct mm_struct *mm, struct task_struct *tsk)
 	if (cpumask_test_and_clear_cpu(cpu, &tlb_flush_pending)) {
 		local_flush_bp_all();
 		local_flush_tlb_all();
-		dummy_flush_tlb_a15_erratum();
+		if (erratum_a15_798181())
+			dummy_flush_tlb_a15_erratum();
 	}
 
 	cpumask_set_cpu(cpu, mm_cpumask(mm));
