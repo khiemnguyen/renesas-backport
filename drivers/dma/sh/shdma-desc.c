@@ -312,8 +312,7 @@ static int dmae_set_dmars(struct sh_dmadesc_chan *sh_chan, u16 val)
 
 	/* in the case of a missing DMARS resource use first memory window */
 	if (!addr)
-		addr = (u16 __iomem *)shdev->chan_reg +
-				chan_pdata->offset / sizeof(u16);
+		addr = (u16 __iomem *)sh_chan->base;
 	addr += chan_pdata->dmars / sizeof(u16);
 	__raw_writew(val, addr);
 
