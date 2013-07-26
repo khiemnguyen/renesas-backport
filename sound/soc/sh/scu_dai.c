@@ -458,6 +458,7 @@ void scu_dvc_control(int dvc_ch)
 
 	/* Zero Cross Mute Function */
 	mute = (ainfo->mute[1] << 1) + ainfo->mute[0];
+	mute = ~mute & 0x3;
 	writel(mute, (u32 *)&rinfo->dvcreg[dvc_ch]->zcmcr);
 
 	/* DVC_DVUIR */
@@ -868,7 +869,7 @@ static struct snd_kcontrol_new playback_volume_controls = {
 
 static struct snd_kcontrol_new capture_volume_controls = {
 	.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
-	.name		= "PCM Capture Volume",
+	.name		= "Capture Volume",
 	.index		= 0,
 	.info		= scu_dai_info_volume,
 	.get		= scu_dai_get_volume,
@@ -879,7 +880,7 @@ static struct snd_kcontrol_new capture_volume_controls = {
 static int scu_dai_info_mute(struct snd_kcontrol *kctrl,
 			       struct snd_ctl_elem_info *uinfo)
 {
-	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_BOOLEAN;
 	uinfo->count = 2;
 	uinfo->value.integer.min = 0;
 	uinfo->value.integer.max = 1;
@@ -917,6 +918,7 @@ static int scu_dai_put_mute(struct snd_kcontrol *kctrl,
 		ainfo->mute[0] = ucontrol->value.integer.value[0];
 		ainfo->mute[1] = ucontrol->value.integer.value[1];
 		mute = (ainfo->mute[1] << 1) + ainfo->mute[0];
+		mute = ~mute & 0x3;
 		writel(mute, (u32 *)&rinfo->dvcreg[0]->zcmcr);
 	}
 
@@ -941,7 +943,7 @@ int scu_dai_add_control(struct snd_card *card)
 	/* initial value */
 	for (i = 0; i < 2; i++) {
 		ainfo->rate[i] = 0;
-		ainfo->mute[i] = 0;
+		ainfo->mute[i] = 1;
 		for (j = 0; j < 2; j++)
 			ainfo->volume[i][j] = VOLUME_DEFAULT;
 	}
