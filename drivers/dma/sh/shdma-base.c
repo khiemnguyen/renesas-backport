@@ -3,6 +3,7 @@
  *
  * extracted from shdma.c
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2011-2012 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
  * Copyright (C) 2009 Nobuhiro Iwamatsu <iwamatsu.nobuhiro@renesas.com>
  * Copyright (C) 2009 Renesas Solutions, Inc. All rights reserved.
@@ -961,4 +962,4 @@ module_exit(shdma_exit);
 
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("SH-DMA driver base library");
-MODULE_AUTHOR("Guennadi Liakhovetski <g.liakhovetski@gmx.de>");
+MODULE_AUTHOR("Shunsuke Kataoka <shunsuke.kataoka.df@renesas.com>");

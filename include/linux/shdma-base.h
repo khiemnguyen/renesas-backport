@@ -3,6 +3,7 @@
  *
  * extracted from shdma.c and headers
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2011-2012 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
  * Copyright (C) 2009 Nobuhiro Iwamatsu <iwamatsu.nobuhiro@renesas.com>
  * Copyright (C) 2009 Renesas Solutions, Inc. All rights reserved.
