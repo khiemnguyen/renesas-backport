@@ -941,7 +941,7 @@ static int scu_dai_put_mute(struct snd_kcontrol *kctrl,
 		writel(mute, (u32 *)&rinfo->dvcreg[0]->zcmcr);
 	}
 
-	return 0;
+	return change;
 }
 
 static struct snd_kcontrol_new playback_mute_controls = {
