@@ -356,9 +356,15 @@ static struct platform_device i2c5_device = {
 	.chclr_offset	= c	\
 }
 
+#define AUDMAPP_CHANNEL(a)	\
+{				\
+	.offset		= a,	\
+}
+
 /* Audio-DMA */
 /*  audmal  : Audio-DMAC lower (ch0-12)  */
 /*  audmau  : Audio-DMAC upper (ch13-25) */
+/*  audmapp : Audio-DMAC-pp (ch0-28)     */
 static struct clk *audma_clk_get(struct platform_device *pdev)
 {
 	if (pdev->id == SHDMA_DEVID_AUDIO_LO)
@@ -413,6 +419,25 @@ static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
 	},
 };
 
+static const struct sh_audmapp_slave_config r8a7791_audmapp_slaves[] = {
+	{
+		.slave_id	= SHDMA_SLAVE_PCM_SRC0_SSI0,
+		.sar		= 0xec304000,
+		.dar		= 0xec400000,
+		.chcr		= 0x2d000000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_CMD0_SSI0,
+		.sar		= 0xec308000,
+		.dar		= 0xec400000,
+		.chcr		= 0x37000000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_SSI1_SRC1,
+		.sar		= 0xec401000,
+		.dar		= 0xec300400,
+		.chcr		= 0x042e0000,
+	},
+};
+
 static const struct sh_dmadesc_channel r8a7791_audma_channels[] = {
 	DMA_CHANNEL(0x00008000, 0x40, 0),
 	DMA_CHANNEL(0x00008080, 0x40, 0),
@@ -429,6 +454,38 @@ static const struct sh_dmadesc_channel r8a7791_audma_channels[] = {
 	DMA_CHANNEL(0x00008600, 0x40, 0),
 };
 
+static const struct sh_audmapp_channel r8a7791_audmapp_channels[] = {
+	AUDMAPP_CHANNEL(0x0000),
+	AUDMAPP_CHANNEL(0x0010),
+	AUDMAPP_CHANNEL(0x0020),
+	AUDMAPP_CHANNEL(0x0030),
+	AUDMAPP_CHANNEL(0x0040),
+	AUDMAPP_CHANNEL(0x0050),
+	AUDMAPP_CHANNEL(0x0060),
+	AUDMAPP_CHANNEL(0x0070),
+	AUDMAPP_CHANNEL(0x0080),
+	AUDMAPP_CHANNEL(0x0090),
+	AUDMAPP_CHANNEL(0x00a0),
+	AUDMAPP_CHANNEL(0x00b0),
+	AUDMAPP_CHANNEL(0x00c0),
+	AUDMAPP_CHANNEL(0x00d0),
+	AUDMAPP_CHANNEL(0x00e0),
+	AUDMAPP_CHANNEL(0x00f0),
+	AUDMAPP_CHANNEL(0x0100),
+	AUDMAPP_CHANNEL(0x0110),
+	AUDMAPP_CHANNEL(0x0120),
+	AUDMAPP_CHANNEL(0x0130),
+	AUDMAPP_CHANNEL(0x0140),
+	AUDMAPP_CHANNEL(0x0150),
+	AUDMAPP_CHANNEL(0x0160),
+	AUDMAPP_CHANNEL(0x0170),
+	AUDMAPP_CHANNEL(0x0180),
+	AUDMAPP_CHANNEL(0x0190),
+	AUDMAPP_CHANNEL(0x01a0),
+	AUDMAPP_CHANNEL(0x01b0),
+	AUDMAPP_CHANNEL(0x01c0),
+};
+
 static struct sh_dmadesc_pdata audma_platform_data = {
 	.slave		= r8a7791_audma_slaves,
 	.slave_num	= ARRAY_SIZE(r8a7791_audma_slaves),
@@ -443,6 +500,13 @@ static struct sh_dmadesc_pdata audma_platform_data = {
 	.dmaor_init	= DMAOR_DME,
 	.chclr_present	= 1,
 	.clk_get	= audma_clk_get,
+};
+
+static struct sh_audmapp_pdata audmapp_platform_data = {
+	.slave		= r8a7791_audmapp_slaves,
+	.slave_num	= ARRAY_SIZE(r8a7791_audmapp_slaves),
+	.channel	= r8a7791_audmapp_channels,
+	.channel_num	= ARRAY_SIZE(r8a7791_audmapp_channels),
 };
 
 static struct resource r8a7791_audmal_resources[] = {
@@ -485,6 +549,15 @@ static struct resource r8a7791_audmau_resources[] = {
 	},
 };
 
+static struct resource r8a7791_audmapp_resources[] = {
+	{
+		/* channel registers (0-28) */
+		.start	= 0xec740020,
+		.end	= 0xec7401ef,
+		.flags	= IORESOURCE_MEM,
+	},
+};
+
 static struct platform_device audmal_device = {
 	.name		= "sh-dmadesc-engine",
 	.id		= SHDMA_DEVID_AUDIO_LO,
@@ -502,6 +575,16 @@ static struct platform_device audmau_device = {
 	.num_resources	= ARRAY_SIZE(r8a7791_audmau_resources),
 	.dev		= {
 		.platform_data	= &audma_platform_data,
+	},
+};
+
+static struct platform_device audmapp_device = {
+	.name		= "sh-audmapp-engine",
+	.id		= SHDMA_DEVID_AUDIOPP,
+	.resource	= r8a7791_audmapp_resources,
+	.num_resources	= ARRAY_SIZE(r8a7791_audmapp_resources),
+	.dev		= {
+		.platform_data	= &audmapp_platform_data,
 	},
 };
 
@@ -679,6 +762,7 @@ static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&i2c5_device,
 	&audmal_device,
 	&audmau_device,
+	&audmapp_device,
 	&sysdmal_device,
 	&sysdmau_device,
 };
