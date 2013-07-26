@@ -26,7 +26,7 @@
 #include <linux/interrupt.h>
 #include <linux/list.h>
 
-#define SHDESC_DMAE_MAX_CHANNELS 26
+#define SHDESC_DMAE_MAX_CHANNELS 15	/* Max channel of SYS-DMAC */
 #define SHDESC_DMAE_TCR_MAX 0x00FFFFFF	/* 16MB */
 
 struct device;
