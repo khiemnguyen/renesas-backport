@@ -450,252 +450,191 @@ static void scu_dvc_stop(int dvc_ch)
 	DAPM callback function
 
 ************************************************************************/
-static void scu_ssi_control(int master_ch, int slave_ch);
-static void scu_ssi_start(int ssi_ch);
-static void scu_ssi_stop(int ssi_ch);
-
-void scu_init_ssi0(void)
+void scu_init_ssi_ind_master(int master_ch, int slave_ch)
 {
-	/* SSI0_0_BUSIF_ADINR */
-	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+	if (master_ch == 0) {
+		/* SSI0_0_BUSIF_ADINR */
+		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
 			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-	/* SSI_MODE0 (SSI independant) */
-	scu_or_writel(SSI_MODE0_IND0, (u32 *)(rinfo->ssiureg + SSI_MODE0));
-	/* SSI init */
-	scu_ssi_control(0, 1);
-	/* SSI start */
-	scu_ssi_start(0);
-}
-EXPORT_SYMBOL(scu_init_ssi0);
+		/* SSI_MODE0 (SSI independant) */
+		scu_or_writel(SSI_MODE0_IND0,
+			(u32 *)(rinfo->ssiureg + SSI_MODE0));
+	} else {
+		pr_info("%s ssi master channel error", __func__);
+		return;
+	}
 
-void scu_deinit_ssi0(void)
+	/* SSI init */
+	scu_ssi_control(master_ch, slave_ch);
+	/* SSI start */
+	scu_ssi_start(master_ch);
+}
+EXPORT_SYMBOL(scu_init_ssi_ind_master);
+
+void scu_deinit_ssi_ind_master(int master_ch)
 {
 	/* SSI stop */
-	scu_ssi_stop(0);
-	/* SSI_MODE0 (SSI independant) */
-	scu_and_writel(~SSI_MODE0_IND0, (u32 *)(rinfo->ssiureg + SSI_MODE0));
-	/* SSI0_0_BUSIF_ADINR */
-	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-}
-EXPORT_SYMBOL(scu_deinit_ssi0);
+	scu_ssi_stop(master_ch);
 
-void scu_init_ssi0_src0(void)
+	if (master_ch == 0) {
+		/* SSI_MODE0 (SSI independant) */
+		scu_and_writel(~SSI_MODE0_IND0,
+			(u32 *)(rinfo->ssiureg + SSI_MODE0));
+		/* SSI0_0_BUSIF_ADINR */
+		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
+	} else
+		pr_info("%s ssi master channel error", __func__);
+}
+EXPORT_SYMBOL(scu_deinit_ssi_ind_master);
+
+void scu_init_ssi_ind_slave(int slave_ch, int master_ch)
 {
-	/* SSI0_0_BUSIF_ADINR */
-	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-	/* SSI init */
-	scu_ssi_control(0, 1);
-	/* SSI start */
-	scu_ssi_start(0);
-}
-EXPORT_SYMBOL(scu_init_ssi0_src0);
+	if (slave_ch == 1) {
+		/* SSI1_0_BUSIF_ADINR */
+		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
+		/* SSI_MODE0 (SSI independant) */
+		scu_or_writel(SSI_MODE0_IND1,
+			(u32 *)(rinfo->ssiureg + SSI_MODE0));
+		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
+		scu_or_writel(SSI_MODE1_SSI1_MASTER,
+			(u32 *)(rinfo->ssiureg + SSI_MODE1));
+	} else {
+		pr_info("%s ssi slave channel error", __func__);
+		return;
+	}
 
-void scu_deinit_ssi0_src0(void)
+	/* SSI init */
+	scu_ssi_control(master_ch, slave_ch);
+	/* SSI start */
+	scu_ssi_start(slave_ch);
+}
+EXPORT_SYMBOL(scu_init_ssi_ind_slave);
+
+void scu_deinit_ssi_ind_slave(int slave_ch)
 {
 	/* SSI stop */
-	scu_ssi_stop(0);
-	/* SSI0_0_BUSIF_ADINR */
-	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-}
-EXPORT_SYMBOL(scu_deinit_ssi0_src0);
+	scu_ssi_stop(slave_ch);
 
-void scu_init_ssi0_dvc0(void)
+	if (slave_ch == 1) {
+		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
+		scu_and_writel(~SSI_MODE1_SSI1_MASTER,
+			(u32 *)(rinfo->ssiureg + SSI_MODE1));
+		/* SSI_MODE0 (SSI independant) */
+		scu_and_writel(~SSI_MODE0_IND1,
+			(u32 *)(rinfo->ssiureg + SSI_MODE0));
+		/* SSI0_0_BUSIF_ADINR */
+		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
+	} else
+		pr_info("%s ssi slave channel error", __func__);
+}
+EXPORT_SYMBOL(scu_deinit_ssi_ind_slave);
+
+void scu_init_ssi_master(int master_ch, int slave_ch)
 {
-	/* SSI0_0_BUSIF_ADINR */
-	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+	if (master_ch == 0) {
+		/* SSI0_0_BUSIF_ADINR */
+		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
 			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-	/* SSI init */
-	scu_ssi_control(0, 1);
-	/* SSI start */
-	scu_ssi_start(0);
-}
-EXPORT_SYMBOL(scu_init_ssi0_dvc0);
+	} else {
+		pr_info("%s ssi master channel error", __func__);
+		return;
+	}
 
-void scu_deinit_ssi0_dvc0(void)
+	/* SSI init */
+	scu_ssi_control(master_ch, slave_ch);
+	/* SSI start */
+	scu_ssi_start(master_ch);
+}
+EXPORT_SYMBOL(scu_init_ssi_master);
+
+void scu_deinit_ssi_master(int master_ch)
 {
 	/* SSI stop */
-	scu_ssi_stop(0);
-	/* SSI0_0_BUSIF_ADINR */
-	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-}
-EXPORT_SYMBOL(scu_deinit_ssi0_dvc0);
+	scu_ssi_stop(master_ch);
 
-void scu_init_src0(unsigned int rate)
+	if (master_ch == 0) {
+		/* SSI0_0_BUSIF_ADINR */
+		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
+	} else
+		pr_info("%s ssi master channel error", __func__);
+}
+EXPORT_SYMBOL(scu_deinit_ssi_master);
+
+void scu_init_ssi_slave(int slave_ch, int master_ch)
 {
-	scu_src_init(0, 1);
-	scu_src_control(0, rate, 1);
+	if (slave_ch == 1) {
+		/* SSI1_0_BUSIF_ADINR */
+		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
+		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
+		scu_or_writel(SSI_MODE1_SSI1_MASTER,
+			(u32 *)(rinfo->ssiureg + SSI_MODE1));
+	} else {
+		pr_info("%s ssi slave channel error", __func__);
+		return;
+	}
+
+	/* SSI init */
+	scu_ssi_control(master_ch, slave_ch);
+	/* SSI start */
+	scu_ssi_start(slave_ch);
+}
+EXPORT_SYMBOL(scu_init_ssi_slave);
+
+void scu_deinit_ssi_slave(int slave_ch)
+{
+	/* SSI stop */
+	scu_ssi_stop(slave_ch);
+
+	if (slave_ch == 1) {
+		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
+		scu_and_writel(~SSI_MODE1_SSI1_MASTER,
+			(u32 *)(rinfo->ssiureg + SSI_MODE1));
+		/* SSI0_0_BUSIF_ADINR */
+		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
+	} else
+		pr_info("%s ssi slave channel error", __func__);
+}
+EXPORT_SYMBOL(scu_deinit_ssi_slave);
+
+void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
+{
+	scu_src_init(src_ch, sync_sw);
+	scu_src_control(src_ch, rate, sync_sw);
 	/* start src */
-	scu_src_start(0, SRC_INOUT);
+	scu_src_start(src_ch, SRC_INOUT);
 }
-EXPORT_SYMBOL(scu_init_src0);
+EXPORT_SYMBOL(scu_init_src);
 
-void scu_deinit_src0(void)
+void scu_deinit_src(int src_ch)
 {
 	/* stop src */
-	scu_src_stop(0, SRC_INOUT);
-	scu_src_deinit(0);
+	scu_src_stop(src_ch, SRC_INOUT);
+	scu_src_deinit(src_ch);
 }
-EXPORT_SYMBOL(scu_deinit_src0);
+EXPORT_SYMBOL(scu_deinit_src);
 
-void scu_init_dvc0(void)
+void scu_init_dvc(int dvc_ch)
 {
-	scu_dvc_init(0);
-	scu_dvc_control(0);
+	scu_dvc_init(dvc_ch);
+	scu_dvc_control(dvc_ch);
 	/* start dvc */
-	scu_dvc_start(0);
+	scu_dvc_start(dvc_ch);
 }
-EXPORT_SYMBOL(scu_init_dvc0);
+EXPORT_SYMBOL(scu_init_dvc);
 
-void scu_deinit_dvc0(void)
+void scu_deinit_dvc(int dvc_ch)
 {
 	/* stop dvc */
-	scu_dvc_stop(0);
-	scu_dvc_deinit(0);
+	scu_dvc_stop(dvc_ch);
+	scu_dvc_deinit(dvc_ch);
 }
-EXPORT_SYMBOL(scu_deinit_dvc0);
-
-void scu_init_ssi1(void)
-{
-	/* SSI1_0_BUSIF_ADINR */
-	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-	/* SSI_MODE0 (SSI independant) */
-	scu_or_writel(SSI_MODE0_IND1, (u32 *)(rinfo->ssiureg + SSI_MODE0));
-	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-	scu_or_writel(SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	/* SSI init */
-	scu_ssi_control(0, 1);
-	/* SSI start */
-	scu_ssi_start(1);
-}
-EXPORT_SYMBOL(scu_init_ssi1);
-
-void scu_deinit_ssi1(void)
-{
-	/* SSI stop */
-	scu_ssi_stop(1);
-	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-	scu_and_writel(~SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	/* SSI_MODE0 (SSI independant) */
-	scu_and_writel(~SSI_MODE0_IND1, (u32 *)(rinfo->ssiureg + SSI_MODE0));
-	/* SSI0_0_BUSIF_ADINR */
-	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-}
-EXPORT_SYMBOL(scu_deinit_ssi1);
-
-void scu_init_ssi1_src1(void)
-{
-	/* SSI1_0_BUSIF_ADINR */
-	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-	scu_or_writel(SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	/* SSI init */
-	scu_ssi_control(0, 1);
-	/* SSI start */
-	scu_ssi_start(1);
-}
-EXPORT_SYMBOL(scu_init_ssi1_src1);
-
-void scu_deinit_ssi1_src1(void)
-{
-	/* SSI stop */
-	scu_ssi_stop(1);
-	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-	scu_and_writel(~SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	/* SSI0_0_BUSIF_ADINR */
-	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-}
-EXPORT_SYMBOL(scu_deinit_ssi1_src1);
-
-void scu_init_ssi1_dvc1(void)
-{
-	/* SSI1_0_BUSIF_ADINR */
-	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-	scu_or_writel(SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	/* SSI init */
-	scu_ssi_control(0, 1);
-	/* SSI start */
-	scu_ssi_start(1);
-}
-EXPORT_SYMBOL(scu_init_ssi1_dvc1);
-
-void scu_deinit_ssi1_dvc1(void)
-{
-	/* SSI stop */
-	scu_ssi_stop(1);
-	/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-	scu_and_writel(~SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	/* SSI0_0_BUSIF_ADINR */
-	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-}
-EXPORT_SYMBOL(scu_deinit_ssi1_dvc1);
-
-void scu_init_src1(unsigned int rate)
-{
-	scu_src_init(1, 1);
-	scu_src_control(1, rate, 1);
-	/* start src */
-	scu_src_start(1, SRC_INOUT);
-}
-EXPORT_SYMBOL(scu_init_src1);
-
-void scu_deinit_src1(void)
-{
-	/* stop src */
-	scu_src_stop(1, SRC_INOUT);
-	scu_src_deinit(1);
-}
-EXPORT_SYMBOL(scu_deinit_src1);
-
-void scu_init_src1_dvc1(unsigned int rate)
-{
-	scu_src_init(1, 0);
-	scu_src_control(1, rate, 0);
-	/* start src */
-	scu_src_start(1, SRC_INOUT);
-}
-EXPORT_SYMBOL(scu_init_src1_dvc1);
-
-void scu_deinit_src1_dvc1(void)
-{
-	/* stop src */
-	scu_src_stop(1, SRC_INOUT);
-	scu_src_deinit(1);
-}
-EXPORT_SYMBOL(scu_deinit_src1_dvc1);
-
-void scu_init_dvc1(void)
-{
-	scu_dvc_init(1);
-	scu_dvc_control(1);
-	/* start dvc */
-	scu_dvc_start(1);
-}
-EXPORT_SYMBOL(scu_init_dvc1);
-
-void scu_deinit_dvc1(void)
-{
-	/* stop dvc */
-	scu_dvc_stop(1);
-	scu_dvc_deinit(1);
-}
-EXPORT_SYMBOL(scu_deinit_dvc1);
+EXPORT_SYMBOL(scu_deinit_dvc);
 
 /************************************************************************
 

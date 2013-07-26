@@ -65,6 +65,10 @@
 #define	MAXCH_SSI	10
 #define	MAXCH_SSIDATA	22	/* SSI0,1,2,9=4ch, SSI3-8=1ch */
 
+/* use channel */
+#define	PCH	0	/* playback SSI0/SRC0/DVC0 */
+#define	CCH	1	/* capture  SSI1/SRC1/DVC1 */
+
 /* DAI Control */
 #define CTRL_PLAYBACK	0
 #define CTRL_CAPTURE	1
@@ -2056,31 +2060,31 @@ struct scu_reg_info {
 };
 
 struct scu_playback_callback {
-	void (*init_ssi)(void);
-	void (*init_ssi_src)(void);
-	void (*init_ssi_dvc)(void);
-	void (*init_src)(unsigned int);
-	void (*init_dvc)(void);
-	void (*deinit_ssi)(void);
-	void (*deinit_ssi_src)(void);
-	void (*deinit_ssi_dvc)(void);
-	void (*deinit_src)(void);
-	void (*deinit_dvc)(void);
+	void (*init_ssi)(int, int);
+	void (*init_ssi_src)(int, int);
+	void (*init_ssi_dvc)(int, int);
+	void (*init_src)(int, unsigned int, unsigned int);
+	void (*init_dvc)(int);
+	void (*deinit_ssi)(int);
+	void (*deinit_ssi_src)(int);
+	void (*deinit_ssi_dvc)(int);
+	void (*deinit_src)(int);
+	void (*deinit_dvc)(int);
 };
 
 struct scu_capture_callback {
-	void (*init_ssi)(void);
-	void (*init_ssi_src)(void);
-	void (*init_ssi_dvc)(void);
-	void (*init_src)(unsigned int);
-	void (*init_src_dvc)(unsigned int);
-	void (*init_dvc)(void);
-	void (*deinit_ssi)(void);
-	void (*deinit_ssi_src)(void);
-	void (*deinit_ssi_dvc)(void);
-	void (*deinit_src)(void);
-	void (*deinit_src_dvc)(void);
-	void (*deinit_dvc)(void);
+	void (*init_ssi)(int, int);
+	void (*init_ssi_src)(int, int);
+	void (*init_ssi_dvc)(int, int);
+	void (*init_src)(int, unsigned int, unsigned int);
+	void (*init_src_dvc)(int, unsigned int, unsigned int);
+	void (*init_dvc)(int);
+	void (*deinit_ssi)(int);
+	void (*deinit_ssi_src)(int);
+	void (*deinit_ssi_dvc)(int);
+	void (*deinit_src)(int);
+	void (*deinit_src_dvc)(int);
+	void (*deinit_dvc)(int);
 };
 
 struct scu_route_info {
@@ -2143,29 +2147,19 @@ extern struct snd_soc_platform_driver scu_platform;
 
 extern struct scu_route_info *scu_get_route_info(void);
 
-extern void scu_init_ssi0(void);
-extern void scu_init_ssi0_src0(void);
-extern void scu_init_ssi0_dvc0(void);
-extern void scu_init_src0(unsigned int);
-extern void scu_init_dvc0(void);
-extern void scu_deinit_ssi0(void);
-extern void scu_deinit_ssi0_src0(void);
-extern void scu_deinit_ssi0_dvc0(void);
-extern void scu_deinit_src0(void);
-extern void scu_deinit_dvc0(void);
+extern void scu_init_ssi_ind_master(int, int);
+extern void scu_init_ssi_ind_slave(int, int);
+extern void scu_init_ssi_master(int, int);
+extern void scu_init_ssi_slave(int, int);
+extern void scu_init_src(int, unsigned int, unsigned int);
+extern void scu_init_dvc(int);
 
-extern void scu_init_ssi1(void);
-extern void scu_init_ssi1_src1(void);
-extern void scu_init_ssi1_dvc1(void);
-extern void scu_init_src1(unsigned int);
-extern void scu_init_src1_dvc1(unsigned int);
-extern void scu_init_dvc1(void);
-extern void scu_deinit_ssi1(void);
-extern void scu_deinit_ssi1_src1(void);
-extern void scu_deinit_ssi1_dvc1(void);
-extern void scu_deinit_src1(void);
-extern void scu_deinit_src1_dvc1(void);
-extern void scu_deinit_dvc1(void);
+extern void scu_deinit_ssi_ind_master(int);
+extern void scu_deinit_ssi_ind_slave(int);
+extern void scu_deinit_ssi_master(int);
+extern void scu_deinit_ssi_slave(int);
+extern void scu_deinit_src(int);
+extern void scu_deinit_dvc(int);
 
 extern int scu_check_route(int dir, struct scu_route_info *routeinfo);
 extern int scu_dai_add_control(struct snd_card *card);

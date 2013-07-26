@@ -95,8 +95,8 @@ static int event_ssi0(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "ssi0");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->pcb.init_ssi = scu_init_ssi0;
-		routeinfo->pcb.deinit_ssi = scu_deinit_ssi0;
+		routeinfo->pcb.init_ssi = scu_init_ssi_ind_master;
+		routeinfo->pcb.deinit_ssi = scu_deinit_ssi_ind_master;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->pcb.init_ssi = NULL;
 		routeinfo->pcb.deinit_ssi = NULL;
@@ -109,8 +109,8 @@ static int event_ssi0_src0(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "ssi0_src0");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->pcb.init_ssi_src = scu_init_ssi0_src0;
-		routeinfo->pcb.deinit_ssi_src = scu_deinit_ssi0_src0;
+		routeinfo->pcb.init_ssi_src = scu_init_ssi_master;
+		routeinfo->pcb.deinit_ssi_src = scu_deinit_ssi_master;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->pcb.init_ssi_src = NULL;
 		routeinfo->pcb.deinit_ssi_src = NULL;
@@ -123,8 +123,8 @@ static int event_ssi0_dvc0(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "ssi0_dvc0");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->pcb.init_ssi_dvc = scu_init_ssi0_dvc0;
-		routeinfo->pcb.deinit_ssi_dvc = scu_deinit_ssi0_dvc0;
+		routeinfo->pcb.init_ssi_dvc = scu_init_ssi_master;
+		routeinfo->pcb.deinit_ssi_dvc = scu_deinit_ssi_master;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->pcb.init_ssi_dvc = NULL;
 		routeinfo->pcb.deinit_ssi_dvc = NULL;
@@ -137,8 +137,8 @@ static int event_src0(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "src0");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->pcb.init_src = scu_init_src0;
-		routeinfo->pcb.deinit_src = scu_deinit_src0;
+		routeinfo->pcb.init_src = scu_init_src;
+		routeinfo->pcb.deinit_src = scu_deinit_src;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->pcb.init_src = NULL;
 		routeinfo->pcb.deinit_src = NULL;
@@ -151,8 +151,8 @@ static int event_dvc0(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "dvc0");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->pcb.init_dvc = scu_init_dvc0;
-		routeinfo->pcb.deinit_dvc = scu_deinit_dvc0;
+		routeinfo->pcb.init_dvc = scu_init_dvc;
+		routeinfo->pcb.deinit_dvc = scu_deinit_dvc;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->pcb.init_dvc = NULL;
 		routeinfo->pcb.deinit_dvc = NULL;
@@ -165,8 +165,8 @@ static int event_ssi1(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "ssi1");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->ccb.init_ssi = scu_init_ssi1;
-		routeinfo->ccb.deinit_ssi = scu_deinit_ssi1;
+		routeinfo->ccb.init_ssi = scu_init_ssi_ind_slave;
+		routeinfo->ccb.deinit_ssi = scu_deinit_ssi_ind_slave;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->ccb.init_ssi = NULL;
 		routeinfo->ccb.deinit_ssi = NULL;
@@ -179,8 +179,8 @@ static int event_ssi1_src1(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "ssi1_src1");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->ccb.init_ssi_src = scu_init_ssi1_src1;
-		routeinfo->ccb.deinit_ssi_src = scu_deinit_ssi1_src1;
+		routeinfo->ccb.init_ssi_src = scu_init_ssi_slave;
+		routeinfo->ccb.deinit_ssi_src = scu_deinit_ssi_slave;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->ccb.init_ssi_src = NULL;
 		routeinfo->ccb.deinit_ssi_src = NULL;
@@ -193,8 +193,8 @@ static int event_ssi1_dvc1(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "ssi1_dvc1");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->ccb.init_ssi_dvc = scu_init_ssi1_dvc1;
-		routeinfo->ccb.deinit_ssi_dvc = scu_deinit_ssi1_dvc1;
+		routeinfo->ccb.init_ssi_dvc = scu_init_ssi_slave;
+		routeinfo->ccb.deinit_ssi_dvc = scu_deinit_ssi_slave;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->ccb.init_ssi_dvc = NULL;
 		routeinfo->ccb.deinit_ssi_dvc = NULL;
@@ -207,8 +207,8 @@ static int event_src1(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "src1");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->ccb.init_src = scu_init_src1;
-		routeinfo->ccb.deinit_src = scu_deinit_src1;
+		routeinfo->ccb.init_src = scu_init_src;
+		routeinfo->ccb.deinit_src = scu_deinit_src;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->ccb.init_src = NULL;
 		routeinfo->ccb.deinit_src = NULL;
@@ -221,8 +221,8 @@ static int event_src1_dvc1(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "src1_dvc1");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->ccb.init_src_dvc = scu_init_src1_dvc1;
-		routeinfo->ccb.deinit_src_dvc = scu_deinit_src1_dvc1;
+		routeinfo->ccb.init_src_dvc = scu_init_src;
+		routeinfo->ccb.deinit_src_dvc = scu_deinit_src;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->ccb.init_src_dvc = NULL;
 		routeinfo->ccb.deinit_src_dvc = NULL;
@@ -235,8 +235,8 @@ static int event_dvc1(struct snd_soc_dapm_widget *w,
 {
 	event_print(event, "dvc1");
 	if (event == SND_SOC_DAPM_POST_PMU) {
-		routeinfo->ccb.init_dvc = scu_init_dvc1;
-		routeinfo->ccb.deinit_dvc = scu_deinit_dvc1;
+		routeinfo->ccb.init_dvc = scu_init_dvc;
+		routeinfo->ccb.deinit_dvc = scu_deinit_dvc;
 	} else if (event == SND_SOC_DAPM_PRE_PMD) {
 		routeinfo->ccb.init_dvc = NULL;
 		routeinfo->ccb.deinit_dvc = NULL;

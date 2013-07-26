@@ -383,7 +383,7 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 				scu_audma_start(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
 
 				/* start ssi */
-				pcminfo->routeinfo->pcb.init_ssi();
+				pcminfo->routeinfo->pcb.init_ssi(PCH, CCH);
 			}
 		}
 
@@ -398,11 +398,11 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 				scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 
 				/* start ssi */
-				pcminfo->routeinfo->pcb.init_ssi_src();
+				pcminfo->routeinfo->pcb.init_ssi_src(PCH, CCH);
 
 				/* start src */
-				pcminfo->routeinfo->pcb.init_src(
-					ss->runtime->rate);
+				pcminfo->routeinfo->pcb.init_src(PCH,
+					ss->runtime->rate, SRC_CR_SYNC);
 			}
 		}
 
@@ -418,14 +418,14 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 				scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 
 				/* start ssi */
-				pcminfo->routeinfo->pcb.init_ssi_dvc();
+				pcminfo->routeinfo->pcb.init_ssi_dvc(PCH, CCH);
 
 				/* start dvc */
-				pcminfo->routeinfo->pcb.init_dvc();
+				pcminfo->routeinfo->pcb.init_dvc(PCH);
 
 				/* start src */
-				pcminfo->routeinfo->pcb.init_src(
-					ss->runtime->rate);
+				pcminfo->routeinfo->pcb.init_src(PCH,
+					ss->runtime->rate, SRC_CR_SYNC);
 			}
 		}
 	} else { /* capture */
@@ -439,7 +439,7 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 				scu_audma_start(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
 
 				/* start ssi */
-				pcminfo->routeinfo->ccb.init_ssi();
+				pcminfo->routeinfo->ccb.init_ssi(CCH, PCH);
 			}
 		}
 
@@ -454,11 +454,11 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 				scu_audma_start(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
 
 				/* start ssi */
-				pcminfo->routeinfo->ccb.init_ssi_src();
+				pcminfo->routeinfo->ccb.init_ssi_src(CCH, PCH);
 
 				/* start src */
-				pcminfo->routeinfo->ccb.init_src(
-					ss->runtime->rate);
+				pcminfo->routeinfo->ccb.init_src(CCH,
+					ss->runtime->rate, SRC_CR_SYNC);
 			}
 		}
 
@@ -474,14 +474,14 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 				scu_audma_start(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
 
 				/* start ssi */
-				pcminfo->routeinfo->ccb.init_ssi_dvc();
+				pcminfo->routeinfo->ccb.init_ssi_dvc(CCH, PCH);
 
 				/* start dvc */
-				pcminfo->routeinfo->ccb.init_dvc();
+				pcminfo->routeinfo->ccb.init_dvc(CCH);
 
 				/* start src */
-				pcminfo->routeinfo->ccb.init_src_dvc(
-					ss->runtime->rate);
+				pcminfo->routeinfo->ccb.init_src_dvc(CCH,
+					ss->runtime->rate, SRC_CR_ASYNC);
 			}
 		}
 	}
@@ -501,7 +501,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		if (pcminfo->routeinfo->pcb.deinit_ssi) {
 			DBG_MSG("post:ssi\n");
 			/* stop ssi */
-			pcminfo->routeinfo->pcb.deinit_ssi();
+			pcminfo->routeinfo->pcb.deinit_ssi(PCH);
 			/* stop dma */
 			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
 		}
@@ -511,9 +511,9 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		    pcminfo->routeinfo->pcb.deinit_src) {
 			DBG_MSG("post:src->ssi\n");
 			/* stop src */
-			pcminfo->routeinfo->pcb.deinit_src();
+			pcminfo->routeinfo->pcb.deinit_src(PCH);
 			/* stop ssi */
-			pcminfo->routeinfo->pcb.deinit_ssi_src();
+			pcminfo->routeinfo->pcb.deinit_ssi_src(PCH);
 			/* stop dma */
 			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 		}
@@ -523,11 +523,11 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		    pcminfo->routeinfo->pcb.deinit_src &&
 		    pcminfo->routeinfo->pcb.deinit_dvc) {
 			/* stop src */
-			pcminfo->routeinfo->pcb.deinit_src();
+			pcminfo->routeinfo->pcb.deinit_src(PCH);
 			/* stop dvc */
-			pcminfo->routeinfo->pcb.deinit_dvc();
+			pcminfo->routeinfo->pcb.deinit_dvc(PCH);
 			/* stop ssi */
-			pcminfo->routeinfo->pcb.deinit_ssi_dvc();
+			pcminfo->routeinfo->pcb.deinit_ssi_dvc(PCH);
 			/* stop dma */
 			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 		}
@@ -536,7 +536,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		if (pcminfo->routeinfo->ccb.deinit_ssi) {
 			DBG_MSG("post:ssi\n");
 			/* stop ssi */
-			pcminfo->routeinfo->ccb.deinit_ssi();
+			pcminfo->routeinfo->ccb.deinit_ssi(CCH);
 			/* stop dma */
 			scu_audma_stop(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
 		}
@@ -546,9 +546,9 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		    pcminfo->routeinfo->ccb.deinit_src) {
 			DBG_MSG("post:src->ssi\n");
 			/* stop src */
-			pcminfo->routeinfo->ccb.deinit_src();
+			pcminfo->routeinfo->ccb.deinit_src(CCH);
 			/* stop ssi */
-			pcminfo->routeinfo->ccb.deinit_ssi_src();
+			pcminfo->routeinfo->ccb.deinit_ssi_src(CCH);
 			/* stop dma */
 			scu_audma_stop(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
 		}
@@ -557,13 +557,13 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 		if (pcminfo->routeinfo->ccb.deinit_ssi_dvc &&
 		    pcminfo->routeinfo->ccb.deinit_src_dvc &&
 		    pcminfo->routeinfo->ccb.deinit_dvc) {
-			/* start src */
-			pcminfo->routeinfo->ccb.deinit_src_dvc();
-			/* start dvc */
-			pcminfo->routeinfo->ccb.deinit_dvc();
-			/* start ssi */
-			pcminfo->routeinfo->ccb.deinit_ssi_dvc();
-			/* start dma */
+			/* stop src */
+			pcminfo->routeinfo->ccb.deinit_src_dvc(CCH);
+			/* stop dvc */
+			pcminfo->routeinfo->ccb.deinit_dvc(CCH);
+			/* stop ssi */
+			pcminfo->routeinfo->ccb.deinit_ssi_dvc(CCH);
+			/* stop dma */
 			scu_audma_stop(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
 		}
 	}
