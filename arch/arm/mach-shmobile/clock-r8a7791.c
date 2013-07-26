@@ -117,12 +117,18 @@ static struct clk *main_clks[] = {
 
 /* MSTP */
 enum {
+	MSTP219, MSTP218,
+	MSTP502, MSTP501,
 	MSTP721, MSTP720,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
 	MSTP_NR
 };
 
 static struct clk mstp_clks[MSTP_NR] = {
+	[MSTP219] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 19, 0),
+	[MSTP218] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 18, 0),
+	[MSTP502] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 2, 0),
+	[MSTP501] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 1, 0),
 	[MSTP721] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 21, 0), /* SCIF0 */
 	[MSTP720] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 20, 0), /* SCIF1 */
 	[MSTP931] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 31, 0),
@@ -149,6 +155,10 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("peripheral_clk", &hp_clk),
 
 	/* MSTP */
+	CLKDEV_CON_ID("sysdmac_lo", &mstp_clks[MSTP219]),
+	CLKDEV_CON_ID("sysdmac_up", &mstp_clks[MSTP218]),
+	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
+	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
 	CLKDEV_DEV_ID("sh-sci.6", &mstp_clks[MSTP721]),
 	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]),
 	CLKDEV_DEV_ID("i2c-rcar.0", &mstp_clks[MSTP931]),
