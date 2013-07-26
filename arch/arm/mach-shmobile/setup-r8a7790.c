@@ -157,7 +157,7 @@ void __init r8a7790_add_du_device(struct rcar_du_platform_data *pdata)
 }
 
 enum { SCIFA0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
-       HSCIF0, HSCIF1 };
+       HSCIF0, HSCIF1, SCIF2 };
 
 static const struct plat_sci_port scif[] = {
 	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144)), /* SCIFA0 */
@@ -170,6 +170,7 @@ static const struct plat_sci_port scif[] = {
 	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153)), /* SCIF1 */
 	HSCIF_DATA(HSCIF0, 0xe62c0000, gic_spi(154)), /* HSCIF0 */
 	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155)), /* HSCIF1 */
+	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164)), /* SCIF2 */
 };
 
 static inline void r8a7790_register_scif(int idx)
