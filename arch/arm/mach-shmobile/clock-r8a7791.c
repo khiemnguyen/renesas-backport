@@ -118,13 +118,19 @@ static struct clk *main_clks[] = {
 /* MSTP */
 enum {
 	MSTP721, MSTP720,
-/*	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,*/
+	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
 	MSTP_NR
 };
 
 static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP721] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 21, 0), /* SCIF0 */
 	[MSTP720] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 20, 0), /* SCIF1 */
+	[MSTP931] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 31, 0),
+	[MSTP930] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 30, 0),
+	[MSTP929] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 29, 0),
+	[MSTP928] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 28, 0),
+	[MSTP927] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 27, 0),
+	[MSTP925] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 25, 0),
 };
 
 static struct clk_lookup lookups[] = {
@@ -145,6 +151,12 @@ static struct clk_lookup lookups[] = {
 	/* MSTP */
 	CLKDEV_DEV_ID("sh-sci.6", &mstp_clks[MSTP721]),
 	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]),
+	CLKDEV_DEV_ID("i2c-rcar.0", &mstp_clks[MSTP931]),
+	CLKDEV_DEV_ID("i2c-rcar.1", &mstp_clks[MSTP930]),
+	CLKDEV_DEV_ID("i2c-rcar.2", &mstp_clks[MSTP929]),
+	CLKDEV_DEV_ID("i2c-rcar.3", &mstp_clks[MSTP928]),
+	CLKDEV_DEV_ID("i2c-rcar.4", &mstp_clks[MSTP927]),
+	CLKDEV_DEV_ID("i2c-rcar.5", &mstp_clks[MSTP925]),
 };
 
 #define R8A7791_CLOCK_ROOT(e, m, p0, p1, p30, p31)		\

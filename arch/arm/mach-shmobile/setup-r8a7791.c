@@ -194,8 +194,167 @@ static struct platform_device eth_device = {
 	.resource = eth_resources,
 };
 
+/* I2C */
+static struct i2c_rcar_platform_data i2c_pd[] = {
+	{
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	}, {
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	}, {
+		/* Recommended values of bus speed 100kHz by H2 H/W spec. */
+		.icccr	= 6,
+		.icccr2	= 7,
+		.icmpr	= 10,
+		.ichpr	= 632,
+		.iclpr	= 640,
+	}, {
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	}, {
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	}, {
+		.bus_speed	= 400000,
+		.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,
+	},
+};
+
+static struct resource rcar_i2c0_res[] = {
+	{
+		.start  = 0xe6508000,
+		.end    = (0xe6510000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(287),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c1_res[] = {
+	{
+		.start  = 0xe6518000,
+		.end    = (0xe6520000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(288),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c2_res[] = {
+	{
+		.start  = 0xe6530000,
+		.end    = (0xe6538000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(286),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c3_res[] = {
+	{
+		.start  = 0xe6540000,
+		.end    = (0xe6548000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(290),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c4_res[] = {
+	{
+		.start  = 0xe6520000,
+		.end    = (0xe6528000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(19),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource rcar_i2c5_res[] = {
+	{
+		.start  = 0xe6528000,
+		.end    = (0xe6530000 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(20),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device i2c0_device = {
+	.name		= "i2c-rcar",
+	.id		= 0,
+	.dev = {
+		.platform_data = &i2c_pd[0],
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c0_res),
+	.resource	= rcar_i2c0_res,
+};
+
+static struct platform_device i2c1_device = {
+	.name		= "i2c-rcar",
+	.id		= 1,
+	.dev = {
+		.platform_data = &i2c_pd[1],
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c1_res),
+	.resource	= rcar_i2c1_res,
+};
+
+static struct platform_device i2c2_device = {
+	.name		= "i2c-rcar",
+	.id		= 2,
+	.dev = {
+		.platform_data = &i2c_pd[2],
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c2_res),
+	.resource	= rcar_i2c2_res,
+};
+
+static struct platform_device i2c3_device = {
+	.name		= "i2c-rcar",
+	.id		= 3,
+	.dev = {
+		.platform_data = &i2c_pd[3],
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c3_res),
+	.resource	= rcar_i2c3_res,
+};
+
+static struct platform_device i2c4_device = {
+	.name		= "i2c-rcar",
+	.id		= 4,
+	.dev = {
+		.platform_data = &i2c_pd[4],
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c4_res),
+	.resource	= rcar_i2c4_res,
+};
+
+static struct platform_device i2c5_device = {
+	.name		= "i2c-rcar",
+	.id		= 5,
+	.dev = {
+		.platform_data = &i2c_pd[5],
+	},
+	.num_resources	= ARRAY_SIZE(rcar_i2c5_res),
+	.resource	= rcar_i2c5_res,
+};
+
 static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&eth_device,
+	&i2c0_device,
+	&i2c1_device,
+	&i2c2_device,
+	&i2c3_device,
+	&i2c4_device,
+	&i2c5_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
