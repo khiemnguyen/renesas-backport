@@ -57,12 +57,9 @@
 static DEFINE_SPINLOCK(sh_dmae_lock);
 static LIST_HEAD(sh_dmae_devices);
 
-static void chclr_write(struct sh_dmadesc_chan *sh_dc, u32 data)
+static void chclr_write(struct sh_dmadesc_device *shdev, u32 data)
 {
-	struct sh_dmadesc_device *shdev = to_sh_dev(sh_dc);
-
-	__raw_writel(data, shdev->chan_reg +
-		     shdev->pdata->channel[sh_dc->shdma_chan.id].chclr_offset);
+	__raw_writel(data, shdev->chan_reg + DMACLR / sizeof(u32));
 }
 
 static void sh_dmae_writel(struct sh_dmadesc_chan *sh_dc, u32 data, u32 reg)
@@ -142,9 +139,8 @@ static int sh_dmae_rst(struct sh_dmadesc_device *shdev)
 	dmaor = dmaor_read(shdev) & ~(DMAOR_AE | DMAOR_DME);
 
 	if (shdev->pdata->chclr_present) {
-		struct sh_dmadesc_chan *sh_chan = shdev->chan[0];
 		struct sh_dmadesc_pdata *pdata = shdev->pdata;
-		chclr_write(sh_chan, (1 << pdata->channel_num) - 1);
+		chclr_write(shdev, (1 << pdata->channel_num) - 1);
 	}
 
 	dmaor_write(shdev, dmaor | shdev->pdata->dmaor_init);
@@ -815,6 +811,11 @@ static int __devinit sh_dmae_probe(struct platform_device *pdev)
 	list_add_tail_rcu(&shdev->node, &sh_dmae_devices);
 	spin_unlock_irq(&sh_dmae_lock);
 
+	/* reset dma controller - only needed as a test */
+	err = sh_dmae_rst(shdev);
+	if (err)
+		goto rst_err;
+
 #if defined(CONFIG_CPU_SH4) || defined(CONFIG_ARCH_SHMOBILE)
 	chanirq_res = platform_get_resource(pdev, IORESOURCE_IRQ, 1);
 
@@ -895,11 +896,6 @@ static int __devinit sh_dmae_probe(struct platform_device *pdev)
 			   pdata->channel_num, SHDESC_DMAE_MAX_CHANNELS);
 
 	pm_runtime_put(&pdev->dev);
-
-	/* reset dma controller - only needed as a test */
-	err = sh_dmae_rst(shdev);
-	if (err)
-		goto rst_err;
 
 	err = dma_async_device_register(&shdev->shdma_dev.dma_dev);
 	if (err < 0)

@@ -72,13 +72,16 @@ struct sh_dmadesc_desc {
 				struct sh_dmadesc_device, shdma_dev.dma_dev)
 
 /* DMA register */
+/*  channel offset  */
 #define SAR	0x00
 #define DAR	0x04
 #define TCR	0x08
 #define CHCR	0x0C
 #define CHCRB	0x1C
 #define DPBASE	0x50
+/*  base offset  */
 #define DMAOR	0x60
+#define DMACLR	0x80
 
 #define TEND	0x18 /* USB-DMAC */
 
