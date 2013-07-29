@@ -842,9 +842,6 @@ static struct platform_device qspi_device = {
 	.id = 0,
 	.num_resources = ARRAY_SIZE(qspi_resources),
 	.resource	= qspi_resources,
-	.dev  = {
-		.platform_data = &spiflash_data,
-	},
 };
 
 static struct spi_board_info spi_info[] __initdata = {
