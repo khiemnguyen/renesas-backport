@@ -31,7 +31,10 @@
 #include <linux/platform_data/rcar-du.h>
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
 #include <asm/mach-types.h>
@@ -99,6 +102,49 @@ static struct gpio_led lager_leds[] = {
 static __initdata struct gpio_led_platform_data lager_leds_pdata = {
 	.leds		= lager_leds,
 	.num_leds	= ARRAY_SIZE(lager_leds),
+};
+
+/* SPI Flash memory (Spansion S25FL512SAGMFIG11) */
+static struct mtd_partition spiflash_part[] = {
+	/* Reserved for user loader program, read-only */
+	[0] = {
+		.name = "loader_prg",
+		.offset = 0,
+		.size = SZ_256K,
+		.mask_flags = MTD_WRITEABLE,    /* read only */
+	},
+	/* Reserved for user program, read-only */
+	[1] = {
+		.name = "user_prg",
+		.offset = MTDPART_OFS_APPEND,
+		.size = SZ_4M,
+		.mask_flags = MTD_WRITEABLE,    /* read only */
+	},
+	/* All else is writable (e.g. JFFS2) */
+	[2] = {
+		.name = "flash_fs",
+		.offset = MTDPART_OFS_APPEND,
+		.size = MTDPART_SIZ_FULL,
+		.mask_flags = 0,
+	},
+};
+
+static struct flash_platform_data spiflash_data = {
+	.name		= "m25p80",
+	.parts		= spiflash_part,
+	.nr_parts	= ARRAY_SIZE(spiflash_part),
+	.type		= "s25fl512s",
+};
+
+static struct spi_board_info spi_info[] __initdata = {
+	{
+		.modalias	= "m25p80",
+		.platform_data	= &spiflash_data,
+		.mode		= SPI_MODE_0,
+		.max_speed_hz	= 30000000,
+		.bus_num	= 0,
+		.chip_select	= 0,
+	},
 };
 
 /* spidev for MSIOF */
@@ -226,6 +272,9 @@ static void __init lager_add_standard_devices(void)
 	platform_device_register_data(&platform_bus, "gpio-keys", -1,
 				      &lager_keys_pdata,
 				      sizeof(lager_keys_pdata));
+
+	/* QSPI flash memory */
+	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
 
 	/* spidev for MSIOF */
 	spi_register_board_info(spi_bus, ARRAY_SIZE(spi_bus));
