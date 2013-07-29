@@ -64,7 +64,6 @@
 #define SD2CKCR		0xE6150078
 #define SD3CKCR		0xE615007C
 #define MMC0CKCR	0xE6150240
-#define MMC1CKCR	0xE6150244
 #define SSPCKCR		0xE6150248
 #define SSPRSCKCR	0xE615024C
 
@@ -119,9 +118,21 @@ static struct clk *main_clks[] = {
 	&cp_clk,
 };
 
+/* DIV6 clocks */
+enum {
+	DIV6_MMC,
+	DIV6_NR
+};
+
+static struct clk div6_clks[DIV6_NR] = {
+	[DIV6_MMC]	= SH_CLK_DIV6(&pll1_div2_clk, MMC0CKCR, 0),
+};
+
+
 /* MSTP */
 enum {
 	MSTP219, MSTP218,
+	MSTP315,
 	MSTP502, MSTP501,
 	MSTP721, MSTP720,
 	MSTP719, MSTP718, MSTP715, MSTP714,
@@ -137,6 +148,7 @@ enum {
 static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP219] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 19, 0),
 	[MSTP218] = SH_CLK_MSTP32(&hp_clk, SMSTPCR2, 18, 0),
+	[MSTP315] = SH_CLK_MSTP32(&div6_clks[DIV6_MMC], SMSTPCR3, 15, 0),
 	[MSTP502] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 2, 0),
 	[MSTP501] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 1, 0),
 	[MSTP721] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 21, 0), /* SCIF0 */
@@ -185,6 +197,9 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("cp",		&cp_clk),
 	CLKDEV_CON_ID("peripheral_clk", &hp_clk),
 
+	/* DIV6 */
+	CLKDEV_CON_ID("mmc.0", &div6_clks[DIV6_MMC]),
+
 	/* MSTP */
 	CLKDEV_CON_ID("sysdmac_lo", &mstp_clks[MSTP219]),
 	CLKDEV_CON_ID("sysdmac_up", &mstp_clks[MSTP218]),
@@ -218,6 +233,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("i2c-rcar.3", &mstp_clks[MSTP928]),
 	CLKDEV_DEV_ID("i2c-rcar.4", &mstp_clks[MSTP927]),
 	CLKDEV_DEV_ID("i2c-rcar.5", &mstp_clks[MSTP925]),
+	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
+	CLKDEV_DEV_ID("sh_mmcif.0", &mstp_clks[MSTP315]),
 };
 
 #define R8A7791_CLOCK_ROOT(e, m, p0, p1, p30, p31)		\
@@ -235,6 +252,7 @@ void __init r8a7791_clock_init(void)
 	void __iomem *modemr = ioremap_nocache(MODEMR, PAGE_SIZE);
 	u32 mode;
 	int k, ret = 0;
+	struct clk *mmc_clk;
 
 	BUG_ON(!modemr);
 	mode = ioread32(modemr);
@@ -264,6 +282,9 @@ void __init r8a7791_clock_init(void)
 		ret = clk_register(main_clks[k]);
 
 	if (!ret)
+		ret = sh_clk_div6_register(div6_clks, DIV6_NR);
+
+	if (!ret)
 		ret = sh_clk_mstp_register(mstp_clks, MSTP_NR);
 
 	clkdev_add_table(lookups, ARRAY_SIZE(lookups));
@@ -271,6 +292,11 @@ void __init r8a7791_clock_init(void)
 	if (!ret)
 		shmobile_clk_init();
 	else
+		goto epanic;
+
+	mmc_clk = clk_get(NULL, "mmc.0");
+	ret = clk_set_rate(mmc_clk, 97500000);
+	if (ret)
 		goto epanic;
 
 	return;

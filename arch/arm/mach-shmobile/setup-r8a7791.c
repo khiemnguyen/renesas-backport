@@ -1211,6 +1211,58 @@ static struct platform_device sh_msiof2_device = {
 	.resource	= sh_msiof2_resources,
 };
 
+/* MMC */
+static void shmmcif_set_pwr(struct platform_device *pdev, int state)
+{
+}
+
+static void shmmcif_down_pwr(struct platform_device *pdev)
+{
+}
+
+static int shmmcif_get_cd(struct platform_device *pdev)
+{
+	return 1;
+}
+
+static struct resource sh_mmcif_resources[] = {
+	[0] = {
+		.name	= "mmc",
+		.start	= 0xEE200000,
+		.end	= 0xEE200080-1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(169),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mmcif_plat_data sh_mmcif_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
+static struct platform_device mmc_device = {
+	.name		= "sh_mmcif",
+	.num_resources	= ARRAY_SIZE(sh_mmcif_resources),
+	.resource	= sh_mmcif_resources,
+	.id		= 0,
+	.dev = {
+		.platform_data	= &sh_mmcif_plat,
+	}
+};
+
+
 static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&eth_device,
 	&ehci0_device,
@@ -1236,6 +1288,7 @@ static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&sh_msiof0_device,
 	&sh_msiof1_device,
 	&sh_msiof2_device,
+	&mmc_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
