@@ -54,6 +54,8 @@
 #endif /* DEBUG */
 
 static u64 dma_mask = DMA_BIT_MASK(32);
+static unsigned int codec_powerup_wait;
+module_param(codec_powerup_wait, uint, 0644);
 
 static struct snd_soc_dai *scu_get_dai(struct snd_pcm_substream *ss)
 {
@@ -573,6 +575,7 @@ static int scu_audio_start(struct snd_pcm_substream *ss)
 	/* PCM 1st process */
 	pcminfo->flag_first = 1;
 
+	mdelay(codec_powerup_wait);
 	queue_work(pcminfo->workq, &pcminfo->work);
 
 	FNC_EXIT
