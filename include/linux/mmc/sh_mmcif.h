@@ -95,7 +95,7 @@ static inline u32 sh_mmcif_readl(void __iomem *addr, int reg)
 
 static inline void sh_mmcif_writel(void __iomem *addr, int reg, u32 val)
 {
-#ifdef CONFIG_ARCH_R8A7790
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 	if (reg == MMCIF_CE_INT)
 		val |= 0xF80C30E0;
 #endif
