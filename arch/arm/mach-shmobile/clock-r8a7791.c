@@ -104,6 +104,16 @@ SH_FIXED_RATIO_CLK_SET(p_clk,			pll1_clk,	1, 24);
 
 SH_FIXED_RATIO_CLK_SET(mp_clk,			pll1_div2_clk,	1, 15);
 
+static struct clk sata0_clk = {
+	.rate		= 100000000,
+	.mapping	= &cpg_mapping,
+};
+
+static struct clk sata1_clk = {
+	.rate		= 100000000,
+	.mapping	= &cpg_mapping,
+};
+
 static struct clk *main_clks[] = {
 	&extal_clk,
 	&extal_div2_clk,
@@ -116,6 +126,8 @@ static struct clk *main_clks[] = {
 	&p_clk,
 	&mp_clk,
 	&cp_clk,
+	&sata0_clk,
+	&sata1_clk,
 };
 
 /* DIV6 clocks */
@@ -136,6 +148,7 @@ enum {
 	MSTP502, MSTP501,
 	MSTP721, MSTP720,
 	MSTP719, MSTP718, MSTP715, MSTP714,
+	MSTP815, MSTP814,
 	MSTP216, MSTP207, MSTP206,
 	MSTP204, MSTP203, MSTP202, MSTP1105, MSTP1106, MSTP1107,
 	MSTP704, MSTP703, MSTP328,
@@ -157,6 +170,8 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP718] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 18, 0), /* SCIF3 */
 	[MSTP715] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 15, 0), /* SCIF4 */
 	[MSTP714] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 14, 0), /* SCIF5 */
+	[MSTP815] = SH_CLK_MSTP32(&sata0_clk, SMSTPCR8, 15, 0),
+	[MSTP814] = SH_CLK_MSTP32(&sata1_clk, SMSTPCR8, 14, 0),
 	[MSTP216] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 16, 0), /* SCIFB2 */
 	[MSTP207] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 7, 0), /* SCIFB1 */
 	[MSTP206] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 6, 0), /* SCIFB0 */
@@ -235,6 +250,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("i2c-rcar.5", &mstp_clks[MSTP925]),
 	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
 	CLKDEV_DEV_ID("sh_mmcif.0", &mstp_clks[MSTP315]),
+	CLKDEV_DEV_ID("sata_rcar.0", &mstp_clks[MSTP815]),
+	CLKDEV_DEV_ID("sata_rcar.1", &mstp_clks[MSTP814]),
 };
 
 #define R8A7791_CLOCK_ROOT(e, m, p0, p1, p30, p31)		\
