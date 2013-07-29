@@ -752,6 +752,27 @@ static struct platform_device sysdmau_device = {
 	},
 };
 
+/* QSPI */
+static struct resource qspi_resources[] = {
+	[0] = {
+		.name	= "QSPI",
+		.start	= 0xe6b10000,
+		.end	= 0xe6b10fff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(184),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device qspi_device = {
+	.name		= "qspi",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(qspi_resources),
+	.resource	= qspi_resources,
+};
+
 /* MSIOF */
 static struct sh_msiof_spi_info sh_msiof_info = {
 	.rx_fifo_override	= 256,
@@ -837,6 +858,7 @@ static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&audmapp_device,
 	&sysdmal_device,
 	&sysdmau_device,
+	&qspi_device,
 	&sh_msiof0_device,
 	&sh_msiof1_device,
 	&sh_msiof2_device,
