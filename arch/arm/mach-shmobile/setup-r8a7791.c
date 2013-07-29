@@ -1314,6 +1314,99 @@ static struct platform_device sata1_device = {
 	},
 };
 
+/* VIN */
+static struct resource vin0_resources[] = {
+	[0] = {
+		.name = "VIN0",
+		.start = 0xe6ef0000,
+		.end = 0xe6ef0fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(188),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource vin1_resources[] = {
+	[0] = {
+		.name = "VIN1",
+		.start = 0xe6ef1000,
+		.end = 0xe6ef1fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(189),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct resource vin2_resources[] = {
+	[0] = {
+		.name = "VIN2",
+		.start = 0xe6ef3000,
+		.end = 0xe6ef3fff,
+		.flags = IORESOURCE_MEM,
+	},
+	[1] = {
+		.start = gic_spi(190),
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+static struct vin_info vin_info[] = {
+	[0] = {
+		.input = VIN_INPUT_ITUR_BT709_24BIT,
+		.flags = 0,
+	},
+	[1] = {
+		.input = VIN_INPUT_ITUR_BT656_8BIT,
+		.flags = 0,
+	},
+	[2] = {
+		.input = VIN_INPUT_UNDEFINED,
+		.flags = 0,
+	},
+};
+
+static u64 vin_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device vin0_device = {
+	.name  = "vin",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(vin0_resources),
+	.resource  = vin0_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[0],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct platform_device vin1_device = {
+	.name  = "vin",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(vin1_resources),
+	.resource  = vin1_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[1],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct platform_device vin2_device = {
+	.name  = "vin",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(vin2_resources),
+	.resource  = vin2_resources,
+	.dev  = {
+		.dma_mask = &vin_dmamask,
+		.platform_data = &vin_info[2],
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
 static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&eth_device,
 	&ehci0_device,
@@ -1342,6 +1435,9 @@ static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&mmc_device,
 	&sata0_device,
 	&sata1_device,
+	&vin0_device,
+	&vin1_device,
+	&vin2_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
