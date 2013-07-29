@@ -48,6 +48,7 @@
 #define CPG_BASE 0xe6150000
 #define CPG_LEN 0x1000
 
+#define SMSTPCR0	0xE6150130
 #define SMSTPCR1	0xE6150134
 #define SMSTPCR2	0xe6150138
 #define SMSTPCR3	0xE615013C
@@ -120,6 +121,7 @@ enum {
 	MSTP219, MSTP218,
 	MSTP502, MSTP501,
 	MSTP721, MSTP720,
+	MSTP000, MSTP208, MSTP205,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
 	MSTP_NR
 };
@@ -131,6 +133,9 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP501] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 1, 0),
 	[MSTP721] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 21, 0), /* SCIF0 */
 	[MSTP720] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 20, 0), /* SCIF1 */
+	[MSTP000] = SH_CLK_MSTP32(&mp_clk, SMSTPCR0, 0, 0), /* MSIOF0 */
+	[MSTP208] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 8, 0), /* MSIOF1 */
+	[MSTP205] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 5, 0), /* MSIOF2 */
 	[MSTP931] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 31, 0),
 	[MSTP930] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 30, 0),
 	[MSTP929] = SH_CLK_MSTP32(&hp_clk, SMSTPCR9, 29, 0),
@@ -161,6 +166,9 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
 	CLKDEV_DEV_ID("sh-sci.6", &mstp_clks[MSTP721]),
 	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]),
+	CLKDEV_DEV_ID("spi_sh_msiof.1", &mstp_clks[MSTP000]),
+	CLKDEV_DEV_ID("spi_sh_msiof.2", &mstp_clks[MSTP208]),
+	CLKDEV_DEV_ID("spi_sh_msiof.3", &mstp_clks[MSTP205]),
 	CLKDEV_DEV_ID("i2c-rcar.0", &mstp_clks[MSTP931]),
 	CLKDEV_DEV_ID("i2c-rcar.1", &mstp_clks[MSTP930]),
 	CLKDEV_DEV_ID("i2c-rcar.2", &mstp_clks[MSTP929]),

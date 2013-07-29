@@ -752,6 +752,78 @@ static struct platform_device sysdmau_device = {
 	},
 };
 
+/* MSIOF */
+static struct sh_msiof_spi_info sh_msiof_info = {
+	.rx_fifo_override	= 256,
+	.num_chipselect		= 1,
+};
+
+static struct resource sh_msiof0_resources[] = {
+	[0] = {
+		.start	= 0xe6e20000,
+		.end	= 0xe6e20064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(156),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource sh_msiof1_resources[] = {
+	[0] = {
+		.start	= 0xe6e10000,
+		.end	= 0xe6e10064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(157),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct resource sh_msiof2_resources[] = {
+	[0] = {
+		.start	= 0xe6e00000,
+		.end	= 0xe6e00064,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(158),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device sh_msiof0_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 1,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof0_resources),
+	.resource	= sh_msiof0_resources,
+};
+
+static struct platform_device sh_msiof1_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 2,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof1_resources),
+	.resource	= sh_msiof1_resources,
+};
+
+static struct platform_device sh_msiof2_device = {
+	.name		= "spi_sh_msiof",
+	.id		= 3,
+	.dev		= {
+		.platform_data	= &sh_msiof_info,
+	},
+	.num_resources	= ARRAY_SIZE(sh_msiof2_resources),
+	.resource	= sh_msiof2_resources,
+};
+
 static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&eth_device,
 	&i2c0_device,
@@ -765,6 +837,9 @@ static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&audmapp_device,
 	&sysdmal_device,
 	&sysdmau_device,
+	&sh_msiof0_device,
+	&sh_msiof1_device,
+	&sh_msiof2_device,
 };
 
 static struct renesas_irqc_config irqc0_data = {
