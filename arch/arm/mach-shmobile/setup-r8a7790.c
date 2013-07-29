@@ -914,7 +914,7 @@ static struct resource sh_msiof3_resources[] = {
 
 static struct platform_device sh_msiof0_device = {
 	.name		= "spi_sh_msiof",
-	.id		= 0,
+	.id		= 1,
 	.dev		= {
 		.platform_data	= &sh_msiof_info,
 	},
@@ -924,7 +924,7 @@ static struct platform_device sh_msiof0_device = {
 
 static struct platform_device sh_msiof1_device = {
 	.name		= "spi_sh_msiof",
-	.id		= 1,
+	.id		= 2,
 	.dev		= {
 		.platform_data	= &sh_msiof_info,
 	},
@@ -934,7 +934,7 @@ static struct platform_device sh_msiof1_device = {
 
 static struct platform_device sh_msiof2_device = {
 	.name		= "spi_sh_msiof",
-	.id		= 2,
+	.id		= 3,
 	.dev		= {
 		.platform_data	= &sh_msiof_info,
 	},
@@ -944,7 +944,7 @@ static struct platform_device sh_msiof2_device = {
 
 static struct platform_device sh_msiof3_device = {
 	.name		= "spi_sh_msiof",
-	.id		= 3,
+	.id		= 4,
 	.dev		= {
 		.platform_data	= &sh_msiof_info,
 	},
@@ -958,7 +958,7 @@ static struct spi_board_info spi_bus[] __initdata = {
 		.modalias	= "spidev",
 		.max_speed_hz	= 6000000,
 		.mode		= SPI_MODE_3,
-		.bus_num	= 1,
+		.bus_num	= 2,
 		.chip_select	= 0,
 	},
 };

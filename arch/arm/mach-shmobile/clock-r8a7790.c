@@ -349,7 +349,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]),
 	CLKDEV_CON_ID("ss_usb", &mstp_clks[MSTP328]),
 	CLKDEV_DEV_ID("qspi.0", &mstp_clks[MSTP917]),
-	CLKDEV_DEV_ID("spi_sh_msiof.1", &mstp_clks[MSTP208]),
+	CLKDEV_DEV_ID("spi_sh_msiof.2", &mstp_clks[MSTP208]),
 	CLKDEV_DEV_ID("i2c-rcar.0", &mstp_clks[MSTP931]),
 	CLKDEV_DEV_ID("i2c-rcar.1", &mstp_clks[MSTP930]),
 	CLKDEV_DEV_ID("i2c-rcar.2", &mstp_clks[MSTP929]),
