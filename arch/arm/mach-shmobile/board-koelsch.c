@@ -96,10 +96,10 @@ static struct spi_board_info spi_bus[] __initdata = {
 
 static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.0", "pfc-r8a7791",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.6", "pfc-r8a7791",
 				  "scif0_data_d", "scif0"),
 	/* SCIF1 (CN20: DEBUG SERIAL1) */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.1", "pfc-r8a7791",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.7", "pfc-r8a7791",
 				  "scif1_data_d", "scif1"),
 
 	/* MSIOF0 */
