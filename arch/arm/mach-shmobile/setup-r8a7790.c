@@ -952,17 +952,6 @@ static struct platform_device sh_msiof3_device = {
 	.resource	= sh_msiof3_resources,
 };
 
-/* spidev for MSIOF */
-static struct spi_board_info spi_bus[] __initdata = {
-	{
-		.modalias	= "spidev",
-		.max_speed_hz	= 6000000,
-		.mode		= SPI_MODE_3,
-		.bus_num	= 2,
-		.chip_select	= 0,
-	},
-};
-
 /* I2C */
 static struct i2c_rcar_platform_data i2c_pd[] = {
 	{
@@ -1974,9 +1963,6 @@ void __init r8a7790_add_standard_devices(void)
 
 	/* QSPI flash memory */
 	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
-
-	/* spidev for MSIOF */
-	spi_register_board_info(spi_bus, ARRAY_SIZE(spi_bus));
 
 	r8a7790_register_thermal();
 }

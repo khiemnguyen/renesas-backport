@@ -31,6 +31,7 @@
 #include <linux/platform_data/rcar-du.h>
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
+#include <linux/spi/spi.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
 #include <asm/mach-types.h>
@@ -98,6 +99,17 @@ static struct gpio_led lager_leds[] = {
 static __initdata struct gpio_led_platform_data lager_leds_pdata = {
 	.leds		= lager_leds,
 	.num_leds	= ARRAY_SIZE(lager_leds),
+};
+
+/* spidev for MSIOF */
+static struct spi_board_info spi_bus[] __initdata = {
+	{
+		.modalias       = "spidev",
+		.max_speed_hz   = 6000000,
+		.mode           = SPI_MODE_3,
+		.bus_num        = 2,
+		.chip_select    = 0,
+	},
 };
 
 /* GPIO KEY */
@@ -214,6 +226,9 @@ static void __init lager_add_standard_devices(void)
 	platform_device_register_data(&platform_bus, "gpio-keys", -1,
 				      &lager_keys_pdata,
 				      sizeof(lager_keys_pdata));
+
+	/* spidev for MSIOF */
+	spi_register_board_info(spi_bus, ARRAY_SIZE(spi_bus));
 }
 
 static const char *lager_boards_compat_dt[] __initdata = {
