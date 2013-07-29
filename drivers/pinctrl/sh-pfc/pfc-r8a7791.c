@@ -168,7 +168,7 @@ enum {
 	FN_IP16_11_10, FN_IP6_9_8, FN_IP6_11_10, FN_IP6_13_12, FN_IP6_15_14,
 	FN_IP6_18_16, FN_IP6_20_19, FN_IP6_23_21, FN_IP6_26_24, FN_IP6_29_27,
 	FN_IP7_2_0, FN_IP15_8_6, FN_IP15_11_9, FN_IP15_14_12,
-	FN_USB0_PWEN, FN_USB0_OVC, FN_USB1_PWEN,
+	FN_USB0_PWEN, FN_USB0_OVC, FN_USB1_PWEN, FN_USB1_OVC,
 
 	/* IPSR0 */
 	FN_D0, FN_D1, FN_D2, FN_D3, FN_D4, FN_D5, FN_D6, FN_D7, FN_D8,
@@ -526,7 +526,7 @@ enum {
 	VI0_DATA0_VI0_B2_MARK, VI0_DATA0_VI0_B4_MARK, VI0_DATA0_VI0_B5_MARK,
 	VI0_DATA0_VI0_B6_MARK, VI0_DATA0_VI0_B7_MARK,
 
-	USB0_PWEN_MARK, USB0_OVC_MARK, USB1_PWEN_MARK,
+	USB0_PWEN_MARK, USB0_OVC_MARK, USB1_PWEN_MARK, USB1_OVC_MARK,
 
 	/* IPSR0 */
 	D0_MARK, D1_MARK, D2_MARK, D3_MARK, D4_MARK, D5_MARK,
@@ -849,6 +849,7 @@ static pinmux_enum_t pinmux_data[] = {
 	PINMUX_DATA(USB0_PWEN_MARK, FN_USB0_PWEN),
 	PINMUX_DATA(USB0_OVC_MARK, FN_USB0_OVC),
 	PINMUX_DATA(USB1_PWEN_MARK, FN_USB1_PWEN),
+	PINMUX_DATA(USB1_OVC_MARK, FN_USB1_OVC),
 
 	/* IPSR0 */
 	PINMUX_IPSR_DATA(IP0_0, D0),
@@ -2308,6 +2309,22 @@ static const unsigned int scifb2_data_d_pins[] = {
 static const unsigned int scifb2_data_d_mux[] = {
 	SCIFB2_RXD_D_MARK, SCIFB2_TXD_D_MARK,
 };
+/* - USB0 ------------------------------------------------------------------- */
+static const unsigned int usb0_pins[] = {
+	/* PWEN, OVC/VBUS */
+	RCAR_GP_PIN(7, 23), RCAR_GP_PIN(7, 24),
+};
+static const unsigned int usb0_mux[] = {
+	USB0_PWEN_MARK, USB0_OVC_MARK,
+};
+/* - USB1 ------------------------------------------------------------------- */
+static const unsigned int usb1_pins[] = {
+	/* PWEN, OVC */
+	RCAR_GP_PIN(7, 25), RCAR_GP_PIN(6, 30),
+};
+static const unsigned int usb1_mux[] = {
+	USB1_PWEN_MARK, USB1_OVC_MARK,
+};
 /* - ETH -------------------------------------------------------------------- */
 static const unsigned int eth_link_pins[] = {
 	/* LINK */
@@ -2503,6 +2520,8 @@ static const struct sh_pfc_pin_group pinmux_groups[] = {
 	SH_PFC_PIN_GROUP(scifb2_data_c),
 	SH_PFC_PIN_GROUP(scifb2_clk_c),
 	SH_PFC_PIN_GROUP(scifb2_data_d),
+	SH_PFC_PIN_GROUP(usb0),
+	SH_PFC_PIN_GROUP(usb1),
 };
 
 static const char * const intc_groups[] = {
@@ -2619,6 +2638,14 @@ static const char * const scifb2_groups[] = {
 	"scifb2_clk_c",
 	"scifb2_data_d",
 };
+
+static const char * const usb0_groups[] = {
+	"usb0",
+};
+static const char * const usb1_groups[] = {
+	"usb1",
+};
+
 static const char * const eth_groups[] = {
 	"eth_link",
 	"eth_mdio",
@@ -2664,6 +2691,8 @@ static const struct sh_pfc_function pinmux_functions[] = {
 	SH_PFC_FUNCTION(scifb0),
 	SH_PFC_FUNCTION(scifb1),
 	SH_PFC_FUNCTION(scifb2),
+	SH_PFC_FUNCTION(usb0),
+	SH_PFC_FUNCTION(usb1),
 };
 
 static struct pinmux_cfg_reg pinmux_config_regs[] = {
