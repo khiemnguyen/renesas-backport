@@ -152,11 +152,25 @@ void __init r8a7791_pinmux_init(void)
 	.scscr = SCSCR_RE | SCSCR_TE,	\
 }
 
-enum { SCIF0 = 6, SCIF1, };
+enum { SCIFA0=0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
+	SCIF2=10, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5 };
 
 static const struct plat_sci_port scif[] = {
+	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144)), /* SCIFA0 */
+	SCIFA_DATA(SCIFA1, 0xe6c50000, gic_spi(145)), /* SCIFA1 */
+	SCIFB_DATA(SCIFB0, 0xe6c20000, gic_spi(148)), /* SCIFB0 */
+	SCIFB_DATA(SCIFB1, 0xe6c30000, gic_spi(149)), /* SCIFB1 */
+	SCIFB_DATA(SCIFB2, 0xe6ce0000, gic_spi(150)), /* SCIFB2 */
+	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151)), /* SCIFA2 */
 	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152)), /* SCIF0 */
 	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153)), /* SCIF1 */
+	SCIF_DATA(SCIF2, 0xe6e58000, gic_spi(22)), /* SCIF2 */
+	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23)), /* SCIF3 */
+	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24)), /* SCIF4 */
+	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25)), /* SCIF5 */
+	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29)), /* SCIFA3 */
+	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30)), /* SCIFA4 */
+	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31)), /* SCIFA5 */
 };
 
 static inline void r8a7791_register_scif(int idx)
@@ -885,8 +899,21 @@ static struct resource irqc0_resources[] = {
 
 void __init r8a7791_add_standard_devices(void)
 {
+	r8a7791_register_scif(SCIFA0);
+	r8a7791_register_scif(SCIFA1);
+	r8a7791_register_scif(SCIFB0);
+	r8a7791_register_scif(SCIFB1);
+	r8a7791_register_scif(SCIFB2);
+	r8a7791_register_scif(SCIFA2);
 	r8a7791_register_scif(SCIF0);
 	r8a7791_register_scif(SCIF1);
+	r8a7791_register_scif(SCIF2);
+	r8a7791_register_scif(SCIF3);
+	r8a7791_register_scif(SCIF4);
+	r8a7791_register_scif(SCIF5);
+	r8a7791_register_scif(SCIFA3);
+	r8a7791_register_scif(SCIFA4);
+	r8a7791_register_scif(SCIFA5);
 	r8a7791_register_irqc(0);
 	platform_add_devices(r8a7791_early_devices,
 			     ARRAY_SIZE(r8a7791_early_devices));
