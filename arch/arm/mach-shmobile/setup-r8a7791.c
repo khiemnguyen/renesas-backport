@@ -206,6 +206,25 @@ static struct platform_device eth_device = {
 	.resource = eth_resources,
 };
 
+static struct resource powervr_resources[] = {
+	{
+		.start  = 0xfd800000,
+		.end    = 0xfd80ffff,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.start  = gic_spi(119),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device powervr_device = {
+	.name           = "pvrsrvkm",
+	.id             = -1,
+	.resource       = powervr_resources,
+	.num_resources  = ARRAY_SIZE(powervr_resources),
+};
+
 static u64 usb_dmamask = ~(u32)0;
 
 struct usb_ehci_pdata ehci_pdata = {
@@ -1407,6 +1426,7 @@ static struct platform_device vin2_device = {
 
 static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&eth_device,
+	&powervr_device,
 	&ehci0_device,
 	&ohci0_device,
 #if defined(CONFIG_USB_XHCI_HCD)
