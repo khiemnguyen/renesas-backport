@@ -1,6 +1,7 @@
 /*
  * SuperH Pin Function Controller support.
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2008 Magnus Damm
  * Copyright (C) 2009 - 2012 Paul Mundt
  *
