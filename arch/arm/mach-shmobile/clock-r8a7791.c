@@ -143,6 +143,7 @@ static struct clk div6_clks[DIV6_NR] = {
 
 /* MSTP */
 enum {
+	MSTP112,
 	MSTP219, MSTP218,
 	MSTP315,
 	MSTP502, MSTP501,
@@ -171,6 +172,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP718] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 18, 0), /* SCIF3 */
 	[MSTP715] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 15, 0), /* SCIF4 */
 	[MSTP714] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 14, 0), /* SCIF5 */
+	[MSTP112] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 12, 0),
 	[MSTP815] = SH_CLK_MSTP32(&sata0_clk, SMSTPCR8, 15, 0),
 	[MSTP814] = SH_CLK_MSTP32(&sata1_clk, SMSTPCR8, 14, 0),
 	[MSTP811] = SH_CLK_MSTP32(&zg_clk, SMSTPCR8, 11, 0),
@@ -220,6 +222,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("mmc.0", &div6_clks[DIV6_MMC]),
 
 	/* MSTP */
+	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
 	CLKDEV_CON_ID("sysdmac_lo", &mstp_clks[MSTP219]),
 	CLKDEV_CON_ID("sysdmac_up", &mstp_clks[MSTP218]),
 	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
