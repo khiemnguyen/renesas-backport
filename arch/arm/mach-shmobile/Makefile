@@ -35,7 +35,7 @@ obj-$(CONFIG_ARCH_SH7372)	+= pm-sh7372.o sleep-sh7372.o
 obj-$(CONFIG_ARCH_R8A7740)	+= pm-r8a7740.o
 obj-$(CONFIG_ARCH_R8A7779)	+= pm-r8a7779.o
 obj-$(CONFIG_ARCH_R8A7790)	+= pm-r8a7790.o
-obj-$(CONFIG_ARCH_R8A7791)	+= pm-r8a7790.o
+obj-$(CONFIG_ARCH_R8A7791)	+= pm-r8a7791.o
 
 # Board objects
 obj-$(CONFIG_MACH_G3EVM)	+= board-g3evm.o
