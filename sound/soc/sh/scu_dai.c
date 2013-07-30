@@ -194,18 +194,18 @@ static void scu_ssi_stop(int ssi_ch)
 
 static void scu_src_init(int src_ch, unsigned int sync_sw)
 {
-	u32 val;
+	u32 val = SRC_MODE_SRCUSE;
 
 	FNC_ENTRY
-	if (sync_sw == 1) { /* Synchronous SRC */
-		if (src_ch == 0) /* playback */
-			val = (SRC_MODE_IN_SYNC | SRC_MODE_SRCUSE);
-		else /* capture */
-			val = (SRC_MODE_OUT_SYNC | SRC_MODE_SRCUSE);
-	} else /* Asynchronous SRC */
-		val = SRC_MODE_SRCUSE;
+	/* SCU SRC0_BUSIF_DALIGN */
+	writel(SRC_DALIGN_STEREO_R,
+		(u32 *)&rinfo->scusrcreg[src_ch]->dalign);
 
 	/* SCU SRC_MODE */
+	if (src_ch == 0 && sync_sw == 1)
+		val |= SRC_MODE_IN_SYNC;
+	else if (src_ch == 1 && sync_sw == 1)
+		val |= SRC_MODE_OUT_SYNC;
 	writel(val, (u32 *)&rinfo->scusrcreg[src_ch]->mode);
 	FNC_EXIT
 	return;
@@ -787,11 +787,11 @@ static int scu_dai_put_volume(struct snd_kcontrol *kctrl,
 		if (change) {
 			ainfo->volume[0][0] = ucontrol->value.integer.value[0];
 			ainfo->volume[0][1] = ucontrol->value.integer.value[1];
-			/* DVC0 L:vol1r R:vol0r */
+			/* DVC0 L:vol0r R:vol1r */
 			writel(ainfo->volume[0][0],
-				(u32 *)&rinfo->dvcreg[0]->vol1r);
-			writel(ainfo->volume[0][1],
 				(u32 *)&rinfo->dvcreg[0]->vol0r);
+			writel(ainfo->volume[0][1],
+				(u32 *)&rinfo->dvcreg[0]->vol1r);
 		}
 		break;
 	case CTRL_CAPTURE:

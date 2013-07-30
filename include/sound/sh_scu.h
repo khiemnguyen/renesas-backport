@@ -168,6 +168,10 @@
 #define	SRC_IN			1
 #define	SRC_OUT			2
 
+/* SRCm_BUSIF_DALIGN */
+#define	SRC_DALIGN_STEREO	0x76543210
+#define	SRC_DALIGN_STEREO_R	0x76543201
+
 /* SRC_MODE */
 #define	SRC_MODE_OUT_SYNC	(1<<25)
 #define	SRC_MODE_IN_SYNC	(1<<24)
