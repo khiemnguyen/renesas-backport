@@ -2,8 +2,6 @@
  * Koelsch board support
  *
  * Copyright (C) 2013 Renesas Electronics Corporation
- * Copyright (C) 2013  Renesas Solutions Corp.
- * Copyright (C) 2013  Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -241,8 +239,8 @@ static const char *koelsch_boards_compat_dt[] __initdata = {
 };
 
 DT_MACHINE_START(KOELSCH_DT, "koelsch")
-	.smp		= smp_ops(r8a7790_smp_ops),
-	.init_irq	= r8a7790_init_irq,
+	.smp		= smp_ops(r8a7791_smp_ops),
+	.init_irq	= r8a7791_init_irq,
 	.timer		= &r8a7791_timer,
 	.init_machine	= koelsch_add_standard_devices,
 	.dt_compat	= koelsch_boards_compat_dt,
