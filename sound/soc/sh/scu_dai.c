@@ -1480,6 +1480,6 @@ static struct platform_driver scu_driver = {
 
 module_platform_driver(scu_driver);
 
-MODULE_AUTHOR("Carlos Munoz <carlos@kenati.com>");
+MODULE_AUTHOR("Shunsuke Kataoka <shunsuke.kataoka.df@renesas.com>");
 MODULE_DESCRIPTION("ALSA SoC SH7722 SIU driver");
 MODULE_LICENSE("GPL");

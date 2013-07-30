@@ -677,6 +677,6 @@ static struct platform_driver lager_alsa_driver = {
 
 module_platform_driver(lager_alsa_driver);
 
-MODULE_AUTHOR("Renesas Electronics");
+MODULE_AUTHOR("Shunsuke Kataoka <shunsuke.kataoka.df@renesas.com>");
 MODULE_DESCRIPTION("ALSA SoC LAGER");
 MODULE_LICENSE("GPL v2");
