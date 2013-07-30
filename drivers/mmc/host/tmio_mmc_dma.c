@@ -1,6 +1,7 @@
 /*
  * linux/drivers/mmc/tmio_mmc_dma.c
  *
+ * Copyright (C) 2013 Renesas Electronics Corporation
  * Copyright (C) 2010-2011 Guennadi Liakhovetski
  *
  * This program is free software; you can redistribute it and/or modify
