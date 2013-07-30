@@ -553,20 +553,20 @@ static int __init usbh_init(void)
 
 	clk_hs = clk_get(NULL, "hs_usb");
 	if (IS_ERR(clk_hs))
-		clk_hs = NULL;
+		return PTR_ERR(clk_hs);
 
 	clk_enable(clk_hs);
 
 	clk_ehci = clk_get(NULL, "usb_fck");
 	if (IS_ERR(clk_ehci))
-		clk_ehci = NULL;
+		return PTR_ERR(clk_ehci);
 
 	clk_enable(clk_ehci);
 
 #if defined(CONFIG_USB_XHCI_HCD)
 	clk_xhci = clk_get(NULL, "ss_usb");
 	if (IS_ERR(clk_xhci))
-		clk_xhci = NULL;
+		return PTR_ERR(clk_xhci);
 
 	clk_enable(clk_xhci);
 
