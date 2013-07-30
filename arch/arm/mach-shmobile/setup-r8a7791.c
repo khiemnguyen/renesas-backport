@@ -986,24 +986,24 @@ static const struct sh_dmadesc_slave_config r8a7791_sysdma_slaves[] = {
 		.mid_rid	= 0xce,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI1_TX,
-		.addr		= 0xee120030,
-		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
-		.mid_rid	= 0xc9,
-	}, {
-		.slave_id	= SHDMA_SLAVE_SDHI1_RX,
-		.addr		= 0xee120030 + 0x2000,
-		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
-		.mid_rid	= 0xca,
-	}, {
-		.slave_id	= SHDMA_SLAVE_SDHI2_TX,
 		.addr		= 0xee140030,
 		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
 		.mid_rid	= 0xc1,
 	}, {
-		.slave_id	= SHDMA_SLAVE_SDHI2_RX,
+		.slave_id	= SHDMA_SLAVE_SDHI1_RX,
 		.addr		= 0xee140030 + 0x2000,
 		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
 		.mid_rid	= 0xc2,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI2_TX,
+		.addr		= 0xee160030,
+		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xd3,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SDHI2_RX,
+		.addr		= 0xee160030 + 0x2000,
+		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.mid_rid	= 0xd4,
 	}, {
 		.slave_id	= SHDMA_SLAVE_MMC_TX,
 		.addr		= 0xee200034,
