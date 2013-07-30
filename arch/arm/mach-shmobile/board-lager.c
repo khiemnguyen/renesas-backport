@@ -35,8 +35,11 @@
 #include <linux/mtd/partitions.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
+#include <linux/mfd/tmio.h>
+#include <linux/mmc/sh_mobile_sdhi.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
+#include <mach/irqs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 
@@ -285,6 +288,161 @@ static void lager_restart(char mode, const char *cmd)
 	i2c_smbus_write_byte_data(client, 0x13, val);
 }
 
+static struct resource sdhi0_resources[] = {
+	[0] = {
+		.name	= "sdhi0",
+		.start	= 0xee100000,
+		.end	= 0xee1003ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(165),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi0_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH
+				| TMIO_MMC_CLK_NO_SLEEP
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_SDIO_STATUS_QUIRK
+				| TMIO_MMC_WRPROTECT_DISABLE,
+};
+
+static struct platform_device sdhi0_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi0_resources),
+	.resource = sdhi0_resources,
+	.id = 0,
+	.dev = {
+		.platform_data = &sdhi0_platform_data,
+	}
+};
+
+static struct resource sdhi1_resources[] = {
+	[0] = {
+		.name	= "sdhi1",
+		.start	= 0xee120000,
+		.end	= 0xee1203ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(166),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi1_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH
+				| TMIO_MMC_CLK_NO_SLEEP
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_SDIO_STATUS_QUIRK
+				| TMIO_MMC_WRPROTECT_DISABLE,
+};
+
+static struct platform_device sdhi1_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi1_resources),
+	.resource = sdhi1_resources,
+	.id = 1,
+	.dev = {
+		.platform_data = &sdhi1_platform_data,
+	}
+};
+
+static struct resource sdhi2_resources[] = {
+	[0] = {
+		.name	= "sdhi2",
+		.start	= 0xee140000,
+		.end	= 0xee1400ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(167),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi2_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI2_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI2_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC
+				| TMIO_MMC_CLK_NO_SLEEP
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_SDIO_STATUS_QUIRK
+				| TMIO_MMC_WRPROTECT_DISABLE,
+};
+
+static struct platform_device sdhi2_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi2_resources),
+	.resource = sdhi2_resources,
+	.id = 2,
+	.dev = {
+		.platform_data = &sdhi2_platform_data,
+	}
+};
+
+static struct resource sdhi3_resources[] = {
+	[0] = {
+		.name	= "sdhi3",
+		.start	= 0xee160000,
+		.end	= 0xee1600ff,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(168),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mobile_sdhi_info sdhi3_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI3_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI3_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC
+				| TMIO_MMC_CLK_NO_SLEEP
+				| TMIO_MMC_HAS_IDLE_WAIT
+				| TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL
+				| TMIO_MMC_NO_CTL_RESET_SDIO
+				| TMIO_MMC_SDIO_STATUS_QUIRK
+				| TMIO_MMC_WRPROTECT_DISABLE,
+};
+
+static struct platform_device sdhi3_device = {
+	.name = "sh_mobile_sdhi",
+	.num_resources = ARRAY_SIZE(sdhi3_resources),
+	.resource = sdhi3_resources,
+	.id = 3,
+	.dev = {
+		.platform_data = &sdhi3_platform_data,
+	}
+};
+
+static struct platform_device *lager_devices[] __initdata = {
+	&sdhi0_device,
+	&sdhi1_device,
+	&sdhi2_device,
+	&sdhi3_device,
+};
+
 static void __init lager_add_standard_devices(void)
 {
 	r8a7790_clock_init();
@@ -294,6 +452,7 @@ static void __init lager_add_standard_devices(void)
 	r8a7790_pinmux_init();
 
 	r8a7790_add_standard_devices();
+	platform_add_devices(lager_devices, ARRAY_SIZE(lager_devices));
 
 	i2c_register_board_info(2, lager_i2c2_devices,
 				ARRAY_SIZE(lager_i2c2_devices));
