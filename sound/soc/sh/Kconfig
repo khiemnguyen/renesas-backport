@@ -36,7 +36,7 @@ config SND_SOC_SH4_SIU
 
 config SND_SOC_SCU
 	tristate
-	depends on MACH_LAGER
+	depends on ARCH_SHMOBILE
 	select DMA_ENGINE
 	select DMADEVICES
 
@@ -85,6 +85,32 @@ config SND_LAGER_AK4643
 config SND_SOC_LAGER_AK4643
         bool
         depends on SND_LAGER_AK4643
+        default y
+
+config SND_SCU_KOELSCH
+	tristate "SCU sound support on KOELSCH"
+	depends on MACH_KOELSCH
+	select SND_SOC_SCU
+	select SND_KOELSCH_AK4643
+	help
+	  Enable sound support for the R8A77910 KOELSCH board.
+	  This is supported to the Renesas SCU peripheral.
+	  Say Y here if you have enabled, otherwise say N.
+	  To compile this driver as a module, say M.
+
+config SND_KOELSCH_AK4643
+        tristate "KOELSCH AK4643 sound support"
+        depends on SND_SCU_KOELSCH
+        select SND_SOC_AK4642
+        help
+          Enable the sound support for AK4643 on KOELSCH board.
+	  This option is dependent on SND_SCU_KOELSCH.
+	  If you will enable, say Y to SND_SCU_KOELSCH.
+	  This option enables SND_SOC_AK4642.
+
+config SND_SOC_KOELSCH_AK4643
+        bool
+        depends on SND_KOELSCH_AK4643
         default y
 
 endmenu
