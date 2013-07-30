@@ -37,7 +37,6 @@
 #include <linux/usb/ehci_pdriver.h>
 #include <linux/usb/ohci_pdriver.h>
 #include <linux/mfd/tmio.h>
-#include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/mmc/sh_mmcif.h>
 #include <linux/regulator/fixed.h>
 #include <linux/regulator/machine.h>
@@ -1477,8 +1476,22 @@ static struct resource irqc0_resources[] = {
 					  &irqc##idx##_data,		\
 					  sizeof(struct renesas_irqc_config))
 
+/* Fixed 3.3V regulator to be used by SDHI0/1/2 */
+static struct regulator_consumer_supply fixed3v3_power_consumers[] = {
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.0"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.0"),
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.1"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.1"),
+	REGULATOR_SUPPLY("vmmc", "sh_mobile_sdhi.2"),
+	REGULATOR_SUPPLY("vqmmc", "sh_mobile_sdhi.2"),
+};
+
 void __init r8a7791_add_standard_devices(void)
 {
+	void __iomem *pfcctl;
+
+	pfcctl = ioremap(0xe6060000, 0x300);
+
 	r8a7791_pm_init();
 
 	r8a7791_init_pm_domain(&r8a7791_sgx);
@@ -1500,10 +1513,26 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_scif(SCIFA5);
 	r8a7791_register_irqc(0);
 	usbh_init();
+
+	regulator_register_fixed(0, fixed3v3_power_consumers,
+				ARRAY_SIZE(fixed3v3_power_consumers));
+
+	/* SD control registers IOCTRLn: SD pins driving ability */
+	iowrite32(~0x8000AAAA, pfcctl);		/* PMMR */
+	iowrite32(0x8000AAAA, pfcctl + 0x60);	/* IOCTRL0 */
+	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
+	iowrite32(0xAAAAAAAA, pfcctl + 0x64);	/* IOCTRL1 */
+	iowrite32(~0x55554401, pfcctl);		/* PMMR */
+	iowrite32(0x55554401, pfcctl + 0x88);	/* IOCTRL5 */
+	iowrite32(~0xFFFFFFFF, pfcctl);		/* PMMR */
+	iowrite32(0xFFFFFFFF, pfcctl + 0x8C);	/* IOCTRL6 */
+
 	platform_add_devices(r8a7791_early_devices,
 			     ARRAY_SIZE(r8a7791_early_devices));
 
 	r8a7791_add_device_to_domain(&r8a7791_sgx, &powervr_device);
+
+	iounmap(pfcctl);
 }
 
 void __init r8a7791_timer_init(void)
