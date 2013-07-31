@@ -32,6 +32,7 @@ struct rcar_du_lvdsenc;
 #define RCAR_DU_FEATURE_DEFR8		(1 << 2)	/* Has DEFR8 register */
 #define RCAR_DU_FEATURE_VSP1_SOURCE	(1 << 3)	/* Has inputs from VSP1 */
 #define RCAR_DU_FEATURE_LVDCHCR_WORKAROUND	(1 << 4)
+#define RCAR_DU_FEATURE_NO_LVDS_INTERFACE	(1 << 5)
 
 /*
  * struct rcar_du_output_routing - Output routing specification
