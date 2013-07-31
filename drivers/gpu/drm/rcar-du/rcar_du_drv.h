@@ -31,6 +31,7 @@ struct rcar_du_lvdsenc;
 #define RCAR_DU_FEATURE_ALIGN_128B	(1 << 1)	/* Align pitches to 128 bytes */
 #define RCAR_DU_FEATURE_DEFR8		(1 << 2)	/* Has DEFR8 register */
 #define RCAR_DU_FEATURE_VSP1_SOURCE	(1 << 3)	/* Has inputs from VSP1 */
+#define RCAR_DU_FEATURE_LVDCHCR_WORKAROUND	(1 << 4)
 
 /*
  * struct rcar_du_output_routing - Output routing specification

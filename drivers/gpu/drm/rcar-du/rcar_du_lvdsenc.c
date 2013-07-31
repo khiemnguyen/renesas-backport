@@ -79,9 +79,16 @@ static int rcar_du_lvdsenc_start(struct rcar_du_lvdsenc *lvds,
 	rcar_lvds_write(lvds, LVDCTRCR, LVDCTRCR_CTR3SEL_ZERO |
 			LVDCTRCR_CTR2SEL_DISP | LVDCTRCR_CTR1SEL_VSYNC |
 			LVDCTRCR_CTR0SEL_HSYNC);
-	rcar_lvds_write(lvds, LVDCHCR,
+	if (rcar_du_has(rcrtc->group->dev,
+			 RCAR_DU_FEATURE_LVDCHCR_WORKAROUND)) {
+		rcar_lvds_write(lvds, LVDCHCR,
 			LVDCHCR_CHSEL_CH(0, 0) | LVDCHCR_CHSEL_CH(1, 3) |
 			LVDCHCR_CHSEL_CH(2, 2) | LVDCHCR_CHSEL_CH(3, 1));
+	} else {
+		rcar_lvds_write(lvds, LVDCHCR,
+			LVDCHCR_CHSEL_CH(0, 0) | LVDCHCR_CHSEL_CH(1, 1) |
+			LVDCHCR_CHSEL_CH(2, 2) | LVDCHCR_CHSEL_CH(3, 3));
+	}
 
 	/* Select the input, hardcode mode 0, enable LVDS operation and turn
 	 * bias circuitry on.
