@@ -42,6 +42,10 @@
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 
+static struct i2c_board_info koelsch_i2c_devices[] = {
+	{ I2C_BOARD_INFO("ak4642", 0x12), },
+};
+
 /* SPI Flash memory (Spansion S25FL512SAGMFIG11) */
 static struct mtd_partition spiflash_part[] = {
 	/* Reserved for user loader program, read-only */
@@ -368,6 +372,9 @@ static void __init koelsch_add_standard_devices(void)
 
 	platform_add_devices(koelsch_devices,
 			     ARRAY_SIZE(koelsch_devices));
+
+	i2c_register_board_info(2, koelsch_i2c_devices,
+				ARRAY_SIZE(koelsch_i2c_devices));
 
 	/* QSPI flash memory */
 	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
