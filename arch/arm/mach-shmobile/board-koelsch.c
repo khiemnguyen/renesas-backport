@@ -100,6 +100,41 @@ static struct spi_board_info spi_bus[] __initdata = {
         },
 };
 
+/* DU */
+static struct rcar_du_encoder_data koelsch_du_encoders[] = {
+	{
+		.type = RCAR_DU_ENCODER_NONE,
+		.output = RCAR_DU_OUTPUT_LVDS0,
+		.connector.lvds.panel = {
+			.width_mm = 210,
+			.height_mm = 158,
+			.mode = {
+				.clock = 65000,
+				.hdisplay = 1024,
+				.hsync_start = 1048,
+				.hsync_end = 1184,
+				.htotal = 1344,
+				.vdisplay = 768,
+				.vsync_start = 771,
+				.vsync_end = 777,
+				.vtotal = 806,
+				.flags = 0,
+			},
+		},
+	},
+#if defined(CONFIG_DRM_ADV7511)
+	{
+		.type = RCAR_DU_ENCODER_HDMI,
+		.output = RCAR_DU_OUTPUT_DPAD0,
+	},
+#endif
+};
+
+static struct rcar_du_platform_data koelsch_du_pdata = {
+	.encoders = koelsch_du_encoders,
+	.num_encoders = ARRAY_SIZE(koelsch_du_encoders),
+};
+
 static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.6", "pfc-r8a7791",
@@ -172,8 +207,18 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "sdhi2_cd", "sdhi2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
 				  "sdhi2_wp", "sdhi2"),
+	/* DU (CN11: HDMI, CN13: LVDS) */
+	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
+				  "du_rgb888", "du"),
+	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
+				  "du_sync_1", "du"),
+	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
+				  "du_sync_0", "du"),
+	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
+				  "du_clk_out_0", "du"),
+	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
+				  "du_clk_out_1", "du"),
 };
-
 
 static struct i2c_board_info koelsch_i2c_camera[] = {
 	{ I2C_BOARD_INFO("adv7612", 0x4C), },
@@ -367,6 +412,8 @@ static void __init koelsch_add_standard_devices(void)
 	pinctrl_register_mappings(koelsch_pinctrl_map,
 				  ARRAY_SIZE(koelsch_pinctrl_map));
 	r8a7791_pinmux_init();
+
+	r8a7791_add_du_device(&koelsch_du_pdata);
 
 	r8a7791_add_standard_devices();
 
