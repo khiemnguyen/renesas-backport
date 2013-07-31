@@ -15,6 +15,8 @@
 #include <linux/io.h>
 #include <linux/of.h>
 #include <asm/mach-types.h>
+#include <asm/cacheflush.h>
+#include <asm/smp_plat.h>
 #include <mach/common.h>
 #include <mach/emev2.h>
 
@@ -30,4 +32,19 @@ void __init shmobile_smp_init_cpus(unsigned int ncores)
 
 	for (i = 0; i < ncores; i++)
 		set_cpu_possible(i, true);
+}
+
+extern unsigned long shmobile_smp_fn[];
+extern unsigned long shmobile_smp_arg[];
+extern unsigned long shmobile_smp_mpidr[];
+
+void shmobile_smp_hook(unsigned int cpu, unsigned long fn, unsigned long arg)
+{
+	shmobile_smp_fn[cpu] = 0;
+	flush_cache_all();
+
+	shmobile_smp_mpidr[cpu] = cpu_logical_map(cpu);
+	shmobile_smp_fn[cpu] = fn;
+	shmobile_smp_arg[cpu] = arg;
+	flush_cache_all();
 }
