@@ -197,14 +197,6 @@
 #define DEFR6_MLOS1		(1 << 2)
 #define DEFR6_DEFAULT		(DEFR6_CODE | DEFR6_TCNE2)
 
-#define DEFR8			0x20020
-#define DEFR8_CODE		(0x7790 << 16)
-#define DEFR8_VSCS		(1 << 6)
-#define DEFR8_DRGBS_DU2		(2 << 4)
-#define DEFR8_DRGBS_DU1		(1 << 4)
-#define DEFR8_DRGBS_DU0		(0 << 4)
-#define DEFR8_DEFE8		(1 << 0)
-
 /* -----------------------------------------------------------------------------
  * R8A7790-only Control Registers
  */
@@ -517,16 +509,5 @@
 #define GCRCR			0x11094
 #define GCBCR			0x11098
 #define BCBCR			0x1109c
-
-/* -----------------------------------------------------------------------------
- * LVDS registers
- */
-
-#define LVDCR0		0x0000
-#define LVDCR1		0x0004
-#define LVDPLLCR	0x0008
-#define LVDCTRCR	0x000C
-#define LVDCHCR		0x0010
-
 
 #endif /* __RCAR_DU_REGS_H__ */
