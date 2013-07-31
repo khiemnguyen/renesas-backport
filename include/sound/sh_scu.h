@@ -33,11 +33,11 @@
  *	ALSA
  */
 /* buffer information */
-#define SCU_PERIOD_BYTES_MIN	(16 * 1024)
-#define SCU_PERIOD_BYTES_MAX	(16 * 1024)
-#define SCU_PERIODS_MIN		4
-#define SCU_PERIODS_MAX		4
-#define SCU_BUFFER_BYTES_MAX	(SCU_PERIOD_BYTES_MAX * SCU_PERIODS_MAX)
+#define SCU_BUFFER_BYTES_MAX	(32 * 1024)
+#define SCU_PERIOD_BYTES_MIN	512
+#define SCU_PERIOD_BYTES_MAX	8192
+#define SCU_PERIODS_MIN		(SCU_BUFFER_BYTES_MAX / SCU_PERIOD_BYTES_MAX)
+#define SCU_PERIODS_MAX		(SCU_BUFFER_BYTES_MAX / SCU_PERIOD_BYTES_MIN)
 
 /* scu dapm route information */
 /* playback route */

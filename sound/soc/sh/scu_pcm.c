@@ -76,7 +76,7 @@ static void scu_dma_callback(struct snd_pcm_substream *ss)
 
 	FNC_ENTRY
 
-	buf_pos = pcminfo->period & (SCU_PERIODS_MAX - 1);
+	buf_pos = pcminfo->period % runtime->periods;
 	dma_size = frames_to_bytes(runtime, runtime->period_size);
 	dma_paddr = runtime->dma_addr + (buf_pos * dma_size);
 	dma_sync_single_for_cpu(dai->dev, dma_paddr, dma_size, DMA_DIR(dir));
@@ -308,7 +308,7 @@ static int scu_audma_start(int sid, struct snd_pcm_substream *ss)
 	dai = scu_get_dai(ss);
 
 	/* buffer control */
-	buf_pos = pcminfo->period & (SCU_PERIODS_MAX - 1);
+	buf_pos = pcminfo->period % runtime->periods;
 	DBG_MSG("buf_pos=%d\n", buf_pos);
 
 	/* DMA size */
@@ -742,7 +742,7 @@ static snd_pcm_uframes_t scu_pcm_pointer_dma(struct snd_pcm_substream *ss)
 	snd_pcm_uframes_t position = 0;
 
 	position = runtime->period_size *
-			(pcminfo->tran_period & (SCU_PERIODS_MAX - 1));
+			(pcminfo->tran_period % runtime->periods);
 
 	DBG_MSG("\tposition = %d\n", (u32)position);
 
