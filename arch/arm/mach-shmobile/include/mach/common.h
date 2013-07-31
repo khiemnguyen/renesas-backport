@@ -13,7 +13,9 @@ extern unsigned long shmobile_boot_fn;
 extern unsigned long shmobile_boot_arg;
 extern void shmobile_secondary_vector_scu(void);
 extern void shmobile_boot_scu(void);
-extern void shmobile_invalidate_start(void);
+extern void shmobile_smp_scu_prepare_cpus(unsigned int max_cpus);
+extern int shmobile_smp_scu_boot_secondary(unsigned int cpu,
+					   struct task_struct *idle);
 struct clk;
 extern int shmobile_clk_init(void);
 extern void shmobile_handle_irq_intc(struct pt_regs *);
