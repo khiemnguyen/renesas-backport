@@ -61,6 +61,12 @@ static void rcar_du_group_setup_defr8(struct rcar_du_group *rgrp)
 	}
 
 	rcar_du_group_write(rgrp, DEFR8, defr8);
+
+	/* reset to reflect DEFR8 register */
+	rcar_du_write(rgrp->dev, DSYSR,
+		(rcar_du_read(rgrp->dev, DSYSR) & ~0x00000300) | DSYSR_DRES);
+	rcar_du_write(rgrp->dev, DSYSR,
+		(rcar_du_read(rgrp->dev, DSYSR) & ~0x00000300) | DSYSR_DEN);
 }
 
 static void rcar_du_group_setup(struct rcar_du_group *rgrp)

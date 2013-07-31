@@ -39,6 +39,10 @@ enum rcar_du_plane_source {
 	RCAR_DU_PLANE_VSPD1,
 };
 
+#define DU_CH_0		0
+#define DU_CH_1		1
+#define DU_CH_2		2
+
 struct rcar_du_plane {
 	struct rcar_du_group *group;
 	struct drm_crtc *crtc;
