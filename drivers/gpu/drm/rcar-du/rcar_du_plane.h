@@ -68,6 +68,8 @@ struct rcar_du_plane {
 	unsigned int src_y;
 	unsigned int dst_x;
 	unsigned int dst_y;
+
+	bool fb_plane;
 };
 
 struct rcar_du_planes {
