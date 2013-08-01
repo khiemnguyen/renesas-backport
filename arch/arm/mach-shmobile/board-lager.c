@@ -38,6 +38,7 @@
 #include <linux/spi/flash.h>
 #include <linux/mfd/tmio.h>
 #include <linux/mmc/sh_mobile_sdhi.h>
+#include <linux/mmc/sh_mmcif.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
 #include <mach/irqs.h>
@@ -466,11 +467,100 @@ static struct platform_device sdhi3_device = {
 	}
 };
 
+static void shmmcif_set_pwr(struct platform_device *pdev, int state)
+{
+}
+
+static void shmmcif_down_pwr(struct platform_device *pdev)
+{
+}
+
+static int shmmcif_get_cd(struct platform_device *pdev)
+{
+	return 1;
+}
+
+static struct resource sh_mmcif0_resources[] = {
+	[0] = {
+		.name	= "mmc0",
+		.start	= 0xEE200000,
+		.end	= 0xEE200080-1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(169),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mmcif_plat_data sh_mmcif0_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC0_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC0_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
+static struct platform_device mmc0_device = {
+	.name		= "sh_mmcif",
+	.num_resources	= ARRAY_SIZE(sh_mmcif0_resources),
+	.resource	= sh_mmcif0_resources,
+	.id		= 0,
+	.dev = {
+		.platform_data	= &sh_mmcif0_plat,
+	}
+};
+
+static struct resource sh_mmcif1_resources[] = {
+	[0] = {
+		.name	= "mmc1",
+		.start	= 0xEE220000,
+		.end	= 0xEE220080-1,
+		.flags	= IORESOURCE_MEM,
+	},
+	[1] = {
+		.start	= gic_spi(170),
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct sh_mmcif_plat_data sh_mmcif1_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC1_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC1_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
+static struct platform_device mmc1_device = {
+	.name		= "sh_mmcif",
+	.num_resources	= ARRAY_SIZE(sh_mmcif1_resources),
+	.resource	= sh_mmcif1_resources,
+	.id		= 1,
+	.dev = {
+		.platform_data	= &sh_mmcif1_plat,
+	}
+};
+
 static struct platform_device *lager_devices[] __initdata = {
 	&sdhi0_device,
 	&sdhi1_device,
 	&sdhi2_device,
 	&sdhi3_device,
+	&mmc0_device,
+	&mmc1_device,
 };
 
 static void __init lager_add_standard_devices(void)
