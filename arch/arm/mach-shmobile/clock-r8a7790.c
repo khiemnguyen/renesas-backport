@@ -432,11 +432,44 @@ static void __init r8a7790_sdhi_clock_init(void)
 	}
 }
 
+static void __init r8a7790_mmc_clock_init(void)
+{
+	int ret = 0;
+	struct clk *mmc_clk;
+
+	/* set MMC0 clock to 97.5 MHz */
+	mmc_clk = clk_get(NULL, "mmc.0");
+	if (IS_ERR(mmc_clk)) {
+		pr_err("Cannot get mmc.0 clock\n");
+		goto mmc0_out;
+	}
+	ret = clk_set_rate(mmc_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set mmc.0 clock rate :%d\n", ret);
+
+	clk_put(mmc_clk);
+mmc0_out:
+
+	/* set MMC1 clock to 97.5 MHz */
+	mmc_clk = clk_get(NULL, "mmc.1");
+	if (IS_ERR(mmc_clk)) {
+		pr_err("Cannot get mmc.1 clock\n");
+		goto mmc1_out;
+	}
+	ret = clk_set_rate(mmc_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set mmc.1 clock rate :%d\n", ret);
+
+	clk_put(mmc_clk);
+mmc1_out:
+
+	return;
+}
+
 void __init r8a7790_clock_init(void)
 {
 	u32 mode = r8a7790_read_mode_pins();
 	int k, ret = 0;
-	struct clk *mmc1_clk;
 
 	switch (mode & (MD(14) | MD(13))) {
 	case 0:
@@ -484,11 +517,7 @@ void __init r8a7790_clock_init(void)
 
 	r8a7790_rgx_control_init();
 	r8a7790_sdhi_clock_init();
-
-	mmc1_clk = clk_get(NULL, "mmc.1");
-	ret = clk_set_rate(mmc1_clk, 97500000);
-	if (ret)
-		goto epanic;
+	r8a7790_mmc_clock_init();
 
 	return;
 
