@@ -356,12 +356,32 @@ static void __init r8a7791_sdhi_clock_init(void)
 	}
 }
 
+static int __init r8a7791_mmc_clock_init(void)
+{
+	int ret = 0;
+	struct clk *mmc_clk;
+
+	/* set MMC0 clock to 97.5 MHz */
+	mmc_clk = clk_get(NULL, "mmc.0");
+	if (IS_ERR(mmc_clk)) {
+		pr_err("Cannot get mmc.0 clock\n");
+		goto mmc0_out;
+	}
+	ret = clk_set_rate(mmc_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set mmc.0 clock rate :%d\n", ret);
+
+	clk_put(mmc_clk);
+mmc0_out:
+
+	return;
+}
+
 void __init r8a7791_clock_init(void)
 {
 	void __iomem *modemr = ioremap_nocache(MODEMR, PAGE_SIZE);
 	u32 mode;
 	int k, ret = 0;
-	struct clk *mmc_clk;
 
 	BUG_ON(!modemr);
 	mode = ioread32(modemr);
@@ -406,12 +426,8 @@ void __init r8a7791_clock_init(void)
 	else
 		goto epanic;
 
-	mmc_clk = clk_get(NULL, "mmc.0");
-	ret = clk_set_rate(mmc_clk, 97500000);
-	if (ret)
-		goto epanic;
-
 	r8a7791_sdhi_clock_init();
+	r8a7791_mmc_clock_init();
 
 	return;
 
