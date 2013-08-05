@@ -448,20 +448,20 @@ static const struct soc_enum widget_switch_enum =
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(widget_switch), widget_switch);
 
 static const struct snd_kcontrol_new playback_controls[] = {
-	SOC_ENUM_EXT("SSI0 control", widget_switch_enum,
+	SOC_ENUM_EXT("SSI0 Control", widget_switch_enum,
 		scu_get_ssi0_route, scu_set_ssi0_route),
-	SOC_ENUM_EXT("SRC0 control", widget_switch_enum,
+	SOC_ENUM_EXT("SRC0 Control", widget_switch_enum,
 		scu_get_src0_route, scu_set_src0_route),
-	SOC_ENUM_EXT("DVC0 control", widget_switch_enum,
+	SOC_ENUM_EXT("DVC0 Control", widget_switch_enum,
 		scu_get_dvc0_route, scu_set_dvc0_route),
 };
 
 static const struct snd_kcontrol_new capture_controls[] = {
-	SOC_ENUM_EXT("SSI1 control", widget_switch_enum,
+	SOC_ENUM_EXT("SSI1 Control", widget_switch_enum,
 		scu_get_ssi1_route, scu_set_ssi1_route),
-	SOC_ENUM_EXT("SRC1 control", widget_switch_enum,
+	SOC_ENUM_EXT("SRC1 Control", widget_switch_enum,
 		scu_get_src1_route, scu_set_src1_route),
-	SOC_ENUM_EXT("DVC1 control", widget_switch_enum,
+	SOC_ENUM_EXT("DVC1 Control", widget_switch_enum,
 		scu_get_dvc1_route, scu_set_dvc1_route),
 };
 
