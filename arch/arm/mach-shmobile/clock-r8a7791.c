@@ -339,21 +339,36 @@ static struct clk_lookup lookups[] = {
 
 static void __init r8a7791_sdhi_clock_init(void)
 {
-	struct clk *sdhi1_clk, *sdhi2_clk;
+	int ret = 0;
+	struct clk *sdhi_clk;
 
 	/* set SDHI1 clock to 97.5 MHz */
-	sdhi1_clk = clk_get(NULL, "sdhi1");
-	if (!IS_ERR(sdhi1_clk)) {
-		clk_set_rate(sdhi1_clk, 97500000);
-		clk_put(sdhi1_clk);
+	sdhi_clk = clk_get(NULL, "sdhi1");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi1 clock\n");
+		goto sdhi1_out;
 	}
+	ret = clk_set_rate(sdhi_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set sdhi1 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+sdhi1_out:
 
 	/* set SDHI2 clock to 97.5 MHz */
-	sdhi2_clk = clk_get(NULL, "sdhi2");
-	if (!IS_ERR(sdhi2_clk)) {
-		clk_set_rate(sdhi2_clk, 97500000);
-		clk_put(sdhi2_clk);
+	sdhi_clk = clk_get(NULL, "sdhi2");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi2 clock\n");
+		goto sdhi2_out;
 	}
+	ret = clk_set_rate(sdhi_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set sdhi2 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+sdhi2_out:
+
+	return;
 }
 
 static int __init r8a7791_mmc_clock_init(void)
