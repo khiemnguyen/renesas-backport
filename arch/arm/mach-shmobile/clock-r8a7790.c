@@ -415,21 +415,36 @@ static void __init r8a7790_rgx_control_init(void)
 
 static void __init r8a7790_sdhi_clock_init(void)
 {
-	struct clk *sdhi2_clk, *sdhi3_clk;
+	int ret = 0;
+	struct clk *sdhi_clk;
 
 	/* set SDHI2 clock to 97.5 MHz */
-	sdhi2_clk = clk_get(NULL, "sdhi2");
-	if (!IS_ERR(sdhi2_clk)) {
-		clk_set_rate(sdhi2_clk, 97500000);
-		clk_put(sdhi2_clk);
+	sdhi_clk = clk_get(NULL, "sdhi2");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi2 clock\n");
+		goto sdhi2_out;
 	}
+	ret = clk_set_rate(sdhi_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set sdhi2 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+sdhi2_out:
 
 	/* set SDHI3 clock to 97.5 MHz */
-	sdhi3_clk = clk_get(NULL, "sdhi3");
-	if (!IS_ERR(sdhi3_clk)) {
-		clk_set_rate(sdhi3_clk, 97500000);
-		clk_put(sdhi3_clk);
+	sdhi_clk = clk_get(NULL, "sdhi3");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi3 clock\n");
+		goto sdhi3_out;
 	}
+	ret = clk_set_rate(sdhi_clk, 97500000);
+	if (ret < 0)
+		pr_err("Cannot set sdhi3 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+sdhi3_out:
+
+	return;
 }
 
 static void __init r8a7790_mmc_clock_init(void)
