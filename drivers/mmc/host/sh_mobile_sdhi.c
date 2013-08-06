@@ -135,6 +135,15 @@ static bool sh_mobile_sdhi_dma_filter(struct dma_chan *chan, void *arg)
 	return true;
 }
 
+#define SH_MOBILE_SDHI_DISABLE_AUTO_CMD12	0x4000
+
+static void sh_mobile_sdhi_disable_auto_cmd12(int *val)
+{
+	*val |= SH_MOBILE_SDHI_DISABLE_AUTO_CMD12;
+
+	return ;
+}
+
 static void sh_mobile_sdhi_cd_wakeup(const struct platform_device *pdev)
 {
 	mmc_detect_change(dev_get_drvdata(&pdev->dev), msecs_to_jiffies(100));
@@ -182,6 +191,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	mmc_data->clk_enable = sh_mobile_sdhi_clk_enable;
 	mmc_data->clk_disable = sh_mobile_sdhi_clk_disable;
 	mmc_data->capabilities = MMC_CAP_MMC_HIGHSPEED;
+	mmc_data->disable_auto_cmd12 = sh_mobile_sdhi_disable_auto_cmd12;
 	if (p) {
 		mmc_data->flags = p->tmio_flags;
 		if (mmc_data->flags & TMIO_MMC_HAS_IDLE_WAIT)
