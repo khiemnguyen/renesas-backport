@@ -248,6 +248,6 @@ enum {
 
 #define MD(nr) BIT(nr)
 u32 r8a7790_read_mode_pins(void);
-void r8a7790_init_delay(void);
+void r8a7790_init_early(void);
 
 #endif /* __ASM_R8A7790_H__ */
