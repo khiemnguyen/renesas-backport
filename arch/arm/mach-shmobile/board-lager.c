@@ -149,7 +149,7 @@ static struct gpio_led lager_leds[] = {
 	},
 };
 
-static __initdata struct gpio_led_platform_data lager_leds_pdata = {
+static const struct gpio_led_platform_data lager_leds_pdata __initconst = {
 	.leds		= lager_leds,
 	.num_leds	= ARRAY_SIZE(lager_leds),
 };
@@ -165,13 +165,13 @@ static __initdata struct gpio_keys_button gpio_buttons[] = {
 	GPIO_KEY(KEY_1,		RCAR_GP_PIN(1, 14),	"SW2-pin1"),
 };
 
-static __initdata struct gpio_keys_platform_data lager_keys_pdata = {
+static const struct gpio_keys_platform_data lager_keys_pdata __initconst = {
 	.buttons	= gpio_buttons,
 	.nbuttons	= ARRAY_SIZE(gpio_buttons),
 };
 
 /* Ether */
-static struct sh_eth_plat_data ether_pdata __initdata = {
+static const struct sh_eth_plat_data ether_pdata __initconst = {
 	.phy			= 0x1,
 	.edmac_endian		= EDMAC_LITTLE_ENDIAN,
 	.register_type		= SH_ETH_REG_FAST_RCAR,
@@ -179,7 +179,7 @@ static struct sh_eth_plat_data ether_pdata __initdata = {
 	.ether_link_active_low	= 1,
 };
 
-static struct resource ether_resources[] __initdata = {
+static const struct resource ether_resources[] __initconst = {
 	DEFINE_RES_MEM(0xee700000, 0x400),
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
@@ -950,7 +950,7 @@ static void __init lager_add_standard_devices(void)
 	lager_add_vsp1_devices();
 }
 
-static const char *lager_boards_compat_dt[] __initdata = {
+static const char * const lager_boards_compat_dt[] __initconst = {
 	"renesas,lager",
 	NULL,
 };
