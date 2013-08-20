@@ -43,8 +43,12 @@
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 
-static struct i2c_board_info koelsch_i2c_devices[] = {
+static struct i2c_board_info koelsch_i2c2_devices[] = {
 	{ I2C_BOARD_INFO("ak4642", 0x12), },
+};
+
+static struct i2c_board_info koelsch_i2c6_devices[] = {
+	{ I2C_BOARD_INFO("da9063", 0x58), },
 };
 
 /* SPI Flash memory (Spansion S25FL512SAGMFIG11) */
@@ -220,6 +224,36 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
 				  "du_clk_out_1", "du"),
 };
+
+static void koelsch_restart(char mode, const char *cmd)
+{
+	struct i2c_adapter *adap;
+	struct i2c_client *client;
+	u8 val;
+	int busnum = 6;
+
+	adap = i2c_get_adapter(busnum);
+	if (!adap) {
+		pr_err("failed to get adapter i2c%d\n", busnum);
+		return;
+	}
+
+	client = i2c_new_device(adap, &koelsch_i2c6_devices[0]);
+	if (!client)
+		pr_err("failed to register %s to i2c%d\n",
+		       koelsch_i2c6_devices[0].type, busnum);
+
+	i2c_put_adapter(adap);
+
+	val = i2c_smbus_read_byte_data(client, 0x13);
+
+	if (val < 0)
+		pr_err("couldn't access da9063\n");
+
+	val |= 0x02;
+
+	i2c_smbus_write_byte_data(client, 0x13, val);
+}
 
 static struct i2c_board_info koelsch_i2c_camera[] = {
 	{ I2C_BOARD_INFO("adv7612", 0x4C), },
@@ -474,8 +508,8 @@ static void __init koelsch_add_standard_devices(void)
 	platform_add_devices(koelsch_devices,
 			     ARRAY_SIZE(koelsch_devices));
 
-	i2c_register_board_info(2, koelsch_i2c_devices,
-				ARRAY_SIZE(koelsch_i2c_devices));
+	i2c_register_board_info(2, koelsch_i2c2_devices,
+				ARRAY_SIZE(koelsch_i2c2_devices));
 
 	/* QSPI flash memory */
 	spi_register_board_info(spi_info, ARRAY_SIZE(spi_info));
@@ -494,5 +528,6 @@ DT_MACHINE_START(KOELSCH_DT, "koelsch")
 	.init_irq	= r8a7791_init_irq,
 	.timer		= &r8a7791_timer,
 	.init_machine	= koelsch_add_standard_devices,
+	.restart	= koelsch_restart,
 	.dt_compat	= koelsch_boards_compat_dt,
 MACHINE_END
