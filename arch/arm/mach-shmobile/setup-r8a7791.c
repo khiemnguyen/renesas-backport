@@ -667,6 +667,18 @@ static struct resource rcar_i2c5_res[] = {
 	},
 };
 
+static struct resource rcar_i2c6_res[] = {
+	{
+		.start  = 0xe60b0000,
+		.end    = (0xe60b0425 - 1),
+		.flags  = IORESOURCE_MEM,
+	}, {
+		.start  = gic_spi(173),
+		.end    = gic_spi(174),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
 static struct platform_device i2c0_device = {
 	.name		= "i2c-rcar",
 	.id		= 0,
@@ -725,6 +737,13 @@ static struct platform_device i2c5_device = {
 	},
 	.num_resources	= ARRAY_SIZE(rcar_i2c5_res),
 	.resource	= rcar_i2c5_res,
+};
+
+static struct platform_device i2c6_device = {
+	.name		= "i2c-sh_mobile",
+	.id		= 6,
+	.num_resources	= ARRAY_SIZE(rcar_i2c6_res),
+	.resource	= rcar_i2c6_res,
 };
 
 /* DMA */
@@ -1449,6 +1468,7 @@ static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&i2c3_device,
 	&i2c4_device,
 	&i2c5_device,
+	&i2c6_device,
 	&audmal_device,
 	&audmau_device,
 	&audmapp_device,
