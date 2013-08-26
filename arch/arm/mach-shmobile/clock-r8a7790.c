@@ -23,6 +23,7 @@
 #include <linux/kernel.h>
 #include <linux/sh_clk.h>
 #include <linux/clkdev.h>
+#include <linux/delay.h>
 #include <mach/clock.h>
 #include <mach/common.h>
 #include <mach/r8a7790.h>
@@ -590,4 +591,78 @@ void __init r8a7790_clock_init(void)
 
 epanic:
 	panic("failed to setup r8a7790 clocks\n");
+}
+
+/* Software Reset */
+#define SRCR0		0x00a0
+#define SRCR1		0x00a8
+#define SRCR2		0x00b0
+#define SRCR3		0x00b8
+#define SRCR4		0x00bc
+#define SRCR5		0x00c4
+#define SRCR6		0x01c8
+#define SRCR7		0x01cc
+#define SRCR8		0x0920
+#define SRCR9		0x0924
+#define SRCR10		0x0928
+#define SRCR11		0x092c
+#define SRSTCLR0	0x0940
+#define SRSTCLR1	0x0944
+#define SRSTCLR2	0x0948
+#define SRSTCLR3	0x094c
+#define SRSTCLR4	0x0950
+#define SRSTCLR5	0x0954
+#define SRSTCLR6	0x0958
+#define SRSTCLR7	0x095c
+#define SRSTCLR8	0x0960
+#define SRSTCLR9	0x0964
+#define SRSTCLR10	0x0968
+#define SRSTCLR11	0x096c
+
+#define SRST_REG(n)	[n] = { .srcr = SRCR##n, .srstclr = SRSTCLR##n, }
+
+static struct software_reset_reg {
+	u16	srcr;
+	u16	srstclr;
+} r8a7790_reset_regs[] = {
+	SRST_REG(0),
+	SRST_REG(1),
+	SRST_REG(2),
+	SRST_REG(3),
+	SRST_REG(4),
+	SRST_REG(5),
+	SRST_REG(6),
+	SRST_REG(7),
+	SRST_REG(8),
+	SRST_REG(9),
+	SRST_REG(10),
+	SRST_REG(11),
+};
+
+static DEFINE_SPINLOCK(r8a7790_reset_lock);
+
+void r8a7790_module_reset(unsigned int n, u32 bits, int usecs)
+{
+	void __iomem *base = r8a7790_cpg_base;
+	unsigned long flags;
+	u32 srcr;
+
+	if (n >= ARRAY_SIZE(r8a7790_reset_regs)) {
+		pr_err("SRCR%u is not available\n", n);
+		return;
+	}
+
+	if (usecs <= 0)
+		usecs = 50; /* give a short delay for at least one RCLK cycle */
+
+	spin_lock_irqsave(&r8a7790_reset_lock, flags);
+	srcr = readl_relaxed(base + r8a7790_reset_regs[n].srcr);
+	writel_relaxed(srcr | bits, base + r8a7790_reset_regs[n].srcr);
+	readl_relaxed(base + r8a7790_reset_regs[n].srcr); /* sync */
+	spin_unlock_irqrestore(&r8a7790_reset_lock, flags);
+
+	udelay(usecs);
+
+	writel_relaxed(bits, base + r8a7790_reset_regs[n].srstclr);
+	readl_relaxed(base + r8a7790_reset_regs[n].srstclr); /* sync */
 }
