@@ -249,5 +249,6 @@ enum {
 #define MD(nr) BIT(nr)
 u32 r8a7790_read_mode_pins(void);
 void r8a7790_init_early(void);
+extern struct smp_operations r8a7790_smp_ops;
 
 #endif /* __ASM_R8A7790_H__ */
