@@ -1718,8 +1718,8 @@ void __init r8a7790_add_standard_devices(void)
 	iowrite32(0xAAAAAAAA, pfcctl + 0x60);	/* IOCTRL0 */
 	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
 	iowrite32(0xAAAAAAAA, pfcctl + 0x64);	/* IOCTRL1 */
-	iowrite32(~0x00110000, pfcctl);		/* PMMR */
-	iowrite32(0x00110000, pfcctl + 0x88);	/* IOCTRL5 */
+	iowrite32(~0x00154000, pfcctl);		/* PMMR */
+	iowrite32(0x00154000, pfcctl + 0x88);	/* IOCTRL5 */
 	iowrite32(~0xFFFFFFFF, pfcctl);		/* PMMR */
 	iowrite32(0xFFFFFFFF, pfcctl + 0x8C);	/* IOCTRL6 */
 
