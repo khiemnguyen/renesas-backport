@@ -1702,6 +1702,10 @@ static struct resource cmt00_resources[] = {
 
 void __init r8a7790_add_standard_devices(void)
 {
+	void __iomem *pfcctl;
+
+	pfcctl = ioremap(0xE6060000, 0x300);
+
 	r8a7790_pm_init();
 
 	r8a7790_init_pm_domain(&r8a7790_rgx);
@@ -1710,14 +1714,14 @@ void __init r8a7790_add_standard_devices(void)
 				ARRAY_SIZE(fixed3v3_power_consumers));
 
 	/* SD control registers IOCTRLn: SD pins driving ability */
-	__raw_writel(~0xAAAAAAAA, 0xE6060000);	/* PMMR */
-	__raw_writel(0xAAAAAAAA, 0xE6060060);	/* IOCTRL0 */
-	__raw_writel(~0xAAAAAAAA, 0xE6060000);	/* PMMR */
-	__raw_writel(0xAAAAAAAA, 0xE6060064);	/* IOCTRL1 */
-	__raw_writel(~0x00110000, 0xE6060000);	/* PMMR */
-	__raw_writel(0x00110000, 0xE6060088);	/* IOCTRL5 */
-	__raw_writel(~0xFFFFFFFF, 0xE6060000);	/* PMMR */
-	__raw_writel(0xFFFFFFFF, 0xE606008C);	/* IOCTRL6 */
+	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
+	iowrite32(0xAAAAAAAA, pfcctl + 0x60);	/* IOCTRL0 */
+	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
+	iowrite32(0xAAAAAAAA, pfcctl + 0x64);	/* IOCTRL1 */
+	iowrite32(~0x00110000, pfcctl);		/* PMMR */
+	iowrite32(0x00110000, pfcctl + 0x88);	/* IOCTRL5 */
+	iowrite32(~0xFFFFFFFF, pfcctl);		/* PMMR */
+	iowrite32(0xFFFFFFFF, pfcctl + 0x8C);	/* IOCTRL6 */
 
 	r8a7790_register_scif(SCIFA0);
 	r8a7790_register_scif(SCIFA1);
@@ -1738,6 +1742,8 @@ void __init r8a7790_add_standard_devices(void)
 
 	r8a7790_register_thermal();
 	r8a7790_register_cmt(00);
+
+	iounmap(pfcctl);
 }
 
 #define MODEMR 0xe6160060
