@@ -654,6 +654,13 @@ int drm_crtc_helper_set_config(struct drm_mode_set *set)
 			fb_changed = true;
 	}
 
+#if defined(CONFIG_DRM_FBDEV_CRTC)
+	/* when there is change by fb_set_par */
+	if (set->mode->private_flags) {
+		mode_changed = true;
+		set->mode->private_flags = false;
+	}
+#endif
 	if (set->x != set->crtc->x || set->y != set->crtc->y)
 		fb_changed = true;
 

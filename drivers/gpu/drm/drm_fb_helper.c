@@ -580,6 +580,7 @@ int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
 		return -EINVAL;
 #endif
 
+#if !defined(CONFIG_DRM_FBDEV_CRTC)
 	/* Need to resize the fb object !!! */
 	if (var->bits_per_pixel > fb->bits_per_pixel ||
 	    var->xres > fb->width || var->yres > fb->height ||
@@ -591,6 +592,7 @@ int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
 			  fb->width, fb->height, fb->bits_per_pixel);
 		return -EINVAL;
 	}
+#endif
 
 	switch (var->bits_per_pixel) {
 	case 16:
@@ -658,6 +660,9 @@ int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
 	default:
 		return -EINVAL;
 	}
+#if defined(CONFIG_DRM_FBDEV_CRTC)
+	fb->depth = depth;
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(drm_fb_helper_check_var);
@@ -671,6 +676,14 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	struct drm_crtc *crtc;
 	int ret;
 	int i;
+#if defined(CONFIG_DRM_FBDEV_CRTC)
+	struct drm_display_mode *disp_set_mode;
+	struct drm_display_mode *ref_disp_mode = NULL;
+	struct drm_connector *disp_conn;
+	struct drm_framebuffer *fb;
+	unsigned int bytes_per_pixel;
+	unsigned int match_flag;
+#endif
 
 #if !defined(CONFIG_DRM_FBDEV_CRTC)
 	if (var->pixclock != 0) {
@@ -688,6 +701,68 @@ int drm_fb_helper_set_par(struct fb_info *info)
 			return ret;
 		}
 	}
+#if defined(CONFIG_DRM_FBDEV_CRTC)
+	disp_set_mode =
+		 fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set.mode;
+	disp_conn =
+		 fb_helper->connector_info[CONFIG_DRM_FBDEV_CRTC]->connector;
+	fb = fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set.fb;
+
+	if (disp_set_mode && disp_conn && fb &&
+		 ((info->flags & FBINFO_MISC_USEREVENT)
+			 == FBINFO_MISC_USEREVENT)) {
+
+		match_flag = 0;
+		list_for_each_entry(ref_disp_mode, &disp_conn->modes, head) {
+			if (((var->vmode & FB_VMODE_MASK) == true) &&
+			    !(ref_disp_mode->flags & DRM_MODE_FLAG_INTERLACE))
+				continue;
+			if ((var->xres == ref_disp_mode->hdisplay)
+			    && (var->yres == ref_disp_mode->vdisplay)) {
+				match_flag = 1;
+				break;
+			}
+		}
+		if (match_flag == 0) {
+			drm_modeset_unlock_all(dev);
+			return -EINVAL;
+		}
+
+		strcpy(disp_set_mode->name, ref_disp_mode->name);
+		disp_set_mode->type = ref_disp_mode->type;
+		disp_set_mode->clock = ref_disp_mode->clock;
+		disp_set_mode->hdisplay = ref_disp_mode->hdisplay;
+		disp_set_mode->hsync_start = ref_disp_mode->hsync_start;
+		disp_set_mode->hsync_end = ref_disp_mode->hsync_end;
+		disp_set_mode->htotal = ref_disp_mode->htotal;
+		disp_set_mode->hskew = ref_disp_mode->hskew;
+		disp_set_mode->vdisplay = ref_disp_mode->vdisplay;
+		disp_set_mode->vsync_start = ref_disp_mode->vsync_start;
+		disp_set_mode->vsync_end = ref_disp_mode->vsync_end;
+		disp_set_mode->vtotal = ref_disp_mode->vtotal;
+		disp_set_mode->vscan = ref_disp_mode->vscan;
+		disp_set_mode->flags = ref_disp_mode->flags;
+		disp_set_mode->base.type = DRM_MODE_OBJECT_MODE;
+
+		bytes_per_pixel = DIV_ROUND_UP(var->bits_per_pixel, 8);
+		fb->width = var->xres_virtual;
+		fb->height = var->yres_virtual;
+		fb->bits_per_pixel = var->bits_per_pixel;
+		fb->pitches[0] = var->xres * bytes_per_pixel;
+		fb->pixel_format = drm_mode_legacy_fb_format(
+					fb->bits_per_pixel, fb->depth);
+		drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
+		drm_fb_helper_fill_var(info, fb_helper,
+					 var->xres, var->yres);
+		disp_set_mode->private_flags = true;
+		ret = drm_mode_set_config_internal(&fb_helper->
+				crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set);
+		if (ret) {
+			drm_modeset_unlock_all(dev);
+			return ret;
+		}
+	}
+#endif
 	drm_modeset_unlock_all(dev);
 
 	if (fb_helper->delayed_hotplug) {
