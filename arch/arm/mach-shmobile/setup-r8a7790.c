@@ -1704,7 +1704,7 @@ void __init r8a7790_add_standard_devices(void)
 {
 	void __iomem *pfcctl;
 
-	pfcctl = ioremap(0xE6060000, 0x300);
+	pfcctl = ioremap(0xe6060000, 0x300);
 
 	r8a7790_pm_init();
 
@@ -1714,14 +1714,14 @@ void __init r8a7790_add_standard_devices(void)
 				ARRAY_SIZE(fixed3v3_power_consumers));
 
 	/* SD control registers IOCTRLn: SD pins driving ability */
-	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
-	iowrite32(0xAAAAAAAA, pfcctl + 0x60);	/* IOCTRL0 */
-	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
-	iowrite32(0xAAAAAAAA, pfcctl + 0x64);	/* IOCTRL1 */
+	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
+	iowrite32(0xaaaaaaaa, pfcctl + 0x60);	/* IOCTRL0 */
+	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
+	iowrite32(0xaaaaaaaa, pfcctl + 0x64);	/* IOCTRL1 */
 	iowrite32(~0x00154000, pfcctl);		/* PMMR */
 	iowrite32(0x00154000, pfcctl + 0x88);	/* IOCTRL5 */
-	iowrite32(~0xFFFFFFFF, pfcctl);		/* PMMR */
-	iowrite32(0xFFFFFFFF, pfcctl + 0x8C);	/* IOCTRL6 */
+	iowrite32(~0xffffffff, pfcctl);		/* PMMR */
+	iowrite32(0xffffffff, pfcctl + 0x8c);	/* IOCTRL6 */
 
 	r8a7790_register_scif(SCIFA0);
 	r8a7790_register_scif(SCIFA1);
