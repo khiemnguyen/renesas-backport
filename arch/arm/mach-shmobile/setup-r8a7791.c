@@ -1548,14 +1548,14 @@ void __init r8a7791_add_standard_devices(void)
 				ARRAY_SIZE(fixed3v3_power_consumers));
 
 	/* SD control registers IOCTRLn: SD pins driving ability */
-	iowrite32(~0x8000AAAA, pfcctl);		/* PMMR */
-	iowrite32(0x8000AAAA, pfcctl + 0x60);	/* IOCTRL0 */
-	iowrite32(~0xAAAAAAAA, pfcctl);		/* PMMR */
-	iowrite32(0xAAAAAAAA, pfcctl + 0x64);	/* IOCTRL1 */
+	iowrite32(~0x8000aaaa, pfcctl);		/* PMMR */
+	iowrite32(0x8000aaaa, pfcctl + 0x60);	/* IOCTRL0 */
+	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
+	iowrite32(0xaaaaaaaa, pfcctl + 0x64);	/* IOCTRL1 */
 	iowrite32(~0x55554401, pfcctl);		/* PMMR */
 	iowrite32(0x55554401, pfcctl + 0x88);	/* IOCTRL5 */
-	iowrite32(~0xFFFFFFFF, pfcctl);		/* PMMR */
-	iowrite32(0xFFFFFFFF, pfcctl + 0x8C);	/* IOCTRL6 */
+	iowrite32(~0xffffffff, pfcctl);		/* PMMR */
+	iowrite32(0xffffffff, pfcctl + 0x8c);	/* IOCTRL6 */
 
 	platform_add_devices(r8a7791_early_devices,
 			     ARRAY_SIZE(r8a7791_early_devices));
