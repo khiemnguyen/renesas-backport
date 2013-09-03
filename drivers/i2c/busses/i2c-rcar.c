@@ -107,6 +107,11 @@ enum {
 #define ID_ARBLOST	(1 << 3)
 #define ID_NACK		(1 << 4)
 
+enum rcar_i2c_type {
+	I2C_RCAR_H1,
+	I2C_RCAR_H2,
+};
+
 struct rcar_i2c_priv {
 	void __iomem *io;
 	struct i2c_adapter adap;
@@ -123,6 +128,7 @@ struct rcar_i2c_priv {
 	u32 ichpr;
 	u32 iclpr;
 	u32 flags;
+	enum rcar_i2c_type	devtype;
 };
 
 #define rcar_i2c_priv_to_dev(p)		((p)->adap.dev.parent)
@@ -247,9 +253,22 @@ static int rcar_i2c_clock_calculate(struct rcar_i2c_priv *priv,
 	u32 scgd, cdf;
 	u32 round, ick;
 	u32 scl;
+	u32 cdf_width;
 
 	if (!clkp) {
 		dev_err(dev, "there is no peripheral_clk\n");
+		return -EIO;
+	}
+
+	switch (priv->devtype) {
+	case I2C_RCAR_H1:
+		cdf_width = 2;
+		break;
+	case I2C_RCAR_H2:
+		cdf_width = 3;
+		break;
+	default:
+		dev_err(dev, "device type error\n");
 		return -EIO;
 	}
 
@@ -268,7 +287,7 @@ static int rcar_i2c_clock_calculate(struct rcar_i2c_priv *priv,
 	 * clkp : peripheral_clk
 	 * F[]  : integer up-valuation
 	 */
-	for (cdf = 0; cdf < 4; cdf++) {
+	for (cdf = 0; cdf < (1 << cdf_width); cdf++) {
 		ick = clk_get_rate(clkp) / (1 + cdf);
 		if (ick < 20000000)
 			goto ick_find;
@@ -310,7 +329,7 @@ scgd_find:
 	/*
 	 * keep icccr value
 	 */
-	priv->icccr = (scgd << 2 | cdf);
+	priv->icccr = (scgd << (cdf_width) | cdf);
 
 	return 0;
 }
@@ -668,8 +687,10 @@ static int rcar_i2c_probe(struct platform_device *pdev)
 		bus_speed = pdata->bus_speed;
 	if (pdata && pdata->icccr2)
 		ret = rcar_i2c_clock_fix(priv, dev);
-	else
+	else {
+		priv->devtype = platform_get_device_id(pdev)->driver_data;
 		ret = rcar_i2c_clock_calculate(priv, bus_speed, dev);
+	}
 	if (ret < 0)
 		return ret;
 
@@ -723,6 +744,14 @@ static int rcar_i2c_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static struct platform_device_id rcar_i2c_id_table[] = {
+	{ "i2c-rcar",		I2C_RCAR_H1 },
+	{ "i2c-rcar_h1",	I2C_RCAR_H1 },
+	{ "i2c-rcar_h2",	I2C_RCAR_H2 },
+	{},
+};
+MODULE_DEVICE_TABLE(platform, rcar_i2c_id_table);
+
 static struct platform_driver rcar_i2c_driver = {
 	.driver	= {
 		.name	= "i2c-rcar",
@@ -730,6 +759,7 @@ static struct platform_driver rcar_i2c_driver = {
 	},
 	.probe		= rcar_i2c_probe,
 	.remove		= rcar_i2c_remove,
+	.id_table	= rcar_i2c_id_table,
 };
 
 module_platform_driver(rcar_i2c_driver);
