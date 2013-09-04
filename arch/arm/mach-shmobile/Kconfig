@@ -121,6 +121,11 @@ config MACH_LAGER
 	depends on ARCH_R8A7790
 	select USE_OF
 
+config MACH_KOELSCH
+	bool "Koelsch board"
+	depends on ARCH_R8A7791
+	select USE_OF
+
 config MACH_KZM9D
 	bool "KZM9D board"
 	depends on ARCH_EMEV2
