@@ -264,6 +264,7 @@ enum {
 
 #define MD(nr) BIT(nr)
 u32 r8a7791_read_mode_pins(void);
+void r8a7791_init_early(void);
 
 void r8a7791_module_reset(unsigned int n, u32 bits, int usecs);
 
