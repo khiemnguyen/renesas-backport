@@ -10,6 +10,7 @@ struct scu_platform_data;
 struct sh_mmcif_plat_data;
 struct sh_mobile_sdhi_info;
 
+void r8a7791_add_dt_devices(void);
 void r8a7791_add_mmc_device(struct sh_mmcif_plat_data *pdata);
 void r8a7791_add_scu_device(struct scu_platform_data *pdata);
 void r8a7791_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,

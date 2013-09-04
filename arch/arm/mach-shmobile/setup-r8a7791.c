@@ -28,6 +28,7 @@
 #include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/gpio-rcar.h>
+#include <linux/serial_sci.h>
 #include <linux/sh_audma-pp.h>
 #include <linux/sh_dma-desc.h>
 #include <linux/spi/sh_msiof.h>
@@ -41,6 +42,7 @@
 #endif
 #include <mach/common.h>
 #include <mach/dma-register.h>
+#include <mach/irqs.h>
 #include <mach/r8a7791.h>
 #include <media/vin.h>
 #include <sound/sh_scu.h>
@@ -106,6 +108,98 @@ void __init r8a7791_pinmux_init(void)
 	r8a7791_register_gpio(5);
 	r8a7791_register_gpio(6);
 	r8a7791_register_gpio(7);
+}
+
+#define SCIF_COMMON(scif_type, baseaddr, irq, dma_tx, dma_rx)	\
+	.type		= scif_type,				\
+	.mapbase	= baseaddr,				\
+	.flags		= UPF_BOOT_AUTOCONF | UPF_IOREMAP,	\
+	.irqs		= SCIx_IRQ_MUXED(irq),			\
+	.dma_slave_tx	= dma_tx,				\
+	.dma_slave_rx	= dma_rx
+
+#define SCIFA_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
+[index] = {						\
+	SCIF_COMMON(PORT_SCIFA, baseaddr, irq, dma_tx, dma_rx),	\
+	.scbrr_algo_id	= SCBRR_ALGO_4,			\
+	.scscr = SCSCR_RE | SCSCR_TE | SCSCR_CKE0,	\
+}
+
+#define SCIFB_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
+[index] = {					\
+	SCIF_COMMON(PORT_SCIFB, baseaddr, irq, dma_tx, dma_rx),	\
+	.scbrr_algo_id	= SCBRR_ALGO_4,		\
+	.scscr = SCSCR_RE | SCSCR_TE,		\
+}
+
+#define SCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)		\
+[index] = {						\
+	SCIF_COMMON(PORT_SCIF, baseaddr, irq, dma_tx, dma_rx),	\
+	.scbrr_algo_id	= SCBRR_ALGO_2,			\
+	.scscr = SCSCR_RE | SCSCR_TE,	\
+}
+
+#define HSCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
+[index] = {						\
+	SCIF_COMMON(PORT_HSCIF, baseaddr, irq, dma_tx, dma_rx),	\
+	.scbrr_algo_id	= SCBRR_ALGO_6,			\
+	.scscr = SCSCR_RE | SCSCR_TE,	\
+	.capabilities = SCIx_HAVE_RTSCTS,	\
+}
+
+enum { SCIFA0 = 0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
+	HSCIF0, HSCIF1, SCIF2, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5,
+	HSCIF2 };
+
+static const struct plat_sci_port scif[] __initconst = {
+	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144),
+		SHDMA_SLAVE_SCIFA0_TX, SHDMA_SLAVE_SCIFA0_RX), /* SCIFA0 */
+	SCIFA_DATA(SCIFA1, 0xe6c50000, gic_spi(145),
+		SHDMA_SLAVE_SCIFA1_TX, SHDMA_SLAVE_SCIFA1_RX), /* SCIFA1 */
+	SCIFB_DATA(SCIFB0, 0xe6c20000, gic_spi(148),
+		SHDMA_SLAVE_SCIFB0_TX, SHDMA_SLAVE_SCIFB0_RX), /* SCIFB0 */
+	SCIFB_DATA(SCIFB1, 0xe6c30000, gic_spi(149),
+		SHDMA_SLAVE_SCIFB1_TX, SHDMA_SLAVE_SCIFB1_RX), /* SCIFB1 */
+	SCIFB_DATA(SCIFB2, 0xe6ce0000, gic_spi(150),
+		SHDMA_SLAVE_SCIFB2_TX, SHDMA_SLAVE_SCIFB2_RX), /* SCIFB2 */
+	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151),
+		SHDMA_SLAVE_SCIFA2_TX, SHDMA_SLAVE_SCIFA2_RX), /* SCIFA2 */
+	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152),
+		SHDMA_SLAVE_SCIF0_TX, SHDMA_SLAVE_SCIF0_RX), /* SCIF0 */
+	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153),
+		SHDMA_SLAVE_SCIF1_TX, SHDMA_SLAVE_SCIF1_RX), /* SCIF1 */
+	HSCIF_DATA(HSCIF0, 0xe62c0000, gic_spi(154),
+		SHDMA_SLAVE_HSCIF0_TX, SHDMA_SLAVE_HSCIF0_RX), /* HSCIF0 */
+	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155),
+		SHDMA_SLAVE_HSCIF1_TX, SHDMA_SLAVE_HSCIF1_RX), /* HSCIF1 */
+	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164), 0, 0), /* SCIF2 */
+	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23), 0, 0), /* SCIF3 */
+	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24), 0, 0), /* SCIF4 */
+	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25), 0, 0), /* SCIF5 */
+	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29), 0, 0), /* SCIFA3 */
+	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30), 0, 0), /* SCIFA4 */
+	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31), 0, 0), /* SCIFA5 */
+	HSCIF_DATA(HSCIF2, 0xe62d0000, gic_spi(21), 0, 0), /* HSCIF2 */
+};
+
+static inline void r8a7791_register_scif(int idx)
+{
+	struct platform_device_info pdevinfo = {
+		.parent = &platform_bus,
+		.name = "sh-sci",
+		.id = idx,
+		.res = NULL,
+		.num_res = 0,
+		.data = &scif[idx],
+		.size_data = sizeof(struct plat_sci_port),
+		.dma_mask = 0,
+	};
+
+#if defined(CONFIG_SERIAL_SH_SCI_DMA)
+	pdevinfo.dma_mask = DMA_BIT_MASK(32);
+#endif /* CONFIG_SERIAL_SH_SCI_DMA */
+
+	platform_device_register_full(&pdevinfo);
 }
 
 static const struct resource thermal_resources[] __initconst = {
@@ -1235,6 +1329,28 @@ void __init r8a7791_register_vin(unsigned int index)
 static struct platform_device *r8a7791_early_devices[] __initdata = {
 	&powervr_device,
 };
+
+void __init r8a7791_add_dt_devices(void)
+{
+	r8a7791_register_scif(SCIFA0);
+	r8a7791_register_scif(SCIFA1);
+	r8a7791_register_scif(SCIFB0);
+	r8a7791_register_scif(SCIFB1);
+	r8a7791_register_scif(SCIFB2);
+	r8a7791_register_scif(SCIFA2);
+	r8a7791_register_scif(SCIF0);
+	r8a7791_register_scif(SCIF1);
+	r8a7791_register_scif(HSCIF0);
+	r8a7791_register_scif(HSCIF1);
+	r8a7791_register_scif(SCIF2);
+	r8a7791_register_scif(SCIF3);
+	r8a7791_register_scif(SCIF4);
+	r8a7791_register_scif(SCIF5);
+	r8a7791_register_scif(SCIFA3);
+	r8a7791_register_scif(SCIFA4);
+	r8a7791_register_scif(SCIFA5);
+	r8a7791_register_scif(HSCIF2);
+}
 
 void __init r8a7791_add_standard_devices(void)
 {

@@ -62,6 +62,7 @@ static void __iomem *r8a7791_cpg_base;
 #define MSTPSR9		0xe61509a4
 #define MSTPSR10	0xe61509a8
 #define MSTPSR11	0xe61509ac
+#define SMSTPCR0	0xe6150130
 #define SMSTPCR1	0xe6150134
 #define SMSTPCR2	0xe6150138
 #define SMSTPCR3	0xe615013c
@@ -72,6 +73,7 @@ static void __iomem *r8a7791_cpg_base;
 #define SMSTPCR8	0xe6150990
 #define SMSTPCR9	0xe6150994
 #define SMSTPCR10	0xe6150998
+#define SMSTPCR11	0xe615099c
 
 #define MODEMR		0xe6160060
 #define SDCKCR		0xe6150074
@@ -187,7 +189,9 @@ static struct clk div6_clks[DIV6_NR] = {
 
 /* MSTP */
 enum {
-	MSTP721, MSTP720,
+	MSTP1107, MSTP1106, MSTP1105, MSTP721, MSTP720, MSTP719, MSTP718,
+	MSTP717, MSTP716, MSTP715, MSTP714, MSTP713,
+	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, MSTP1014,
 	MSTP1005, MSTP922,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
@@ -212,6 +216,9 @@ enum {
 	SH_CLK_MSTP32_STS(_parent, SMSTPCR##_reg, _bit, (void __iomem *)MSTPSR##_reg, _flags)
 
 static struct clk mstp_clks[MSTP_NR] = {
+	[MSTP1107] = MSTP(11,  7, &mp_clk, 0), /* SCIFA5 */
+	[MSTP1106] = MSTP(11,  6, &mp_clk, 0), /* SCIFA4 */
+	[MSTP1105] = MSTP(11,  5, &mp_clk, 0), /* SCIFA3 */
 	[MSTP1031] = MSTP(10, 31, &hp_clk, 0), /* SCU (SRC0) */
 	[MSTP1030] = MSTP(10, 30, &hp_clk, 0), /* SCU (SRC1) */
 	[MSTP1019] = MSTP(10, 19, &hp_clk, 0), /* SCU (DVC0) */
@@ -240,6 +247,13 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP723] = MSTP(7, 23, &zx_clk, 0), /* DU1 */
 	[MSTP721] = MSTP(7, 21, &p_clk, 0), /* SCIF0 */
 	[MSTP720] = MSTP(7, 20, &p_clk, 0), /* SCIF1 */
+	[MSTP719] = MSTP(7, 19, &p_clk, 0), /* SCIF2 */
+	[MSTP718] = MSTP(7, 18, &p_clk, 0), /* SCIF3 */
+	[MSTP717] = MSTP(7, 17, &zs_clk, 0), /* HSCIF0 */
+	[MSTP716] = MSTP(7, 16, &zs_clk, 0), /* HSCIF1 */
+	[MSTP715] = MSTP(7, 15, &p_clk, 0), /* SCIF4 */
+	[MSTP714] = MSTP(7, 14, &p_clk, 0), /* SCIF5 */
+	[MSTP713] = MSTP(7, 13, &p_clk, 0), /* HSCIF2 */
 #ifdef CONFIG_USB_R8A66597
 	[MSTP704] = MSTP(7,  4, &hp_clk, 0), /* HSUSB */
 #else
@@ -256,8 +270,14 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP311] = MSTP(3, 11, &div6_clks[DIV6_SD2], 0), /* SDHI2 */
 	[MSTP219] = MSTP(2, 19, &hp_clk, 0), /* SYS-DMAC (lower) */
 	[MSTP218] = MSTP(2, 18, &hp_clk, 0), /* SYS-DMAC (upper) */
+	[MSTP216] = MSTP(2, 16, &mp_clk, 0), /* SCIFB2 */
 	[MSTP208] = MSTP(2,  8, &mp_clk, 0), /* MSIOF1 */
+	[MSTP207] = MSTP(2,  7, &mp_clk, 0), /* SCIFB1 */
+	[MSTP206] = MSTP(2,  6, &mp_clk, 0), /* SCIFB0 */
 	[MSTP205] = MSTP(2,  5, &mp_clk, 0), /* MSIOF2 */
+	[MSTP204] = MSTP(2,  4, &mp_clk, 0), /* SCIFA0 */
+	[MSTP203] = MSTP(2,  3, &mp_clk, 0), /* SCIFA1 */
+	[MSTP202] = MSTP(2,  2, &mp_clk, 0), /* SCIFA2 */
 	[MSTP131] = MSTP(1, 31, &zs_clk, 0), /* VSPS */
 	[MSTP128] = MSTP(1, 28, &zs_clk, 0), /* VSP1 (DU0) */
 	[MSTP127] = MSTP(1, 27, &zs_clk, 0), /* VSP1 (DU1) */
@@ -301,6 +321,24 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_ICK_ID("lvds.0", "rcar-du-r8a7791", &mstp_clks[MSTP726]),
 	CLKDEV_ICK_ID("du.0", "rcar-du-r8a7791", &mstp_clks[MSTP724]),
 	CLKDEV_ICK_ID("du.1", "rcar-du-r8a7791", &mstp_clks[MSTP723]),
+	CLKDEV_DEV_ID("sh-sci.0", &mstp_clks[MSTP204]), /* SCIFA0 */
+	CLKDEV_DEV_ID("sh-sci.1", &mstp_clks[MSTP203]), /* SCIFA1 */
+	CLKDEV_DEV_ID("sh-sci.2", &mstp_clks[MSTP206]), /* SCIFB0 */
+	CLKDEV_DEV_ID("sh-sci.3", &mstp_clks[MSTP207]), /* SCIFB1 */
+	CLKDEV_DEV_ID("sh-sci.4", &mstp_clks[MSTP216]), /* SCIFB2 */
+	CLKDEV_DEV_ID("sh-sci.5", &mstp_clks[MSTP202]), /* SCIFA2 */
+	CLKDEV_DEV_ID("sh-sci.6", &mstp_clks[MSTP721]), /* SCIF0 */
+	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]), /* SCIF1 */
+	CLKDEV_DEV_ID("sh-sci.8", &mstp_clks[MSTP717]), /* HSCIF0 */
+	CLKDEV_DEV_ID("sh-sci.9", &mstp_clks[MSTP716]), /* HSCIF1 */
+	CLKDEV_DEV_ID("sh-sci.10", &mstp_clks[MSTP719]), /* SCIF2 */
+	CLKDEV_DEV_ID("sh-sci.11", &mstp_clks[MSTP718]), /* SCIF3 */
+	CLKDEV_DEV_ID("sh-sci.12", &mstp_clks[MSTP715]), /* SCIF4 */
+	CLKDEV_DEV_ID("sh-sci.13", &mstp_clks[MSTP714]), /* SCIF5 */
+	CLKDEV_DEV_ID("sh-sci.14", &mstp_clks[MSTP1105]), /* SCIFA3 */
+	CLKDEV_DEV_ID("sh-sci.15", &mstp_clks[MSTP1106]), /* SCIFA4 */
+	CLKDEV_DEV_ID("sh-sci.16", &mstp_clks[MSTP1107]), /* SCIFA5 */
+	CLKDEV_DEV_ID("sh-sci.17", &mstp_clks[MSTP713]), /* HSCIF2 */
 	CLKDEV_DEV_ID("r8a779x-ether", &mstp_clks[MSTP813]),
 	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
 	CLKDEV_DEV_ID("sh_mmcif.0", &mstp_clks[MSTP315]),
