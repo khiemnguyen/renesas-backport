@@ -2282,6 +2282,11 @@ static int __init r8a66597_dmac_ioremap(struct r8a66597 *r8a66597,
 	return 0;
 }
 
+static void r8a66597_gadget_nop_release(struct device *dev)
+{
+	dev_dbg(dev, "releasing '%s'\n", dev_name(dev));
+}
+
 static int __init r8a66597_probe(struct platform_device *pdev)
 {
 	struct resource *res, *ires, *ires1;
@@ -2347,7 +2352,8 @@ static int __init r8a66597_probe(struct platform_device *pdev)
 	r8a66597->gadget.max_speed = USB_SPEED_HIGH;
 	r8a66597->gadget.dev.parent = &pdev->dev;
 	r8a66597->gadget.dev.dma_mask = pdev->dev.dma_mask;
-	r8a66597->gadget.dev.release = pdev->dev.release;
+	r8a66597->gadget.dev.release = r8a66597_gadget_nop_release;
+
 	r8a66597->gadget.name = udc_name;
 	ret = device_register(&r8a66597->gadget.dev);
 	if (ret < 0) {
