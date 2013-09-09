@@ -1,7 +1,6 @@
 /*
  *  SuperH Ethernet device driver
  *
- *  Copyright (C) 2013 Renesas Electronics Corporation
  *  Copyright (C) 2006-2012 Nobuhiro Iwamatsu
  *  Copyright (C) 2008-2012 Renesas Solutions Corp.
  *
@@ -61,9 +60,6 @@ enum {
 	EDOCR,
 	TFUCR,
 	RFOCR,
-#if defined(CONFIG_ARCH_R8A7790)
-	RMIIMODE,
-#endif
 	FCFTR,
 	RPADIR,
 	TRIMD,
@@ -301,9 +297,6 @@ static const u16 sh_eth_offset_fast_sh4[SH_ETH_MAX_REGISTER_OFFSET] = {
 	[RMCR]	= 0x0058,
 	[TFUCR]	= 0x0064,
 	[RFOCR]	= 0x0068,
-#if defined(CONFIG_ARCH_R8A7790)
-	[RMIIMODE]	= 0x006c,
-#endif
 	[FCFTR]	= 0x0070,
 	[RPADIR]	= 0x0078,
 	[TRIMD]	= 0x007c,

@@ -1,7 +1,6 @@
 /*
  *  SuperH Ethernet device driver
  *
- *  Copyright (C) 2013 Renesas Electronics Corporation
  *  Copyright (C) 2006-2012 Nobuhiro Iwamatsu
  *  Copyright (C) 2008-2012 Renesas Solutions Corp.
  *
@@ -79,8 +78,7 @@ static void sh_eth_select_mii(struct net_device *ndev)
 #endif
 
 /* There is CPU dependent code */
-#if defined(CONFIG_CPU_SUBTYPE_SH7724) || defined(CONFIG_ARCH_R8A7779) \
-	|| defined(CONFIG_ARCH_R8A7790)
+#if defined(CONFIG_CPU_SUBTYPE_SH7724) || defined(CONFIG_ARCH_R8A7779)
 #define SH_ETH_RESET_DEFAULT	1
 static void sh_eth_set_duplex(struct net_device *ndev)
 {
@@ -97,7 +95,7 @@ static void sh_eth_set_rate(struct net_device *ndev)
 	struct sh_eth_private *mdp = netdev_priv(ndev);
 	unsigned int bits = ECMR_RTM;
 
-#if defined(CONFIG_ARCH_R8A7779) || defined(CONFIG_ARCH_R8A7790)
+#if defined(CONFIG_ARCH_R8A7779)
 	bits |= ECMR_ELB;
 #endif
 
@@ -977,8 +975,6 @@ static int sh_eth_dev_init(struct net_device *ndev, bool start)
 	ret = sh_eth_reset(ndev);
 	if (ret)
 		goto out;
-
-	sh_eth_write(ndev, 0x1, RMIIMODE);
 
 	/* Descriptor format */
 	sh_eth_ring_format(ndev);
