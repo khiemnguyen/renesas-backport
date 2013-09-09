@@ -1182,15 +1182,10 @@ static int sh_eth_rx(struct net_device *ndev, u32 intr_status)
 	/* If we don't need to check status, don't. -KDU */
 	if (!(sh_eth_read(ndev, EDRRR) & EDRRR_R)) {
 		/* fix the values for the next receiving if RDE is set */
-		if (intr_status & EESR_RDE) {
+		if (intr_status & EESR_RDE)
 			mdp->cur_rx = mdp->dirty_rx =
 				(sh_eth_read(ndev, RDFAR) -
 				 sh_eth_read(ndev, RDLAR)) >> 4;
-			if (!sh_eth_is_gether(mdp)) {
-				mdp->cur_rx++;
-				mdp->dirty_rx++;
-			}
-		}
 		sh_eth_write(ndev, EDRRR_R, EDRRR);
 	}
 
