@@ -622,7 +622,7 @@ static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 
 	spin_lock_init(&pcminfo->pcm_lock);
 
-	pcminfo->workq = create_workqueue("sh_scu_pcm");
+	pcminfo->workq = alloc_ordered_workqueue("sh_scu_pcm", 0);
 	INIT_WORK(&pcminfo->work, scu_dma_do_work);
 	FNC_EXIT
 	return pcminfo;
