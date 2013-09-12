@@ -2773,6 +2773,7 @@ static const unsigned int sdhi3_wp_pins[] = {
 static const unsigned int sdhi3_wp_mux[] = {
 	SD3_WP_MARK,
 };
+
 /* - USB0 ------------------------------------------------------------------- */
 static const unsigned int usb0_pins[] = {
 	/* PWEN, OVC/VBUS */
@@ -2796,97 +2797,6 @@ static const unsigned int usb2_pins[] = {
 };
 static const unsigned int usb2_mux[] = {
 	USB2_PWEN_MARK, USB2_OVC_MARK,
-};
-/* - MSIOF0 ---------------------------------------------------------------- */
-static const unsigned int msiof0_clk_pins[] = {
-	/* SCK */
-	RCAR_GP_PIN(5, 12),
-};
-static const unsigned int msiof0_clk_mux[] = {
-	MSIOF0_SCK_MARK,
-};
-static const unsigned int msiof0_ctrl_pins[] = {
-	/* SYNC, SS1, SS2 */
-	RCAR_GP_PIN(5, 13), RCAR_GP_PIN(5, 14), RCAR_GP_PIN(5, 16),
-};
-static const unsigned int msiof0_ctrl_mux[] = {
-	MSIOF0_SYNC_MARK, MSIOF0_SS1_MARK, MSIOF0_SS2_MARK,
-};
-static const unsigned int msiof0_data_pins[] = {
-	/* TXD, RXD */
-	RCAR_GP_PIN(5, 15), RCAR_GP_PIN(5, 17),
-};
-static const unsigned int msiof0_data_mux[] = {
-	MSIOF0_TXD_MARK, MSIOF0_RXD_MARK,
-};
-
-/* - MSIOF1 ---------------------------------------------------------------- */
-static const unsigned int msiof1_clk_pins[] = {
-	/* SCK */
-	RCAR_GP_PIN(4, 8),
-};
-static const unsigned int msiof1_clk_mux[] = {
-	MSIOF1_SCK_MARK,
-};
-static const unsigned int msiof1_ctrl_pins[] = {
-	/* SYNC, SS1, SS2 */
-	RCAR_GP_PIN(4, 9), RCAR_GP_PIN(4, 10), RCAR_GP_PIN(4, 11),
-};
-static const unsigned int msiof1_ctrl_mux[] = {
-	MSIOF1_SYNC_MARK, MSIOF1_SS1_MARK, MSIOF1_SS2_MARK,
-};
-static const unsigned int msiof1_data_pins[] = {
-	/* TXD, RXD */
-	RCAR_GP_PIN(4, 12), RCAR_GP_PIN(4, 13),
-};
-static const unsigned int msiof1_data_mux[] = {
-	MSIOF1_TXD_MARK, MSIOF1_RXD_MARK,
-};
-
-/* - MSIOF2 ---------------------------------------------------------------- */
-static const unsigned int msiof2_clk_pins[] = {
-	/* SCK */
-	RCAR_GP_PIN(0, 27),
-};
-static const unsigned int msiof2_clk_mux[] = {
-	MSIOF2_SCK_MARK,
-};
-static const unsigned int msiof2_ctrl_pins[] = {
-	/* SYNC, SS1, SS2 */
-	RCAR_GP_PIN(0, 26), RCAR_GP_PIN(0, 30), RCAR_GP_PIN(0, 31),
-};
-static const unsigned int msiof2_ctrl_mux[] = {
-	MSIOF2_SYNC_MARK, MSIOF2_SS1_MARK, MSIOF2_SS2_MARK,
-};
-static const unsigned int msiof2_data_pins[] = {
-	/* TXD, RXD */
-	RCAR_GP_PIN(0, 28), RCAR_GP_PIN(0, 29),
-};
-static const unsigned int msiof2_data_mux[] = {
-	MSIOF2_TXD_MARK, MSIOF2_RXD_MARK,
-};
-
-/* - MSIOF3 ---------------------------------------------------------------- */
-static const unsigned int msiof3_clk_pins[] = {
-	/* SCK */
-	RCAR_GP_PIN(5, 4),
-};
-static const unsigned int msiof3_clk_mux[] = {
-	MSIOF3_SCK_MARK,
-};
-static const unsigned int msiof3_ctrl_pins[] = {
-	/* SYNC, SS1, SS2 */
-	RCAR_GP_PIN(4, 30), RCAR_GP_PIN(4, 31), RCAR_GP_PIN(4, 27),
-};
-static const unsigned int msiof3_ctrl_mux[] = {
-	MSIOF3_SYNC_MARK, MSIOF3_SS1_MARK, MSIOF3_SS2_MARK,
-};
-static const unsigned int msiof3_data_pins[] = {
-	/* TXD, RXD */
-	RCAR_GP_PIN(5, 3), RCAR_GP_PIN(5, 2),
-};
-static const unsigned int msiof3_data_mux[] = {
-	MSIOF3_TXD_MARK, MSIOF3_RXD_MARK,
 };
 
 static const struct sh_pfc_pin_group pinmux_groups[] = {
@@ -3026,18 +2936,6 @@ static const struct sh_pfc_pin_group pinmux_groups[] = {
 	SH_PFC_PIN_GROUP(usb0),
 	SH_PFC_PIN_GROUP(usb1),
 	SH_PFC_PIN_GROUP(usb2),
-	SH_PFC_PIN_GROUP(msiof0_clk),
-	SH_PFC_PIN_GROUP(msiof0_ctrl),
-	SH_PFC_PIN_GROUP(msiof0_data),
-	SH_PFC_PIN_GROUP(msiof1_clk),
-	SH_PFC_PIN_GROUP(msiof1_ctrl),
-	SH_PFC_PIN_GROUP(msiof1_data),
-	SH_PFC_PIN_GROUP(msiof2_clk),
-	SH_PFC_PIN_GROUP(msiof2_ctrl),
-	SH_PFC_PIN_GROUP(msiof2_data),
-	SH_PFC_PIN_GROUP(msiof3_clk),
-	SH_PFC_PIN_GROUP(msiof3_ctrl),
-	SH_PFC_PIN_GROUP(msiof3_data),
 };
 
 static const char * const du_groups[] = {
@@ -3254,30 +3152,6 @@ static const char * const usb2_groups[] = {
 	"usb2",
 };
 
-static const char * const msiof0_groups[] = {
-	"msiof0_clk",
-	"msiof0_ctrl",
-	"msiof0_data",
-};
-
-static const char * const msiof1_groups[] = {
-	"msiof1_clk",
-	"msiof1_ctrl",
-	"msiof1_data",
-};
-
-static const char * const msiof2_groups[] = {
-	"msiof2_clk",
-	"msiof2_ctrl",
-	"msiof2_data",
-};
-
-static const char * const msiof3_groups[] = {
-	"msiof3_clk",
-	"msiof3_ctrl",
-	"msiof3_data",
-};
-
 static const struct sh_pfc_function pinmux_functions[] = {
 	SH_PFC_FUNCTION(du),
 	SH_PFC_FUNCTION(du0),
@@ -3305,10 +3179,6 @@ static const struct sh_pfc_function pinmux_functions[] = {
 	SH_PFC_FUNCTION(usb0),
 	SH_PFC_FUNCTION(usb1),
 	SH_PFC_FUNCTION(usb2),
-	SH_PFC_FUNCTION(msiof0),
-	SH_PFC_FUNCTION(msiof1),
-	SH_PFC_FUNCTION(msiof2),
-	SH_PFC_FUNCTION(msiof3),
 };
 
 static struct pinmux_cfg_reg pinmux_config_regs[] = {
