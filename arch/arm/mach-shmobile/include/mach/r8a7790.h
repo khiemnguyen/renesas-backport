@@ -1,13 +1,11 @@
 #ifndef __ASM_R8A7790_H__
 #define __ASM_R8A7790_H__
 
-#include <asm/mach/time.h>
+#include <mach/rcar-gen2.h>
 
 void r8a7790_add_standard_devices(void);
 void r8a7790_clock_init(void);
 void r8a7790_pinmux_init(void);
-
-extern struct sys_timer r8a7790_timer;
 
 #define MD(nr) BIT(nr)
 u32 r8a7790_read_mode_pins(void);
