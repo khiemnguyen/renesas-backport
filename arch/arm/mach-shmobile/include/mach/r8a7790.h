@@ -1,7 +1,7 @@
 #ifndef __ASM_R8A7790_H__
 #define __ASM_R8A7790_H__
 
-#include <asm/mach/time.h>
+#include <mach/rcar-gen2.h>
 #include <linux/pm_domain.h>
 
 struct platform_device;
@@ -17,8 +17,6 @@ void r8a7790_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,
 			     unsigned int index);
 void r8a7790_clock_init(void);
 void r8a7790_pinmux_init(void);
-
-extern struct sys_timer r8a7790_timer;
 
 struct r8a7790_pm_ch {
 	unsigned long chan_offs;

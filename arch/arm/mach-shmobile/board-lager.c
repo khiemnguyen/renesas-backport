@@ -958,7 +958,7 @@ static const char * const lager_boards_compat_dt[] __initconst = {
 DT_MACHINE_START(LAGER_DT, "lager")
 	.smp		= smp_ops(r8a7790_smp_ops),
 	.init_early	= r8a7790_init_early,
-	.timer		= &r8a7790_timer,
+	.timer		= &rcar_gen2_timer,
 	.init_machine	= lager_add_standard_devices,
 	.restart	= lager_restart,
 	.dt_compat	= lager_boards_compat_dt,

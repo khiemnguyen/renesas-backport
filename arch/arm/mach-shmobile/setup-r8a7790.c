@@ -1475,75 +1475,6 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_add_device_to_domain(&r8a7790_rgx, &powervr_device);
 }
 
-#define MODEMR 0xe6160060
-
-u32 __init r8a7790_read_mode_pins(void)
-{
-	void __iomem *modemr = ioremap_nocache(MODEMR, 4);
-	u32 mode;
-
-	BUG_ON(!modemr);
-	mode = ioread32(modemr);
-	iounmap(modemr);
-
-	return mode;
-}
-
-#define CNTCR 0
-#define CNTFID0 0x20
-
-void __init r8a7790_timer_init(void)
-{
-#ifdef CONFIG_ARM_ARCH_TIMER
-	u32 mode = r8a7790_read_mode_pins();
-	void __iomem *base;
-	int extal_mhz = 0;
-	u32 freq;
-
-	/* At Linux boot time the r8a7790 arch timer comes up
-	 * with the counter disabled. Moreover, it may also report
-	 * a potentially incorrect fixed 13 MHz frequency. To be
-	 * correct these registers need to be updated to use the
-	 * frequency EXTAL / 2 which can be determined by the MD pins.
-	 */
-
-	switch (mode & (MD(14) | MD(13))) {
-	case 0:
-		extal_mhz = 15;
-		break;
-	case MD(13):
-		extal_mhz = 20;
-		break;
-	case MD(14):
-		extal_mhz = 26;
-		break;
-	case MD(13) | MD(14):
-		extal_mhz = 30;
-		break;
-	}
-
-	/* The arch timer frequency equals EXTAL / 2 */
-	freq = extal_mhz * (1000000 / 2);
-
-	/* Remap "armgcnt address map" space */
-	base = ioremap(0xe6080000, PAGE_SIZE);
-
-	/* Update registers with correct frequency */
-	iowrite32(freq, base + CNTFID0);
-	asm volatile("mcr p15, 0, %0, c14, c0, 0" : : "r" (freq));
-
-	/* make sure arch timer is started by setting bit 0 of CNTCR */
-	iowrite32(1, base + CNTCR);
-	iounmap(base);
-#endif /* CONFIG_ARM_ARCH_TIMER */
-
-	shmobile_timer_init();
-}
-
-struct sys_timer r8a7790_timer = {
-        .init           = r8a7790_timer_init,
-};
-
 void __init r8a7790_init_early(void)
 {
 #ifndef CONFIG_ARM_ARCH_TIMER
@@ -1561,7 +1492,7 @@ static const char * const r8a7790_boards_compat_dt[] __initconst = {
 DT_MACHINE_START(R8A7790_DT, "Generic R8A7790 (Flattened Device Tree)")
 	.smp		= smp_ops(r8a7790_smp_ops),
 	.init_early	= r8a7790_init_early,
-	.timer		= &r8a7790_timer,
+	.timer		= &rcar_gen2_timer,
 	.dt_compat	= r8a7790_boards_compat_dt,
 MACHINE_END
 #endif /* CONFIG_USE_OF */
