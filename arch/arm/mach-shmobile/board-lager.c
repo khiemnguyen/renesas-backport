@@ -164,13 +164,13 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.7", "pfc-r8a7790",
 				  "scif1_data", "scif1"),
 	/* Ether */
-	PIN_MAP_MUX_GROUP_DEFAULT("r8a7790-ether", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "eth_link", "eth"),
-	PIN_MAP_MUX_GROUP_DEFAULT("r8a7790-ether", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "eth_mdio", "eth"),
-	PIN_MAP_MUX_GROUP_DEFAULT("r8a7790-ether", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "eth_rmii", "eth"),
-	PIN_MAP_MUX_GROUP_DEFAULT("r8a7790-ether", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "intc_irq0", "intc"),
 };
 
@@ -193,7 +193,7 @@ static void __init lager_add_standard_devices(void)
 				      sizeof(lager_keys_pdata));
 
 	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 2);
-	platform_device_register_resndata(&platform_bus, "r8a7790-ether", -1,
+	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
