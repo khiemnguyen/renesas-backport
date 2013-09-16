@@ -46,7 +46,6 @@
 #define CPG_BASE 0xe6150000
 #define CPG_LEN 0x1000
 
-#define MSTPSR1 (void __iomem *)0xe6150038
 #define SMSTPCR1 0xe6150134
 #define SMSTPCR2 0xe6150138
 #define SMSTPCR3 0xe615013c
@@ -218,10 +217,10 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP204] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 4, 0), /* SCIFA0 */
 	[MSTP203] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 3, 0), /* SCIFA1 */
 	[MSTP202] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 2, 0), /* SCIFA2 */
-	[MSTP131] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 31, MSTPSR1, 0), /* VSP1 (SY) */
-	[MSTP130] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 30, MSTPSR1, 0), /* VSP1 (RT) */
-	[MSTP128] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 28, MSTPSR1, 0), /* VSP1 (DU0) */
-	[MSTP127] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 27, MSTPSR1, 0), /* VSP1 (DU1) */
+	[MSTP131] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 31, 0), /* VSP1 (SY) */
+	[MSTP130] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 30, 0), /* VSP1 (RT) */
+	[MSTP128] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 28, 0), /* VSP1 (DU0) */
+	[MSTP127] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 27, 0), /* VSP1 (DU1) */
 	[MSTP124] = SH_CLK_MSTP32(&rclk_clk, SMSTPCR1, 24, 0), /* CMT0 */
 };
 
