@@ -33,7 +33,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_data/gpio-rcar.h>
-#include <linux/platform_data/rcar-du.h>
 #include <linux/platform_data/vsp1.h>
 #include <linux/platform_device.h>
 #include <linux/sh_eth.h>
@@ -46,67 +45,6 @@
 #include <sound/sh_scu.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
-
-/* DU */
-static struct rcar_du_encoder_data lager_du_encoders[] = {
-#if defined(CONFIG_DRM_ADV7511)
-	{
-		.type = RCAR_DU_ENCODER_HDMI,
-		.output = RCAR_DU_OUTPUT_LVDS0,
-	}, {
-		.type = RCAR_DU_ENCODER_NONE,
-		.output = RCAR_DU_OUTPUT_LVDS1,
-		.connector.lvds.panel = {
-			.width_mm = 210,
-			.height_mm = 158,
-			.mode = {
-				.clock = 65000,
-				.hdisplay = 1024,
-				.hsync_start = 1048,
-				.hsync_end = 1184,
-				.htotal = 1344,
-				.vdisplay = 768,
-				.vsync_start = 771,
-				.vsync_end = 777,
-				.vtotal = 806,
-				.flags = 0,
-			},
-		},
-	}, {
-		.type = RCAR_DU_ENCODER_VGA,
-		.output = RCAR_DU_OUTPUT_DPAD0,
-	},
-#else
-	{
-		.type = RCAR_DU_ENCODER_VGA,
-		.output = RCAR_DU_OUTPUT_DPAD0,
-	}, {
-		.type = RCAR_DU_ENCODER_NONE,
-		.output = RCAR_DU_OUTPUT_LVDS1,
-		.connector.lvds.panel = {
-			.width_mm = 210,
-			.height_mm = 158,
-			.mode = {
-				.clock = 65000,
-				.hdisplay = 1024,
-				.hsync_start = 1048,
-				.hsync_end = 1184,
-				.htotal = 1344,
-				.vdisplay = 768,
-				.vsync_start = 771,
-				.vsync_end = 777,
-				.vtotal = 806,
-				.flags = 0,
-			},
-		},
-	},
-#endif
-};
-
-static struct rcar_du_platform_data lager_du_pdata = {
-	.encoders = lager_du_encoders,
-	.num_encoders = ARRAY_SIZE(lager_du_encoders),
-};
 
 /* LEDS */
 static struct gpio_led lager_leds[] = {
@@ -717,14 +655,6 @@ static void __init lager_add_vsp1_devices(void)
 }
 
 static const struct pinctrl_map lager_pinctrl_map[] = {
-	/* DU (CN10: ARGB0, CN13: LVDS) */
-	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
-				  "du_rgb666", "du"),
-	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
-				  "du_sync_1", "du"),
-	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
-				  "du_clk_out_0", "du"),
-
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIF0)
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.6", "pfc-r8a7790",
@@ -888,8 +818,6 @@ static void __init lager_add_standard_devices(void)
 	r8a7790_pinmux_init();
 
 	r8a7790_add_standard_devices();
-
-	r8a7790_add_du_device(&lager_du_pdata);
 
 	platform_device_register_data(&platform_bus, "leds-gpio", -1,
 				      &lager_leds_pdata,
