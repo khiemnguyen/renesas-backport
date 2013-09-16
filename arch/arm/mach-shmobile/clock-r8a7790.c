@@ -46,7 +46,6 @@
 #define CPG_BASE 0xe6150000
 #define CPG_LEN 0x1000
 
-#define SMSTPCR1 0xe6150134
 #define SMSTPCR2 0xe6150138
 #define SMSTPCR3 0xe615013c
 #define SMSTPCR5 0xe6150144
@@ -187,7 +186,6 @@ enum {
 	MSTP522,
 	MSTP315, MSTP314, MSTP313, MSTP312, MSTP311, MSTP305, MSTP304,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
-	MSTP131, MSTP130, MSTP128, MSTP127,
 	MSTP124,
 	MSTP_NR
 };
@@ -217,10 +215,6 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP204] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 4, 0), /* SCIFA0 */
 	[MSTP203] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 3, 0), /* SCIFA1 */
 	[MSTP202] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 2, 0), /* SCIFA2 */
-	[MSTP131] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 31, 0), /* VSP1 (SY) */
-	[MSTP130] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 30, 0), /* VSP1 (RT) */
-	[MSTP128] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 28, 0), /* VSP1 (DU0) */
-	[MSTP127] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 27, 0), /* VSP1 (DU1) */
 	[MSTP124] = SH_CLK_MSTP32(&rclk_clk, SMSTPCR1, 24, 0), /* CMT0 */
 };
 
@@ -290,10 +284,6 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh_mobile_sdhi.3", &mstp_clks[MSTP311]),
 	CLKDEV_DEV_ID("ee220000.mmcif", &mstp_clks[MSTP305]),
 	CLKDEV_DEV_ID("sh_mmcif.1", &mstp_clks[MSTP305]),
-	CLKDEV_DEV_ID("vsp1.0", &mstp_clks[MSTP131]),
-	CLKDEV_DEV_ID("vsp1.1", &mstp_clks[MSTP130]),
-	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
-	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
 	CLKDEV_DEV_ID("sh_cmt.0", &mstp_clks[MSTP124]),
 };
 
