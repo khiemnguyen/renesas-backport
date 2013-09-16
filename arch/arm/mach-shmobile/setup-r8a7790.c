@@ -19,7 +19,6 @@
  */
 
 #include <linux/clk.h>
-#include <linux/dma-mapping.h>
 #include <linux/i2c/i2c-rcar.h>
 #include <linux/irq.h>
 #include <linux/kernel.h>
@@ -28,7 +27,6 @@
 #include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/gpio-rcar.h>
-#include <linux/platform_data/rcar-du.h>
 #include <linux/platform_data/irq-renesas-irqc.h>
 #include <linux/serial_sci.h>
 #include <linux/sh_audma-pp.h>
@@ -94,31 +92,6 @@ void __init r8a7790_pinmux_init(void)
 	r8a7790_register_gpio(3);
 	r8a7790_register_gpio(4);
 	r8a7790_register_gpio(5);
-}
-
-/* DU */
-static const struct resource du_resources[] = {
-	DEFINE_RES_MEM(0xfeb00000, 0x70000),
-	DEFINE_RES_MEM_NAMED(0xfeb90000, 0x1c, "lvds.0"),
-	DEFINE_RES_MEM_NAMED(0xfeb94000, 0x1c, "lvds.1"),
-	DEFINE_RES_IRQ(gic_spi(256)),
-	DEFINE_RES_IRQ(gic_spi(268)),
-	DEFINE_RES_IRQ(gic_spi(269)),
-};
-
-void __init r8a7790_add_du_device(struct rcar_du_platform_data *pdata)
-{
-	struct platform_device_info info = {
-		.name = "rcar-du-r8a7790",
-		.id = -1,
-		.res = du_resources,
-		.num_res = ARRAY_SIZE(du_resources),
-		.data = pdata,
-		.size_data = sizeof(*pdata),
-		.dma_mask = DMA_BIT_MASK(32),
-	};
-
-	platform_device_register_full(&info);
 }
 
 #define SCIF_COMMON(scif_type, baseaddr, irq, dma_tx, dma_rx)	\
