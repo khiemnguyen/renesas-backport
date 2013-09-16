@@ -34,7 +34,6 @@
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
-#include <linux/platform_data/vsp1.h>
 #include <linux/platform_device.h>
 #include <linux/sh_eth.h>
 #include <linux/spi/flash.h>
@@ -144,35 +143,6 @@ static __initdata struct gpio_keys_button gpio_buttons[] = {
 static __initdata struct gpio_keys_platform_data lager_keys_pdata = {
 	.buttons	= gpio_buttons,
 	.nbuttons	= ARRAY_SIZE(gpio_buttons),
-};
-
-/* VSP1 */
-static struct vsp1_platform_data lager_vspr_pdata = {
-	.features = 0,
-	.rpf_count = 5,
-	.uds_count = 1,
-	.wpf_count = 4,
-};
-
-static struct vsp1_platform_data lager_vsps_pdata = {
-	.features = 0,
-	.rpf_count = 5,
-	.uds_count = 3,
-	.wpf_count = 4,
-};
-
-static struct vsp1_platform_data lager_vspd0_pdata = {
-	.features = VSP1_HAS_LIF,
-	.rpf_count = 4,
-	.uds_count = 1,
-	.wpf_count = 4,
-};
-
-static struct vsp1_platform_data lager_vspd1_pdata = {
-	.features = VSP1_HAS_LIF,
-	.rpf_count = 4,
-	.uds_count = 1,
-	.wpf_count = 4,
 };
 
 /* Ether */
@@ -844,8 +814,6 @@ static void __init lager_add_standard_devices(void)
 				      &lager_keys_pdata,
 				      sizeof(lager_keys_pdata));
 
-	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 2);
-	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 3);
 	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
