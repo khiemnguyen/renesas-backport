@@ -31,6 +31,7 @@
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/sh_dma.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 #include <sound/control.h>
@@ -95,47 +96,16 @@ static void scu_dma_callback(struct snd_pcm_substream *ss)
 	FNC_EXIT
 }
 
-static bool filter_audma(struct dma_chan *chan, void *slave)
-{
-	struct shdma_slave *param = slave;
-	struct platform_device *pdev = to_platform_device(chan->device->dev);
-
-	DBG_MSG("%s: pdev->id=%d, slave_id=%d\n",
-				__func__, pdev->id, param->slave_id);
-
-	if ((pdev->id != SHDMA_DEVID_AUDIO_LO) &&
-	    (pdev->id != SHDMA_DEVID_AUDIO_UP))
-		return false;
-
-	chan->private = param;
-	return true;
-}
-
-static bool filter_audmapp(struct dma_chan *chan, void *slave)
-{
-	struct shdma_slave *param = slave;
-	struct platform_device *pdev = to_platform_device(chan->device->dev);
-
-	DBG_MSG("%s: pdev->id=%d, slave_id=%d\n",
-				__func__, pdev->id, param->slave_id);
-
-	if (pdev->id != SHDMA_DEVID_AUDIOPP)
-		return false;
-
-	chan->private = param;
-	return true;
-}
-
-static int scu_dmae_req_chan(int sid, int did, struct snd_pcm_substream *ss)
+static int scu_dmae_req_chan(int sid, struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	struct sh_dmadesc_slave *param = &pcminfo->de_param[sid];
+	struct dma_slave_config cfg;
 	dma_cap_mask_t mask;
 	int ret = 0;
 
 	dma_cap_zero(mask);
 	dma_cap_set(DMA_SLAVE, mask);
-	DBG_MSG("sid=%d, did=%d\n", sid, did);
 
 	FNC_ENTRY
 	/* set dma slave id */
@@ -143,15 +113,18 @@ static int scu_dmae_req_chan(int sid, int did, struct snd_pcm_substream *ss)
 
 	/* request dma channel */
 	if (pcminfo->de_chan[sid] == NULL) {
-		if (did == SHDMA_DEVID_AUDIO)
-			pcminfo->de_chan[sid] = dma_request_channel(mask,
-							filter_audma, param);
-		else /* did == SHDMA_DEVID_AUDIOPP */
-			pcminfo->de_chan[sid] = dma_request_channel(mask,
-							filter_audmapp, param);
+		pcminfo->de_chan[sid] = dma_request_channel(mask,
+						shdma_chan_filter, (void *)sid);
 		if (!pcminfo->de_chan[sid]) {
 			printk(KERN_ERR "DMA channel request error\n");
-			ret = -EBUSY;
+			return -EBUSY;
+		}
+
+		cfg.slave_id = sid;
+		ret = dmaengine_slave_config(pcminfo->de_chan[sid], &cfg);
+		if (ret < 0) {
+			dma_release_channel(pcminfo->de_chan[sid]);
+			return ret;
 		}
 	}
 
@@ -188,26 +161,21 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 		switch (pcminfo->routeinfo->p_route) {
 		case RP_MEM_SSI0:
 			/* dma(mem->ssi) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SSI0,
-						SHDMA_DEVID_AUDIO, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
 			break;
 		case RP_MEM_SRC0_SSI0:
 			/* dma(mem->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0,
-						SHDMA_DEVID_AUDIO, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 
 			/* dma(src->ssi) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC0_SSI0,
-						SHDMA_DEVID_AUDIOPP, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC0_SSI0, ss);
 			break;
 		case RP_MEM_SRC0_DVC0_SSI0:
 			/* dma(mem->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0,
-						SHDMA_DEVID_AUDIO, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
 
 			/* dma(cmd->ssi) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD0_SSI0,
-						SHDMA_DEVID_AUDIOPP, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD0_SSI0, ss);
 			break;
 		default:
 			break;
@@ -216,26 +184,21 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 		switch (pcminfo->routeinfo->c_route) {
 		case RC_SSI1_MEM:
 			/* dma(ssi->mem) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_MEM,
-						SHDMA_DEVID_AUDIO, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
 			break;
 		case RC_SSI1_SRC1_MEM:
 			/* dma(src->mem) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC1_MEM,
-						SHDMA_DEVID_AUDIO, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
 
 			/* dma(ssi->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
-						SHDMA_DEVID_AUDIOPP, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
 			break;
 		case RC_SSI1_SRC1_DVC1_MEM:
 			/* dma(cmd->mem) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD1_MEM,
-						SHDMA_DEVID_AUDIO, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
 
 			/* dma(ssi->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1,
-						SHDMA_DEVID_AUDIOPP, ss);
+			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
 			break;
 		default:
 			break;
