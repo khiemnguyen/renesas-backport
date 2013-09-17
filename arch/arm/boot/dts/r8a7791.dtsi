@@ -51,12 +51,7 @@
 			cpuif-id = <4>;
 			cpu = <&cpu0>;
 		};
-		gic-cpuif@5 {
-			compatible = "arm,gic-cpuif";
-			cpuif-id = <5>;
-			cpu = <&cpu1>;
-		};
-};
+	};
 
 	timer {
 		compatible = "arm,armv7-timer";
@@ -64,7 +59,6 @@
 				<1 14 0xf08>,
 				<1 11 0xf08>,
 				<1 10 0xf08>;
-		clock-frequency = <10000000>;
 	};
 
 	irqc0: interrupt-controller@e61c0000 {
