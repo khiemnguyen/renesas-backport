@@ -43,6 +43,8 @@
 
 #define MD(nr)	(1 << nr)
 
+static void __iomem *r8a7791_cpg_base;
+
 #define CPG_BASE 0xe6150000
 #define CPG_LEN 0x1000
 
@@ -465,6 +467,8 @@ void __init r8a7791_clock_init(void)
 	BUG_ON(!modemr);
 	mode = ioread32(modemr);
 	iounmap(modemr);
+
+	r8a7791_cpg_base = ioremap(CPG_BASE, CPG_LEN);
 
 	switch (mode & (MD(14) | MD(13))) {
 	case 0:
