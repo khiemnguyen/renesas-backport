@@ -44,6 +44,8 @@
  *	see "p1 / 2" on R8A7790_CLOCK_ROOT() below
  */
 
+static void __iomem *r8a7790_cpg_base;
+
 #define CPG_BASE 0xe6150000
 #define CPG_LEN 0x1000
 
@@ -430,15 +432,12 @@ static struct clk_lookup lookups[] = {
 
 static void __init r8a7790_rgx_control_init(void)
 {
-	void __iomem *cpgp;
 	unsigned int val;
 
 #define RGXCR		0x0B4
 
-	cpgp = ioremap(CPG_BASE, PAGE_SIZE);
-	val = ioread32(cpgp + RGXCR);
-	iowrite32(val | (1 << 16), cpgp + RGXCR);
-	iounmap(cpgp);
+	val = ioread32(r8a7790_cpg_base + RGXCR);
+	iowrite32(val | (1 << 16), r8a7790_cpg_base + RGXCR);
 }
 
 #define R8A7790_CLOCK_ROOT(e, m, p0, p1, p30, p31)		\
@@ -536,6 +535,8 @@ void __init r8a7790_clock_init(void)
 {
 	u32 mode = r8a7790_read_mode_pins();
 	int k, ret = 0;
+
+	r8a7790_cpg_base = ioremap(CPG_BASE, CPG_LEN);
 
 	switch (mode & (MD(14) | MD(13))) {
 	case 0:
