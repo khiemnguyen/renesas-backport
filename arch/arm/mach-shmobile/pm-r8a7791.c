@@ -163,7 +163,22 @@ static inline void r8a7791_sysc_init(void) {}
 
 static int pd_power_down(struct generic_pm_domain *genpd)
 {
-	return r8a7791_sysc_power_down(to_r8a7791_ch(genpd));
+	struct r8a7791_pm_ch *r8a7791_ch = to_r8a7791_ch(genpd);
+	int ret;
+
+	ret = r8a7791_sysc_power_down(to_r8a7791_ch(genpd));
+
+	if (r8a7791_ch->chan_offs == 0xc0) {
+		/*
+		 * Issue software reset to 3DG functional blocks right after
+		 * the SGX power shut-off to avoid a hardware lock-up issue
+		 * triggered when we bring the SGX power up next time.
+		 */
+		r8a7791_module_reset(1, BIT(12), 2); /* DVFS */
+		r8a7791_module_reset(8, BIT(0), 2); /* CONST */
+	}
+
+	return ret;
 }
 
 static int pd_power_up(struct generic_pm_domain *genpd)
