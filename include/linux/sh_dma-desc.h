@@ -71,7 +71,6 @@ struct sh_dmadesc_pdata {
 	unsigned int chclr_present:1;
 	unsigned int slave_only:1;
 
-	bool (*dma_filter)(struct platform_device *pdev);
 	struct clk *(*clk_get)(struct platform_device *pdev);
 };
 
