@@ -505,6 +505,7 @@ static irqreturn_t rcar_i2c_irq(int irq, void *ptr)
 		 */
 		dev_dbg(dev, "Arbitration Lost\n");
 		rcar_i2c_flags_set(priv, (ID_DONE | ID_ARBLOST));
+		rcar_i2c_status_clear(priv);
 		goto out;
 	}
 
@@ -514,6 +515,7 @@ static irqreturn_t rcar_i2c_irq(int irq, void *ptr)
 	if (msr & MST) {
 		dev_dbg(dev, "Stop\n");
 		rcar_i2c_flags_set(priv, ID_DONE);
+		rcar_i2c_status_clear(priv);
 		goto out;
 	}
 
@@ -541,7 +543,6 @@ static irqreturn_t rcar_i2c_irq(int irq, void *ptr)
 out:
 	if (rcar_i2c_flags_has(priv, ID_DONE)) {
 		rcar_i2c_irq_mask(priv, RCAR_IRQ_CLOSE);
-		rcar_i2c_status_clear(priv);
 		wake_up(&priv->wait);
 	}
 
