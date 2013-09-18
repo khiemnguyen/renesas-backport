@@ -18,6 +18,7 @@
  */
 
 #include <linux/dma-mapping.h>
+#include <linux/i2c/i2c-rcar.h>
 #include <linux/irq.h>
 #include <linux/kernel.h>
 #include <linux/of_platform.h>
@@ -188,6 +189,58 @@ static const struct resource cmt00_resources[] __initconst = {
 					  &cmt##idx##_platform_data,	\
 					  sizeof(struct sh_timer_config))
 
+/* I2C */
+static const struct resource r8a7791_i2c0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6508000, SZ_32K),
+	DEFINE_RES_IRQ(gic_spi(287)),
+};
+
+static const struct resource r8a7791_i2c1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6518000, SZ_32K),
+	DEFINE_RES_IRQ(gic_spi(288)),
+};
+
+static const struct resource r8a7791_i2c2_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6530000, SZ_32K),
+	DEFINE_RES_IRQ(gic_spi(286)),
+};
+
+static const struct resource r8a7791_i2c3_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6540000, SZ_32K),
+	DEFINE_RES_IRQ(gic_spi(290)),
+};
+
+static const struct resource r8a7791_i2c4_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6520000, SZ_32K),
+	DEFINE_RES_IRQ(gic_spi(19)),
+};
+
+static const struct resource r8a7791_i2c5_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6528000, SZ_32K),
+	DEFINE_RES_IRQ(gic_spi(20)),
+};
+
+#define R8A7791_I2C(idx)						\
+static const struct i2c_rcar_platform_data				\
+r8a7791_i2c##idx##_platform_data __initconst = {			\
+	.bus_speed = 400000,						\
+	.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,			\
+};									\
+
+R8A7791_I2C(0);
+R8A7791_I2C(1);
+R8A7791_I2C(2);
+R8A7791_I2C(3);
+R8A7791_I2C(4);
+R8A7791_I2C(5);
+
+#define r8a7791_register_i2c(idx)					\
+	platform_device_register_resndata(&platform_bus, "i2c-rcar", idx, \
+		r8a7791_i2c##idx##_resources,				\
+		ARRAY_SIZE(r8a7791_i2c##idx##_resources),		\
+		&r8a7791_i2c##idx##_platform_data,			\
+		sizeof(r8a7791_i2c##idx##_platform_data))
+
 void __init r8a7791_add_standard_devices(void)
 {
 	r8a7791_register_scif(SCIFA0);
@@ -201,6 +254,12 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
 	r8a7791_register_cmt(00);
+	r8a7791_register_i2c(0);
+	r8a7791_register_i2c(1);
+	r8a7791_register_i2c(2);
+	r8a7791_register_i2c(3);
+	r8a7791_register_i2c(4);
+	r8a7791_register_i2c(5);
 }
 
 #define MODEMR 0xe6160060
