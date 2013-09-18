@@ -611,6 +611,11 @@ static int rcar_i2c_master_xfer(struct i2c_adapter *adap,
 		 * error handling
 		 */
 		if (rcar_i2c_flags_has(priv, ID_NACK)) {
+			/* When nack occurred, the slave address transmission
+			 * may already have restarted before ESG bit is cleared.
+			 * The delay is needed to wait for its completion.
+			 */
+			mdelay(1);
 			ret = -EREMOTEIO;
 			break;
 		}
