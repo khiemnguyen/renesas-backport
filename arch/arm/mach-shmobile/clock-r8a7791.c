@@ -100,6 +100,7 @@ SH_FIXED_RATIO_CLK_SET(pll1_div2_clk,		pll1_clk,	1, 2);
 SH_FIXED_RATIO_CLK_SET(zg_clk,			pll1_clk,	1, 3);
 SH_FIXED_RATIO_CLK_SET(hp_clk,			pll1_clk,	1, 12);
 SH_FIXED_RATIO_CLK_SET(p_clk,			pll1_clk,	1, 24);
+SH_FIXED_RATIO_CLK_SET(rclk_clk,		pll1_clk,	1, (48 * 1024));
 
 SH_FIXED_RATIO_CLK_SET(mp_clk,			pll1_div2_clk,	1, 15);
 SH_FIXED_RATIO_CLK_SET(zx_clk,			pll1_clk,	1, 3);
@@ -125,6 +126,7 @@ static struct clk *main_clks[] = {
 	&qspi_clk,
 	&hp_clk,
 	&p_clk,
+	&rclk_clk,
 	&mp_clk,
 	&cp_clk,
 	&sata0_clk,
@@ -169,7 +171,7 @@ static struct clk div6_clks[DIV6_NR] = {
 
 /* MSTP */
 enum {
-	MSTP112,
+	MSTP124, MSTP112,
 	MSTP219, MSTP218,
 	MSTP314, MSTP312, MSTP311,
 	MSTP315,
@@ -177,7 +179,7 @@ enum {
 	MSTP721, MSTP720,
 	MSTP719, MSTP718, MSTP715, MSTP714,
 	MSTP815, MSTP814,
-	MSTP811, MSTP810, MSTP809,
+	MSTP813, MSTP811, MSTP810, MSTP809,
 	MSTP216, MSTP207, MSTP206,
 	MSTP204, MSTP203, MSTP202, MSTP1105, MSTP1106, MSTP1107,
 	MSTP704, MSTP703, MSTP328,
@@ -199,6 +201,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP315] = SH_CLK_MSTP32(&div6_clks[DIV6_MMC], SMSTPCR3, 15, 0),
 	[MSTP502] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 2, 0),
 	[MSTP501] = SH_CLK_MSTP32(&hp_clk, SMSTPCR5, 1, 0),
+	[MSTP813] = SH_CLK_MSTP32(&p_clk, SMSTPCR8, 13, 0), /* Ether */
 	[MSTP721] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 21, 0), /* SCIF0 */
 	[MSTP720] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 20, 0), /* SCIF1 */
 	[MSTP719] = SH_CLK_MSTP32(&p_clk, SMSTPCR7, 19, 0), /* SCIF2 */
@@ -220,6 +223,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP1105] = SH_CLK_MSTP32(&mp_clk, SMSTPCR11, 5, 0), /* SCIFA3 */
 	[MSTP1106] = SH_CLK_MSTP32(&mp_clk, SMSTPCR11, 6, 0), /* SCIFA4 */
 	[MSTP1107] = SH_CLK_MSTP32(&mp_clk, SMSTPCR11, 7, 0), /* SCIFA5 */
+	[MSTP124] = SH_CLK_MSTP32(&rclk_clk, SMSTPCR1, 24, 0), /* CMT0 */
 	[MSTP704] = SH_CLK_MSTP32(&mp_clk, SMSTPCR7, 4, 0), /* HSUSB */
 	[MSTP703] = SH_CLK_MSTP32(&mp_clk, SMSTPCR7, 3, 0), /* EHCI */
 	[MSTP328] = SH_CLK_MSTP32(&mp_clk, SMSTPCR3, 28, 0), /* SSUSB */
@@ -260,6 +264,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("qspi",           &qspi_clk),
 	CLKDEV_CON_ID("hp",		&hp_clk),
 	CLKDEV_CON_ID("p",		&p_clk),
+	CLKDEV_CON_ID("rclk",		&rclk_clk),
 	CLKDEV_CON_ID("mp",		&mp_clk),
 	CLKDEV_CON_ID("cp",		&cp_clk),
 	CLKDEV_CON_ID("peripheral_clk", &hp_clk),
@@ -294,6 +299,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]), /* HSUSB */
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]), /* ECHI */
 	CLKDEV_CON_ID("ss_usb", &mstp_clks[MSTP328]), /* SSUSB */
+	CLKDEV_DEV_ID("r8a779x-ether", &mstp_clks[MSTP813]),
+	CLKDEV_DEV_ID("sh_cmt.0", &mstp_clks[MSTP124]),
 	CLKDEV_DEV_ID("qspi.0", &mstp_clks[MSTP917]),
 	CLKDEV_DEV_ID("spi_sh_msiof.1", &mstp_clks[MSTP000]),
 	CLKDEV_DEV_ID("spi_sh_msiof.2", &mstp_clks[MSTP208]),

@@ -14,7 +14,6 @@ void r8a7791_clock_init(void);
 void r8a7791_pinmux_init(void);
 
 extern struct sys_timer r8a7791_timer;
-extern struct smp_operations r8a7791_smp_ops;
 
 struct r8a7791_pm_ch {
 	unsigned long chan_offs;
@@ -239,5 +238,10 @@ enum {
 	SHDMA_SLAVE_MMC_TX,
 	SHDMA_SLAVE_MMC_RX,
 };
+
+#define MD(nr) BIT(nr)
+u32 r8a7791_read_mode_pins(void);
+void r8a7791_init_early(void);
+extern struct smp_operations r8a7791_smp_ops;
 
 #endif /* __ASM_R8A7791_H__ */
