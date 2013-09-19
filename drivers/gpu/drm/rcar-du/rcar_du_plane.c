@@ -355,7 +355,10 @@ static void __rcar_du_plane_setup(struct rcar_du_plane *plane,
 	else
 		mwr = plane->pitch * 8 / plane->format->bpp;
 
-	rcar_du_plane_write(rgrp, index, PnMWR, mwr);
+	if ((plane->interlace_flag) && (plane->format->bpp == 32))
+		rcar_du_plane_write(rgrp, index, PnMWR, mwr * 2);
+	else
+		rcar_du_plane_write(rgrp, index, PnMWR, mwr);
 
 	/* Destination position and size */
 	rcar_du_plane_write(rgrp, index, PnDSXR, plane->width);
@@ -453,6 +456,10 @@ rcar_du_plane_update(struct drm_plane *plane, struct drm_crtc *crtc,
 		}
 	}
 
+	if (crtc->mode.flags & DRM_MODE_FLAG_INTERLACE)
+		rplane->interlace_flag = true;
+	else
+		rplane->interlace_flag = false;
 	rcar_du_plane_setup(rplane);
 
 	mutex_lock(&rplane->group->planes.lock);
@@ -631,6 +638,7 @@ int rcar_du_planes_register(struct rcar_du_group *rgrp)
 		plane->hwplane = &planes->planes[i + 2];
 		plane->hwplane->zpos = 1;
 		plane->hwplane->fb_plane = false;
+		plane->hwplane->interlace_flag = false;
 
 		ret = drm_plane_init(rcdu->ddev, &plane->plane, crtcs,
 				     &rcar_du_plane_funcs, plane_formats,
