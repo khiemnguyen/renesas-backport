@@ -703,10 +703,10 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	}
 #if defined(CONFIG_DRM_FBDEV_CRTC)
 	disp_set_mode =
-		 fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set.mode;
+		fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.mode;
 	disp_conn =
-		 fb_helper->connector_info[CONFIG_DRM_FBDEV_CRTC]->connector;
-	fb = fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set.fb;
+		fb_helper->connector_info[CONFIG_DRM_FBDEV_CRTC_NUM]->connector;
+	fb = fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.fb;
 
 	if (disp_set_mode && disp_conn && fb &&
 		 ((info->flags & FBINFO_MISC_USEREVENT)
@@ -756,7 +756,7 @@ int drm_fb_helper_set_par(struct fb_info *info)
 					 var->xres, var->yres);
 		disp_set_mode->private_flags = true;
 		ret = drm_mode_set_config_internal(&fb_helper->
-				crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set);
+				crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set);
 		if (ret) {
 			drm_modeset_unlock_all(dev);
 			return ret;
@@ -903,7 +903,7 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 		desired_mode = fb_helper->crtc_info[i].desired_mode;
 
 #if defined(CONFIG_DRM_FBDEV_CRTC)
-		if ((desired_mode) && (i == CONFIG_DRM_FBDEV_CRTC)) {
+		if ((desired_mode) && (i == CONFIG_DRM_FBDEV_CRTC_NUM)) {
 #else
 		if (desired_mode) {
 #endif
@@ -1038,7 +1038,8 @@ void drm_fb_helper_fill_var(struct fb_info *info, struct drm_fb_helper *fb_helpe
 	info->var.width = -1;
 
 #if defined(CONFIG_DRM_FBDEV_CRTC)
-	drm_mode = fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC].mode_set.mode;
+	drm_mode =
+		 fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.mode;
 	if (drm_mode) {
 		info->var.left_margin = drm_mode->htotal - drm_mode->hsync_end;
 		info->var.right_margin =
