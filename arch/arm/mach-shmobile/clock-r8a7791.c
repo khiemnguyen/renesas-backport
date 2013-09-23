@@ -46,6 +46,7 @@
 #define CPG_BASE 0xe6150000
 #define CPG_LEN 0x1000
 
+#define MSTPSR1 (void __iomem *)0xe6150038
 #define SMSTPCR0	0xE6150130
 #define SMSTPCR1	0xE6150134
 #define SMSTPCR2	0xe6150138
@@ -188,6 +189,7 @@ enum {
 	MSTP502, MSTP501, MSTP219, MSTP218,
 	MSTP315, MSTP314, MSTP312, MSTP311,
 	MSTP208, MSTP205, MSTP000,
+	MSTP128, MSTP127,
 	MSTP124,
 	MSTP112,
 	MSTP_NR
@@ -248,6 +250,8 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP204] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 4, 0), /* SCIFA0 */
 	[MSTP203] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 3, 0), /* SCIFA1 */
 	[MSTP202] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 2, 0), /* SCIFA2 */
+	[MSTP128] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 28, MSTPSR1, 0), /* VSP1 (DU0) */
+	[MSTP127] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 27, MSTPSR1, 0), /* VSP1 (DU1) */
 	[MSTP124] = SH_CLK_MSTP32(&rclk_clk, SMSTPCR1, 24, 0), /* CMT0 */
 	[MSTP112] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 12, 0), /* pvrsrvkm */
 	[MSTP000] = SH_CLK_MSTP32(&mp_clk, SMSTPCR0, 0, 0), /* MSIOF0 */
@@ -338,6 +342,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("spi_sh_msiof.2", &mstp_clks[MSTP208]),
 	CLKDEV_DEV_ID("spi_sh_msiof.3", &mstp_clks[MSTP205]),
 	CLKDEV_DEV_ID("spi_sh_msiof.1", &mstp_clks[MSTP000]),
+	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
+	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
 };
 
