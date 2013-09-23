@@ -7,12 +7,16 @@
 struct platform_device;
 
 struct rcar_du_platform_data;
+struct vsp1_platform_data;
+
 struct scu_platform_data;
 struct sh_mmcif_plat_data;
 struct sh_mobile_sdhi_info;
 
 void r8a7791_add_standard_devices(void);
 void r8a7791_add_du_device(struct rcar_du_platform_data *pdata);
+void r8a7791_add_vsp1_device(struct vsp1_platform_data *pdata,
+			     unsigned int index);
 void r8a7791_add_mmc_device(struct sh_mmcif_plat_data *pdata);
 void r8a7791_add_scu_device(struct scu_platform_data *pdata);
 void r8a7791_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,
