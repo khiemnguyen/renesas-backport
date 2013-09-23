@@ -33,6 +33,7 @@
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
+#include <linux/platform_data/vsp1.h>
 #include <linux/platform_device.h>
 #include <linux/sh_eth.h>
 #include <linux/spi/flash.h>
@@ -519,6 +520,35 @@ static const struct soc_camera_link adv7180_ch1_link __initconst = {
 				      idx , &link,			\
 				      sizeof(struct soc_camera_link));
 
+/* VSP1 */
+static struct vsp1_platform_data koelsch_vspr_pdata = {
+	.features = 0,
+	.rpf_count = 5,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static struct vsp1_platform_data koelsch_vsps_pdata = {
+	.features = 0,
+	.rpf_count = 5,
+	.uds_count = 3,
+	.wpf_count = 4,
+};
+
+static struct vsp1_platform_data koelsch_vspd0_pdata = {
+	.features = VSP1_HAS_LIF,
+	.rpf_count = 4,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static struct vsp1_platform_data koelsch_vspd1_pdata = {
+	.features = VSP1_HAS_LIF,
+	.rpf_count = 4,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
 static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	/* DU (CN11: HDMI, CN13: LVDS) */
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
@@ -656,6 +686,8 @@ static void __init koelsch_add_standard_devices(void)
 	koelsch_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 	koelsch_add_vin_device(0, adv7612_ch0_link);
 	koelsch_add_vin_device(1, adv7180_ch1_link);
+	r8a7791_add_vsp1_device(&koelsch_vspd0_pdata, 2);
+	r8a7791_add_vsp1_device(&koelsch_vspd1_pdata, 3);
 }
 
 static const char *koelsch_boards_compat_dt[] __initdata = {
