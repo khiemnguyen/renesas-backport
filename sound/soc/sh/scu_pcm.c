@@ -567,7 +567,6 @@ static int scu_audio_stop(struct snd_pcm_substream *ss)
 static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo;
-	int i;
 
 	FNC_ENTRY
 	/* allocate scu_pcm_info structure */
@@ -580,8 +579,24 @@ static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 	pcminfo->tran_period = 0;
 	pcminfo->routeinfo   = scu_get_route_info();
 	pcminfo->ss          = ss;
-	for (i = 0; i < SHDMA_SLAVE_PCM_MAX; i++)
-		pcminfo->de_chan[i] = NULL;
+	pcminfo->pdata       = scu_get_platform_data();
+
+	/* allocate dma_chan structure */
+	pcminfo->de_chan = kzalloc((sizeof(struct dma_chan) *
+				pcminfo->pdata->dma_slave_maxnum), GFP_KERNEL);
+	if (!pcminfo->de_chan) {
+		kfree(pcminfo);
+		return NULL;
+	}
+
+	/* allocate sh_dmadesc_slave structure */
+	pcminfo->de_param = kzalloc((sizeof(struct sh_dmadesc_slave) *
+				pcminfo->pdata->dma_slave_maxnum), GFP_KERNEL);
+	if (!pcminfo->de_param) {
+		kfree(pcminfo->de_chan);
+		kfree(pcminfo);
+		return NULL;
+	}
 
 	spin_lock_init(&pcminfo->pcm_lock);
 
@@ -600,6 +615,8 @@ static void scu_pcm_free_stream(struct snd_pcm_runtime *runtime)
 	/* post process */
 	cancel_work_sync(&pcminfo->work);
 	destroy_workqueue(pcminfo->workq);
+	kfree(pcminfo->de_param);
+	kfree(pcminfo->de_chan);
 	kfree(runtime->private_data);	/* free pcminfo structure */
 
 	FNC_EXIT

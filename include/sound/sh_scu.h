@@ -2128,18 +2128,23 @@ struct scu_audio_info {
 	unsigned int mute[2];
 };
 
+struct scu_platform_data {
+	int dma_slave_maxnum;
+};
+
 struct scu_pcm_info {
 	int flag_first;			/* for PCM 1st process */
 	int flag_start;			/* for DMA control */
 	unsigned int period;		/* for buffer control */
 	unsigned int tran_period;	/* A number of transferred period */
 	spinlock_t pcm_lock;		/* for trigger process */
-	struct dma_chan *de_chan[SHDMA_SLAVE_PCM_MAX];
-	struct sh_dmadesc_slave de_param[SHDMA_SLAVE_PCM_MAX];
+	struct dma_chan **de_chan;
+	struct sh_dmadesc_slave *de_param;
 	struct work_struct work;
 	struct workqueue_struct *workq;
 	struct scu_route_info *routeinfo;
 	struct snd_pcm_substream *ss;
+	struct scu_platform_data *pdata;
 };
 
 /************************************************************************
@@ -2150,6 +2155,7 @@ struct scu_pcm_info {
 extern struct snd_soc_platform_driver scu_platform;
 
 extern struct scu_route_info *scu_get_route_info(void);
+extern struct scu_platform_data *scu_get_platform_data(void);
 
 extern void scu_init_ssi_ind_master(int, int);
 extern void scu_init_ssi_ind_slave(int, int);

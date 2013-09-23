@@ -53,12 +53,19 @@
 static struct scu_reg_info *rinfo;
 static spinlock_t *sculock;
 static struct scu_audio_info *ainfo;
+static struct scu_platform_data *pdata;
 
 struct scu_route_info *scu_get_route_info(void)
 {
 	return &ainfo->routeinfo;
 }
 EXPORT_SYMBOL(scu_get_route_info);
+
+struct scu_platform_data *scu_get_platform_data(void)
+{
+	return pdata;
+}
+EXPORT_SYMBOL(scu_get_platform_data);
 
 /************************************************************************
 
@@ -1150,6 +1157,7 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "current scu support id 0 only now\n");
 		return -ENODEV;
 	}
+	pdata = pdev->dev.platform_data;
 
 	ainfo = kzalloc(sizeof(struct scu_audio_info), GFP_KERNEL);
 	if (!ainfo) {
