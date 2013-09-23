@@ -775,6 +775,7 @@ static void __init lager_add_standard_devices(void)
 				      sizeof(lager_keys_pdata));
 
 	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 2);
+	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 3);
 	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
