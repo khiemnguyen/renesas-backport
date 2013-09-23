@@ -279,6 +279,7 @@ static const struct rcar_du_device_info rcar_du_r8a7790_info = {
 static const struct rcar_du_device_info rcar_du_r8a7791_info = {
 	.features = RCAR_DU_FEATURE_CRTC_IRQ_CLOCK | RCAR_DU_FEATURE_DEFR8
 		  | RCAR_DU_FEATURE_NO_LVDS_INTERFACE |
+		  RCAR_DU_FEATURE_VSP1_SOURCE |
 		  RCAR_DU_FEATURE_INTERLACE,
 	.num_crtcs = 2,
 	.routes = {
