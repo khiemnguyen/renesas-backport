@@ -213,9 +213,8 @@ enum {
 	MSTP315, MSTP314, MSTP313, MSTP312, MSTP311, MSTP305, MSTP304,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP215, MSTP208, MSTP205, MSTP000,
-	MSTP128, MSTP127,
-	MSTP124,
-	MSTP112,
+	MSTP131, MSTP130, MSTP128, MSTP127, MSTP124, MSTP119, MSTP118, MSTP117,
+	MSTP115, MSTP112, MSTP109, MSTP103, MSTP102, MSTP101, MSTP100,
 	MSTP_NR
 };
 
@@ -274,10 +273,21 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP204] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 4, 0), /* SCIFA0 */
 	[MSTP203] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 3, 0), /* SCIFA1 */
 	[MSTP202] = SH_CLK_MSTP32(&mp_clk, SMSTPCR2, 2, 0), /* SCIFA2 */
+	[MSTP131] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 31, 0), /* VSPS */
+	[MSTP130] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 30, 0), /* VSPR */
 	[MSTP128] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 28, MSTPSR1, 0), /* VSP1 (DU0) */
 	[MSTP127] = SH_CLK_MSTP32_STS(&zg_clk, SMSTPCR1, 27, MSTPSR1, 0), /* VSP1 (DU1) */
 	[MSTP124] = SH_CLK_MSTP32(&rclk_clk, SMSTPCR1, 24, 0), /* CMT0 */
-	[MSTP112] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 12, 0), /* pvrsrvkm */
+	[MSTP119] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 19, 0), /* FDP0 */
+	[MSTP118] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 18, 0), /* FDP1 */
+	[MSTP117] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 17, 0), /* FDP2 */
+	[MSTP115] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 15, 0), /* 2DDMAC */
+	[MSTP112] = SH_CLK_MSTP32(&zg_clk, SMSTPCR1, 12, 0), /* 3DG */
+	[MSTP109] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 9, 0),  /* SSP */
+	[MSTP103] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 3, 0),  /* VPC0 */
+	[MSTP102] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 2, 0),  /* VPC1 */
+	[MSTP101] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 1, 0),  /* VCP0 */
+	[MSTP100] = SH_CLK_MSTP32(&zs_clk, SMSTPCR1, 0, 0),  /* VCP1 */
 	[MSTP000] = SH_CLK_MSTP32(&mp_clk, SMSTPCR0, 0, 0), /* MSIOF0 */
 };
 
@@ -353,6 +363,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh_mobile_sdhi.3", &mstp_clks[MSTP311]),
 	CLKDEV_DEV_ID("ee220000.mmcif", &mstp_clks[MSTP305]),
 	CLKDEV_DEV_ID("sh_mmcif.1", &mstp_clks[MSTP305]),
+	CLKDEV_CON_ID("vsps", &mstp_clks[MSTP131]),
+	CLKDEV_CON_ID("vspr", &mstp_clks[MSTP130]),
 	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
 	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
 	CLKDEV_DEV_ID("sh_cmt.0", &mstp_clks[MSTP124]),
@@ -387,6 +399,15 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("spi_sh_msiof.2", &mstp_clks[MSTP208]),
 	CLKDEV_DEV_ID("spi_sh_msiof.3", &mstp_clks[MSTP205]),
 	CLKDEV_DEV_ID("spi_sh_msiof.1", &mstp_clks[MSTP000]),
+	CLKDEV_CON_ID("fdp0", &mstp_clks[MSTP119]),
+	CLKDEV_CON_ID("fdp1", &mstp_clks[MSTP118]),
+	CLKDEV_CON_ID("fdp2", &mstp_clks[MSTP117]),
+	CLKDEV_CON_ID("tddmac", &mstp_clks[MSTP115]),
+	CLKDEV_DEV_ID("ssp_dev", &mstp_clks[MSTP109]),
+	CLKDEV_CON_ID("vpc0", &mstp_clks[MSTP103]),
+	CLKDEV_CON_ID("vpc1", &mstp_clks[MSTP102]),
+	CLKDEV_CON_ID("vcp0", &mstp_clks[MSTP101]),
+	CLKDEV_CON_ID("vcp1", &mstp_clks[MSTP100]),
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
 };
 
