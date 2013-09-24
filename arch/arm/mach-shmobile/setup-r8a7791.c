@@ -583,6 +583,17 @@ static const struct resource sh_msiof2_resources[] __initconst = {
 				  &sh_msiof_info,		\
 				  sizeof(struct sh_msiof_spi_info))
 
+/* QSPI */
+static const struct resource qspi_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xe6b10000, SZ_4K, "qspi"),
+	DEFINE_RES_IRQ(gic_spi(184)),
+};
+
+#define r8a7791_register_qspi()					\
+	platform_device_register_simple("qspi", 0,		\
+					qspi_resources,		\
+					ARRAY_SIZE(qspi_resources))
+
 /* USB */
 struct usb_ehci_pdata ehci_pdata = {
 	.caps_offset	= 0,
@@ -939,6 +950,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_msiof(0);
 	r8a7791_register_msiof(1);
 	r8a7791_register_msiof(2);
+	r8a7791_register_qspi();
 	r8a7791_register_usbh_ehci(0);
 	r8a7791_register_usbh_ehci(1);
 	r8a7791_register_usbh_ohci(0);
