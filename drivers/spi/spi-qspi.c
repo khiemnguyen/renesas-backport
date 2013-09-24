@@ -1028,9 +1028,9 @@ static int qspi_transfer_one_message(struct spi_master *master,
 	list_for_each_entry(t, &msg->transfers, transfer_list) {
 
 		/* single mode transfer */
-		if (spi_mode == QSPI_NON_SEQUENTIAL
-			|| spi_mode == QSPI_SINGLE_RW_MODE
-			|| seqno == 0) {
+		if (spi_mode == QSPI_NON_SEQUENTIAL ||
+			spi_mode == QSPI_SINGLE_RW_MODE ||
+			seqno == 0) {
 			if (t->bits_per_word == 32)
 				ret = qspi_single_tx_msg32(qspi, t->len / 4,
 					t->tx_buf, t->rx_buf);
