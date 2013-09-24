@@ -125,7 +125,8 @@ void __init r8a7791_pinmux_init(void)
 	.scscr = SCSCR_RE | SCSCR_TE,	\
 }
 
-enum { SCIFA0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1 };
+enum { SCIFA0 = 0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
+	SCIF2 = 10, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5 };
 
 static const struct plat_sci_port scif[] __initconst = {
 	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144)), /* SCIFA0 */
@@ -136,6 +137,13 @@ static const struct plat_sci_port scif[] __initconst = {
 	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151)), /* SCIFA2 */
 	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152)), /* SCIF0 */
 	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153)), /* SCIF1 */
+	SCIF_DATA(SCIF2, 0xe6e58000, gic_spi(22)), /* SCIF2 */
+	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23)), /* SCIF3 */
+	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24)), /* SCIF4 */
+	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25)), /* SCIF5 */
+	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29)), /* SCIFA3 */
+	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30)), /* SCIFA4 */
+	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31)), /* SCIFA5 */
 };
 
 static inline void r8a7791_register_scif(int idx)
@@ -554,6 +562,13 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_scif(SCIFA2);
 	r8a7791_register_scif(SCIF0);
 	r8a7791_register_scif(SCIF1);
+	r8a7791_register_scif(SCIF2);
+	r8a7791_register_scif(SCIF3);
+	r8a7791_register_scif(SCIF4);
+	r8a7791_register_scif(SCIF5);
+	r8a7791_register_scif(SCIFA3);
+	r8a7791_register_scif(SCIFA4);
+	r8a7791_register_scif(SCIFA5);
 	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
 	r8a7791_register_cmt(00);
