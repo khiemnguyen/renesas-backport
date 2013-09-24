@@ -172,6 +172,21 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "intc_irq0", "intc"),
+	/* USB0 */
+	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7790",
+				  "usb0_pwen", "usb0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7790",
+				  "usb0_ovc_vbus", "usb0"),
+	/* USB1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.1", "pfc-r8a7790",
+				  "usb1_pwen", "usb1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.1", "pfc-r8a7790",
+				  "usb1_ovc", "usb1"),
+	/* USB2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.2", "pfc-r8a7790",
+				  "usb2_pwen", "usb2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.2", "pfc-r8a7790",
+				  "usb2_ovc", "usb2"),
 };
 
 static void __init lager_add_standard_devices(void)
