@@ -44,7 +44,7 @@
 /* QSPI register address                */
 /****************************************/
 
-#define	QSPI_BASE	0xE6B10000	/* Base register */
+#define	QSPI_BASE	0xe6b10000	/* Base register */
 
 #define QSPI_SPCR	0x00	/* Control register */
 #define	QSPI_SSLP	0x01	/* Slave select polarity register */
@@ -53,18 +53,18 @@
 #define	QSPI_SPDR	0x04	/* Data register */
 #define	QSPI_SPSCR	0x08	/* Sequence control register */
 #define	QSPI_SPSSR	0x09	/* Sequence status register */
-#define	QSPI_SPBR	0x0A	/* Bit rate register */
-#define	QSPI_SPDCR	0x0B	/* Data control register */
-#define	QSPI_SPCKD	0x0C	/* Clock delay register */
-#define	QSPI_SSLND	0x0D	/* Slave select negation delay register */
-#define	QSPI_SPND	0x0E	/* Next-access delay register */
+#define	QSPI_SPBR	0x0a	/* Bit rate register */
+#define	QSPI_SPDCR	0x0b	/* Data control register */
+#define	QSPI_SPCKD	0x0c	/* Clock delay register */
+#define	QSPI_SSLND	0x0d	/* Slave select negation delay register */
+#define	QSPI_SPND	0x0e	/* Next-access delay register */
 #define	QSPI_SPCMD0	0x10	/* Command register 0 */
 #define	QSPI_SPCMD1	0x12	/* Command register 1 */
 #define	QSPI_SPCMD2	0x14	/* Command register 2 */
 #define	QSPI_SPCMD3	0x16	/* Command register 3 */
 #define	QSPI_SPBFCR	0x18	/* Buffer control register */
-#define	QSPI_SPBDCR	0x1A	/* Buffer data count register */
-#define	QSPI_SPBMUL0	0x1C	/* Multiplier setting register 0 */
+#define	QSPI_SPBDCR	0x1a	/* Buffer data count register */
+#define	QSPI_SPBMUL0	0x1c	/* Multiplier setting register 0 */
 #define	QSPI_SPBMUL1	0x20	/* Multiplier setting register 1 */
 #define	QSPI_SPBMUL2	0x24	/* Multiplier setting register 2 */
 #define	QSPI_SPBMUL3	0x28	/* Multiplier setting register 3 */
@@ -91,13 +91,13 @@
 #define QSPI_SPSR_SPTEF_	0x00	/* transmit buffer is not empty */
 
 /* SPCMD */
-#define QSPI_SPCMD_SXXDEN	0xE000	/* delay setting enable */
+#define QSPI_SPCMD_SXXDEN	0xe000	/* delay setting enable */
 #define QSPI_SPCMD_SCKDEN	0x8000	/* clock delay setting enable */
 #define QSPI_SPCMD_SLNDEN	0x4000	/* SSL Negation Delay setting enable */
 #define QSPI_SPCMD_SPNDEN	0x2000	/* next access delay setting enable */
 #define QSPI_SPCMD_LSBF		0x1000	/* LSB first */
 #define QSPI_SPCMD_SSLKP	0x0080	/* SSL signal level keeping */
-#define QSPI_SPCMD_SPB_MASK	0x0F00	/* transfer data length setting mask */
+#define QSPI_SPCMD_SPB_MASK	0x0f00	/* transfer data length setting mask */
 #define QSPI_SPCMD_SPB_8	0x0000	/* transfer data length is 8 */
 #define QSPI_SPCMD_SPB_16	0x0100	/* transfer data length is 16 */
 #define QSPI_SPCMD_SPB_32	0x0200	/* transfer data length is 32 */
@@ -136,22 +136,22 @@
 
 #define SPI_FLASH_READ_COM		0x03	/* Read Data */
 #define SPI_FLASH_4READ_COM		0x13	/* Read Data */
-#define SPI_FLASH_FAST_READ_COM		0x0B	/* Read Data at Fast Speed */
-#define SPI_FLASH_4FAST_READ_COM	0x0C	/* Read Data at Fast Speed */
-#define SPI_FLASH_DDRFAST_READ_COM	0x0D	/* DDR Fast Read */
-#define SPI_FLASH_4DDRFAST_READ_COM	0x0E	/* DDR Fast Read */
-#define	SPI_FLASH_DUAL_READ_COM		0x3B	/* Dual Output Read */
-#define	SPI_FLASH_4DUAL_READ_COM	0x3C	/* Dual Output Read */
-#define	SPI_FLASH_QUAD_READ_COM		0x6B	/* Quad Output Read */
-#define	SPI_FLASH_4QUAD_READ_COM	0x6C	/* Quad Output Read */
-#define	SPI_FLASH_DIO_READ_COM		0xBB	/* Dual I/O High Perf. Read */
-#define	SPI_FLASH_4DIO_READ_COM		0xBC	/* Dual I/O High Perf. Read */
-#define	SPI_FLASH_DDRDIO_READ_COM	0xBD	/* DDR Dual I/O Read */
-#define	SPI_FLASH_4DDRDIO_READ_COM	0xBE	/* DDR Dual I/O Read */
-#define	SPI_FLASH_QIO_READ_COM		0xEB	/* Quad I/O High Perf. Read */
-#define	SPI_FLASH_4QIO_READ_COM		0xEC	/* Quad I/O High Perf. Read */
-#define	SPI_FLASH_DDRQIO_READ_COM	0xED	/* DDR Quad I/O Read */
-#define	SPI_FLASH_4DDRQIO_READ_COM	0xEE	/* DDR Quad I/O Read */
+#define SPI_FLASH_FAST_READ_COM		0x0b	/* Read Data at Fast Speed */
+#define SPI_FLASH_4FAST_READ_COM	0x0c	/* Read Data at Fast Speed */
+#define SPI_FLASH_DDRFAST_READ_COM	0x0d	/* DDR Fast Read */
+#define SPI_FLASH_4DDRFAST_READ_COM	0x0e	/* DDR Fast Read */
+#define	SPI_FLASH_DUAL_READ_COM		0x3b	/* Dual Output Read */
+#define	SPI_FLASH_4DUAL_READ_COM	0x3c	/* Dual Output Read */
+#define	SPI_FLASH_QUAD_READ_COM		0x6b	/* Quad Output Read */
+#define	SPI_FLASH_4QUAD_READ_COM	0x6c	/* Quad Output Read */
+#define	SPI_FLASH_DIO_READ_COM		0xbb	/* Dual I/O High Perf. Read */
+#define	SPI_FLASH_4DIO_READ_COM		0xbc	/* Dual I/O High Perf. Read */
+#define	SPI_FLASH_DDRDIO_READ_COM	0xbd	/* DDR Dual I/O Read */
+#define	SPI_FLASH_4DDRDIO_READ_COM	0xbe	/* DDR Dual I/O Read */
+#define	SPI_FLASH_QIO_READ_COM		0xeb	/* Quad I/O High Perf. Read */
+#define	SPI_FLASH_4QIO_READ_COM		0xec	/* Quad I/O High Perf. Read */
+#define	SPI_FLASH_DDRQIO_READ_COM	0xed	/* DDR Quad I/O Read */
+#define	SPI_FLASH_4DDRQIO_READ_COM	0xee	/* DDR Quad I/O Read */
 
 #define	SPI_FLASH_PAGE_COM		0x02	/* Page Program */
 #define	SPI_FLASH_4PAGE_COM		0x12	/* Page Program */
