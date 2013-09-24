@@ -28,6 +28,7 @@
 #include <linux/platform_data/rcar-du.h>
 #include <linux/platform_device.h>
 #include <linux/sh_eth.h>
+#include <linux/spi/spi.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7791.h>
@@ -47,6 +48,19 @@ static struct resource ether_resources[] __initdata = {
 	DEFINE_RES_MEM(0xee700000, 0x400),
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
+
+/* MSIOF spidev */
+static const struct spi_board_info spi_bus[] __initconst = {
+	{
+		.modalias	= "spidev",
+		.max_speed_hz	= 6000000,
+		.mode		= SPI_MODE_3,
+		.bus_num	= 1,
+		.chip_select	= 0,
+	},
+};
+
+#define koelsch_add_msiof_device spi_register_board_info
 
 static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	/* DU (CN10: ARGB0, CN13: LVDS) */
@@ -71,6 +85,19 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7791",
 				  "intc_irq0", "intc"),
+	/* MSIOF0 */
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
+				  "msiof0_clk", "msiof0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
+				  "msiof0_sync", "msiof0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
+				  "msiof0_ss1", "msiof0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
+				  "msiof0_ss2", "msiof0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
+				  "msiof0_rx", "msiof0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
+				  "msiof0_tx", "msiof0"),
 	/* USB0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7791",
 				  "usb0_pwen", "usb0"),
@@ -97,6 +124,8 @@ static void __init koelsch_add_standard_devices(void)
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
+
+	koelsch_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 }
 
 static const char *koelsch_boards_compat_dt[] __initdata = {
