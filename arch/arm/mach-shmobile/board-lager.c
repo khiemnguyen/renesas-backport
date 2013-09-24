@@ -30,6 +30,7 @@
 #include <linux/platform_data/vsp1.h>
 #include <linux/platform_device.h>
 #include <linux/sh_eth.h>
+#include <linux/spi/spi.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
@@ -149,6 +150,19 @@ static struct resource ether_resources[] __initdata = {
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
 
+/* MSIOF spidev */
+static const struct spi_board_info spi_bus[] __initconst = {
+	{
+		.modalias	= "spidev",
+		.max_speed_hz	= 6000000,
+		.mode		= SPI_MODE_3,
+		.bus_num	= 2,
+		.chip_select	= 0,
+	},
+};
+
+#define lager_add_msiof_device spi_register_board_info
+
 static const struct pinctrl_map lager_pinctrl_map[] = {
 	/* DU (CN10: ARGB0, CN13: LVDS) */
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
@@ -172,6 +186,19 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "intc_irq0", "intc"),
+	/* MSIOF1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_clk", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_sync", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_ss1", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_ss2", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_rx", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
+				  "msiof1_tx", "msiof1"),
 	/* USB0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7790",
 				  "usb0_pwen", "usb0"),
@@ -212,6 +239,8 @@ static void __init lager_add_standard_devices(void)
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
+
+	lager_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 }
 
 static const char *lager_boards_compat_dt[] __initdata = {
