@@ -30,6 +30,7 @@
 #include <linux/sh_audma-pp.h>
 #include <linux/sh_dma-desc.h>
 #include <linux/sh_timer.h>
+#include <linux/spi/sh_msiof.h>
 #include <linux/usb/ehci_pdriver.h>
 #include <linux/usb/ohci_pdriver.h>
 #include <mach/common.h>
@@ -554,6 +555,34 @@ R8A7791_I2C(5);
 		&r8a7791_i2c##idx##_platform_data,			\
 		sizeof(r8a7791_i2c##idx##_platform_data))
 
+/* MSIOF */
+static const struct sh_msiof_spi_info sh_msiof_info __initconst = {
+	.rx_fifo_override	= 256,
+	.num_chipselect		= 1,
+};
+
+static const struct resource sh_msiof0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e20000, 0x0064),
+	DEFINE_RES_IRQ(gic_spi(156)),
+};
+
+static const struct resource sh_msiof1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e10000, 0x0064),
+	DEFINE_RES_IRQ(gic_spi(157)),
+};
+
+static const struct resource sh_msiof2_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e00000, 0x0064),
+	DEFINE_RES_IRQ(gic_spi(158)),
+};
+
+#define r8a7791_register_msiof(idx)					\
+	platform_device_register_resndata(&platform_bus, "spi_sh_msiof", \
+				  (idx+1), sh_msiof##idx##_resources,	\
+				  ARRAY_SIZE(sh_msiof##idx##_resources), \
+				  &sh_msiof_info,		\
+				  sizeof(struct sh_msiof_spi_info))
+
 /* USB */
 struct usb_ehci_pdata ehci_pdata = {
 	.caps_offset	= 0,
@@ -907,6 +936,9 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_i2c(3);
 	r8a7791_register_i2c(4);
 	r8a7791_register_i2c(5);
+	r8a7791_register_msiof(0);
+	r8a7791_register_msiof(1);
+	r8a7791_register_msiof(2);
 	r8a7791_register_usbh_ehci(0);
 	r8a7791_register_usbh_ehci(1);
 	r8a7791_register_usbh_ohci(0);
