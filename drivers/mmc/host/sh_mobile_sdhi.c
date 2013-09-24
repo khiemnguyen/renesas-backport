@@ -374,6 +374,25 @@ static void sh_mobile_sdhi_cd_wakeup(const struct platform_device *pdev)
 	mmc_detect_change(dev_get_drvdata(&pdev->dev), msecs_to_jiffies(100));
 }
 
+#define HOST_MODE_16BIT	1
+#define HOST_MODE_32BIT	0
+#define EXT_ACC_16BIT	0
+#define EXT_ACC_32BIT	1
+
+static void sh_mobile_sdhi_set_transfer_size(struct tmio_mmc_host *host,
+								int enable)
+{
+	unsigned int acc_size;
+
+	if (host->pdata->dma->alignment_shift > 1) {
+		if (host->bus_shift)
+			acc_size = enable ? HOST_MODE_32BIT : HOST_MODE_16BIT;
+		else
+			acc_size = enable ? EXT_ACC_32BIT : EXT_ACC_16BIT;
+		sd_ctrl_write16(host, 0xe4, acc_size);
+	}
+}
+
 static const struct sh_mobile_sdhi_ops sdhi_ops = {
 	.cd_wakeup = sh_mobile_sdhi_cd_wakeup,
 };
@@ -445,7 +464,9 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 			priv->param_rx.shdma_slave.slave_id = p->dma_slave_rx;
 			priv->dma_priv.chan_priv_tx = &priv->param_tx.shdma_slave;
 			priv->dma_priv.chan_priv_rx = &priv->param_rx.shdma_slave;
-			priv->dma_priv.alignment_shift = 1; /* 2-byte alignment */
+			priv->dma_priv.alignment_shift = 5; /* 32byte alignment */
+			mmc_data->set_transfer_size =
+				sh_mobile_sdhi_set_transfer_size;
 			mmc_data->dma_filter = sh_mobile_sdhi_dma_filter;
 			mmc_data->dma = &priv->dma_priv;
 		}
@@ -469,6 +490,11 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	/* Set 16bit access */
 	if (mmc_data->flags & TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH)
 		sd_ctrl_write16(host, 0xe4, 1);
+
+	if (host->bus_shift)
+		sd_ctrl_write16(host, 0x192, 0x0004);
+	else
+		sd_ctrl_write16(host, 0xe6, 0xa000);
 
 	/*
 	 * Allow one or more specific (named) ISRs or
