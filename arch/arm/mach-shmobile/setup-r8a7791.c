@@ -30,6 +30,8 @@
 #include <linux/sh_audma-pp.h>
 #include <linux/sh_dma-desc.h>
 #include <linux/sh_timer.h>
+#include <linux/usb/ehci_pdriver.h>
+#include <linux/usb/ohci_pdriver.h>
 #include <mach/common.h>
 #include <mach/dma-register.h>
 #include <mach/irqs.h>
@@ -552,8 +554,330 @@ R8A7791_I2C(5);
 		&r8a7791_i2c##idx##_platform_data,			\
 		sizeof(r8a7791_i2c##idx##_platform_data))
 
+/* USB */
+struct usb_ehci_pdata ehci_pdata = {
+	.caps_offset	= 0,
+	.has_tt		= 0,
+};
+
+struct usb_ohci_pdata ohci_pdata = {
+};
+
+static const struct resource ehci0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xee080000 + 0x1000, 0xfff),
+	DEFINE_RES_IRQ(gic_spi(108)),
+};
+static const struct resource ehci1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xee0c0000 + 0x1000, 0xfff),
+	DEFINE_RES_IRQ(gic_spi(113)),
+};
+static const struct resource ohci0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xee080000, 0xfff),
+	DEFINE_RES_IRQ(gic_spi(108)),
+};
+static const struct resource ohci1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xee0c0000, 0xfff),
+	DEFINE_RES_IRQ(gic_spi(113)),
+};
+static const struct resource xhci0_resources[] __initconst = {
+	DEFINE_RES_MEM(SHUSBH_XHCI_BASE, SHUSBH_XHCI_SIZE),
+	DEFINE_RES_IRQ(gic_spi(101)),
+};
+static const struct resource *ehci_resources[] = {
+	ehci0_resources,
+	ehci1_resources,
+};
+static const struct resource *ohci_resources[] = {
+	ohci0_resources,
+	ohci1_resources,
+};
+static const struct resource *xhci_resources[] = {
+	xhci0_resources,
+};
+void __init r8a7791_register_usbh_ehci(unsigned int index)
+{
+	struct platform_device_info info = {
+		.parent = &platform_bus,
+		.name = "ehci-platform",
+		.id = index,
+		.data = &ehci_pdata,
+		.size_data = sizeof(struct usb_ehci_pdata),
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	if (index >= ARRAY_SIZE(ehci_resources))
+		return;
+
+	info.res = ehci_resources[index];
+	info.num_res = 2;
+
+	platform_device_register_full(&info);
+}
+void __init r8a7791_register_usbh_ohci(unsigned int index)
+{
+	struct platform_device_info info = {
+		.parent = &platform_bus,
+		.name = "ohci-platform",
+		.id = index,
+		.data = &ohci_pdata,
+		.size_data = sizeof(struct usb_ohci_pdata),
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	if (index >= ARRAY_SIZE(ohci_resources))
+		return;
+
+	info.res = ohci_resources[index],
+	info.num_res = 2,
+
+	platform_device_register_full(&info);
+}
+void __init r8a7791_register_usbh_xhci(unsigned int index)
+{
+	struct platform_device_info info = {
+		.parent = &platform_bus,
+		.name = "xhci-hcd",
+		.id = index,
+		.data = NULL,
+		.size_data = 0,
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	if (index >= ARRAY_SIZE(xhci_resources))
+		return;
+
+	info.res = xhci_resources[index];
+	info.num_res = 2;
+
+	platform_device_register_full(&info);
+}
+static void __init usbh_internal_pci_bridge_init(int ch)
+{
+	u32 data;
+	void __iomem *ahbpci_base;
+	void __iomem *pci_conf_ahbpci_bas;
+
+	ahbpci_base =
+		ioremap_nocache((AHBPCI_BASE + (ch * 0x20000)), 0x400);
+	if (!ahbpci_base)
+		return;
+
+	pci_conf_ahbpci_bas =
+		ioremap_nocache((PCI_CONF_AHBPCI_BAS + (ch * 0x20000)),
+								0x100);
+	if (!pci_conf_ahbpci_bas)
+		goto err_iounmap_ahbpci;
+
+	/* Clock & Reset & Direct Power Down */
+	data = ioread32(ahbpci_base + USBCTR);
+	data &= ~(DIRPD);
+	iowrite32(data, (ahbpci_base + USBCTR));
+
+	data &= ~(PLL_RST | PCICLK_MASK | USBH_RST);
+	iowrite32(data | PCI_AHB_WIN1_SIZE_1G, (ahbpci_base + USBCTR));
+
+	data = ioread32((ahbpci_base + AHB_BUS_CTR));
+	if (data == AHB_BUS_CTR_SET)
+		goto err_iounmap_pci_conf;
+
+	/****** AHB-PCI Bridge Communication Registers ******/
+	/* AHB_BUS_CTR */
+	iowrite32(AHB_BUS_CTR_SET, (ahbpci_base + AHB_BUS_CTR));
+
+	/* PCIAHB_WIN1_CTR */
+	iowrite32((0x40000000 | PREFETCH),
+			(ahbpci_base + PCIAHB_WIN1_CTR));
+
+	/* AHBPCI_WIN2_CTR */
+	iowrite32((SHUSBH_OHCI_BASE | PCIWIN2_PCICMD),
+			(ahbpci_base + AHBPCI_WIN2_CTR));
+
+	/* PCI_ARBITER_CTR */
+	data = ioread32((ahbpci_base + PCI_ARBITER_CTR));
+	data |= (PCIBP_MODE | PCIREQ1 | PCIREQ0);
+	iowrite32(data, (ahbpci_base + PCI_ARBITER_CTR));
+
+	/* AHBPCI_WIN1_CTR : set PCI Configuratin Register for AHBPCI */
+	iowrite32(PCIWIN1_PCICMD | AHB_CFG_AHBPCI,
+			(ahbpci_base + AHBPCI_WIN1_CTR));
+
+	/****** PCI Configuration Registers for AHBPCI ******/
+	/* BASEAD */
+	iowrite32(AHBPCI_BASE, (pci_conf_ahbpci_bas + BASEAD));
+
+	/* WIN1_BASEAD */
+	iowrite32(0x40000000, (pci_conf_ahbpci_bas + WIN1_BASEAD));
+
+	/* System error enable, Parity error enable, PCI Master enable, */
+	/* Memory cycle enable */
+	iowrite32(((ioread32(pci_conf_ahbpci_bas + CMND_STS) & ~0x00100000) |
+			(SERREN | PERREN | MASTEREN | MEMEN)),
+			(pci_conf_ahbpci_bas + CMND_STS));
+
+	/****** PCI Configuration Registers for OHCI/EHCI ******/
+	iowrite32(PCIWIN1_PCICMD | AHB_CFG_HOST,
+			(ahbpci_base + AHBPCI_WIN1_CTR));
+
+err_iounmap_pci_conf:
+	iounmap(pci_conf_ahbpci_bas);
+err_iounmap_ahbpci:
+	iounmap(ahbpci_base);
+
+}
+
+static int __init usbh_ohci_init(int ch)
+{
+	u32 val;
+	int retval;
+
+	void __iomem *pci_conf_ohci_base
+		= ioremap_nocache((PCI_CONF_OHCI_BASE + (ch * 0x20000)),
+								0x100);
+
+	if (!pci_conf_ohci_base)
+		return -ENOMEM;
+
+	val = ioread32((pci_conf_ohci_base + OHCI_VID_DID));
+
+	if (val == OHCI_ID) {
+		/* OHCI_BASEAD */
+		iowrite32(SHUSBH_OHCI_BASE,
+				(pci_conf_ohci_base + OHCI_BASEAD));
+		retval = 0;
+
+		/* System error enable, Parity error enable, */
+		/* PCI Master enable, Memory cycle enable */
+		iowrite32(ioread32(pci_conf_ohci_base + OHCI_CMND_STS) |
+				(SERREN | PERREN | MASTEREN | MEMEN),
+				(pci_conf_ohci_base + OHCI_CMND_STS));
+	} else {
+		printk(KERN_ERR "Don't found OHCI controller. %x\n", val);
+		retval = -1;
+	}
+	iounmap(pci_conf_ohci_base);
+
+	return retval;
+}
+
+static int __init usbh_ehci_init(int ch)
+{
+	u32 val;
+	int retval;
+
+	void __iomem *pci_conf_ehci_base
+		= ioremap_nocache((PCI_CONF_EHCI_BASE + (ch * 0x20000)),
+								 0x100);
+
+	if (!pci_conf_ehci_base)
+		return -ENOMEM;
+
+	val = ioread32((pci_conf_ehci_base + EHCI_VID_DID));
+	if (val == EHCI_ID) {
+		/* EHCI_BASEAD */
+		iowrite32(SHUSBH_EHCI_BASE,
+				(pci_conf_ehci_base + EHCI_BASEAD));
+
+		/* System error enable, Parity error enable, */
+		/* PCI Master enable, Memory cycle enable */
+		iowrite32(ioread32(pci_conf_ehci_base + EHCI_CMND_STS) |
+				(SERREN | PERREN | MASTEREN | MEMEN),
+				(pci_conf_ehci_base + EHCI_CMND_STS));
+		retval = 0;
+	} else {
+		printk(KERN_ERR "Don't found EHCI controller. %x\n", val);
+		retval = -1;
+	}
+	iounmap(pci_conf_ehci_base);
+
+	return retval;
+}
+
+static void __init usbh_pci_int_enable(int ch)
+{
+	void __iomem *ahbpci_base =
+		ioremap_nocache((AHBPCI_BASE + (ch * 0x20000)), 0x400);
+	u32 data;
+
+	if (!ahbpci_base)
+		return;
+
+	/* PCI_INT_ENABLE */
+	data = ioread32((ahbpci_base + PCI_INT_ENABLE));
+	data |= USBH_PMEEN | USBH_INTBEN | USBH_INTAEN;
+	iowrite32(data, (ahbpci_base + PCI_INT_ENABLE));
+
+	iounmap(ahbpci_base);
+}
+
+static int __init usbh_init(void)
+{
+	struct clk *clk_hs, *clk_ehci;
+#if defined(CONFIG_USB_XHCI_HCD)
+	struct clk *clk_xhci;
+#endif /* CONFIG_USB_XHCI_HCD */
+	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
+	unsigned int ch;
+	int ret = 0;
+
+	if (!hs_usb)
+		return -ENOMEM;
+
+	clk_hs = clk_get(NULL, "hs_usb");
+	if (IS_ERR(clk_hs)) {
+		ret = PTR_ERR(clk_hs);
+		goto err_iounmap;
+	}
+
+	clk_ehci = clk_get(NULL, "usb_fck");
+	if (IS_ERR(clk_ehci)) {
+		ret = PTR_ERR(clk_ehci);
+		goto err_iounmap;
+	}
+
+	clk_enable(clk_hs);
+	clk_enable(clk_ehci);
+
+#if defined(CONFIG_USB_XHCI_HCD)
+	clk_xhci = clk_get(NULL, "ss_usb");
+	if (IS_ERR(clk_xhci)) {
+		ret = PTR_ERR(clk_xhci);
+		goto err_iounmap;
+	}
+
+	clk_enable(clk_xhci);
+
+	/* Select XHCI for ch2 and EHCI for ch0 */
+	iowrite32(0x80000011, (hs_usb + 0x184));
+#else
+	/* Set EHCI for UGCTRL2 */
+	iowrite32(0x00000011, (hs_usb + 0x184));
+#endif /* CONFIG_USB_XHCI_HCD */
+
+	for (ch = 0; ch < SHUSBH_MAX_CH; ch++) {
+		if (1 != ch) {
+			/* internal pci-bus bridge initialize */
+			usbh_internal_pci_bridge_init(ch);
+
+			/* ohci initialize */
+			usbh_ohci_init(ch);
+
+			/* ehci initialize */
+			usbh_ehci_init(ch);
+
+			/* pci int enable */
+			usbh_pci_int_enable(ch);
+		}
+	}
+err_iounmap:
+	iounmap(hs_usb);
+
+	return ret;
+}
+
 void __init r8a7791_add_standard_devices(void)
 {
+	usbh_init();
+
 	r8a7791_register_scif(SCIFA0);
 	r8a7791_register_scif(SCIFA1);
 	r8a7791_register_scif(SCIFB0);
@@ -583,6 +907,11 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_i2c(3);
 	r8a7791_register_i2c(4);
 	r8a7791_register_i2c(5);
+	r8a7791_register_usbh_ehci(0);
+	r8a7791_register_usbh_ehci(1);
+	r8a7791_register_usbh_ohci(0);
+	r8a7791_register_usbh_ohci(1);
+	r8a7791_register_usbh_xhci(0);
 }
 
 #define MODEMR 0xe6160060
