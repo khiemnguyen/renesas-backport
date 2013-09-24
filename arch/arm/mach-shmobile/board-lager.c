@@ -24,12 +24,15 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/leds.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
 #include <linux/pinctrl/machine.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
 #include <linux/platform_data/vsp1.h>
 #include <linux/platform_device.h>
 #include <linux/sh_eth.h>
+#include <linux/spi/flash.h>
 #include <linux/spi/spi.h>
 #include <mach/common.h>
 #include <mach/irqs.h>
@@ -163,6 +166,51 @@ static const struct spi_board_info spi_bus[] __initconst = {
 
 #define lager_add_msiof_device spi_register_board_info
 
+/* QSPI flash memory */
+static struct mtd_partition spiflash_part[] = {
+	/* Reserved for user loader program, read-only */
+	[0] = {
+		.name = "loader_prg",
+		.offset = 0,
+		.size = SZ_256K,
+		.mask_flags = MTD_WRITEABLE,	/* read only */
+	},
+	/* Reserved for user program, read-only */
+	[1] = {
+		.name = "user_prg",
+		.offset = MTDPART_OFS_APPEND,
+		.size = SZ_4M,
+		.mask_flags = MTD_WRITEABLE,	/* read only */
+	},
+	/* All else is writable (e.g. JFFS2) */
+	[2] = {
+		.name = "flash_fs",
+		.offset = MTDPART_OFS_APPEND,
+		.size = MTDPART_SIZ_FULL,
+		.mask_flags = 0,
+	},
+};
+
+static struct flash_platform_data spiflash_data = {
+	.name		= "m25p80",
+	.parts		= spiflash_part,
+	.nr_parts	= ARRAY_SIZE(spiflash_part),
+	.type		= "s25fl512s",
+};
+
+static const struct spi_board_info spi_info[] __initconst = {
+	{
+		.modalias	= "m25p80",
+		.platform_data	= &spiflash_data,
+		.mode		= SPI_MODE_0,
+		.max_speed_hz	= 30000000,
+		.bus_num	= 0,
+		.chip_select	= 0,
+	},
+};
+
+#define lager_add_qspi_device spi_register_board_info
+
 static const struct pinctrl_map lager_pinctrl_map[] = {
 	/* DU (CN10: ARGB0, CN13: LVDS) */
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
@@ -241,6 +289,7 @@ static void __init lager_add_standard_devices(void)
 					  &ether_pdata, sizeof(ether_pdata));
 
 	lager_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
+	lager_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 }
 
 static const char *lager_boards_compat_dt[] __initdata = {
