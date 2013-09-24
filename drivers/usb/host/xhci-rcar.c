@@ -67,8 +67,8 @@ static int rcar_xhci_download_fw
 	_bitset((hcd->regs + AXI_DL_CTRL), FW_LOAD_ENABLE);
 
 	for (index = 0; index < fw->size; index += 4) {
-		data = (fw->data[index+3]<<24) | (fw->data[index+2]<<16)
-			| (fw->data[index+1]<<8) | (fw->data[index]);
+		data = (fw->data[index+3]<<24) | (fw->data[index+2]<<16) |
+			(fw->data[index+1]<<8) | (fw->data[index]);
 		_writel((hcd->regs + AXI_FW_DATA0), data);
 		_bitset((hcd->regs + AXI_DL_CTRL), FW_SET_DATA0);
 
