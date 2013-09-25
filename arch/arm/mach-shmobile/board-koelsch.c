@@ -23,6 +23,8 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/leds.h>
+#include <linux/mfd/tmio.h>
+#include <linux/mmc/sh_mmcif.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/pinctrl/machine.h>
@@ -50,6 +52,34 @@ static struct sh_eth_plat_data ether_pdata __initdata = {
 static struct resource ether_resources[] __initdata = {
 	DEFINE_RES_MEM(0xee700000, 0x400),
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
+};
+
+/* MMC */
+static void shmmcif_set_pwr(struct platform_device *pdev, int state)
+{
+}
+
+static void shmmcif_down_pwr(struct platform_device *pdev)
+{
+}
+
+static int shmmcif_get_cd(struct platform_device *pdev)
+{
+	return 1;
+}
+
+static struct sh_mmcif_plat_data sh_mmcif_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
 };
 
 /* MSIOF spidev */
@@ -173,6 +203,7 @@ static void __init koelsch_add_standard_devices(void)
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
 
+	r8a7791_add_mmc_device(&sh_mmcif_plat);
 	koelsch_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 	koelsch_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 }
