@@ -41,6 +41,7 @@
 #include <mach/dma-register.h>
 #include <mach/irqs.h>
 #include <mach/r8a7790.h>
+#include <media/vin.h>
 #include <asm/mach/arch.h>
 
 static const struct resource pfc_resources[] __initconst = {
@@ -1068,6 +1069,72 @@ err_iounmap:
 	return ret;
 }
 
+/* VIN */
+static const struct resource vin0_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xe6ef0000, SZ_4K, "vin0"),
+	DEFINE_RES_IRQ(gic_spi(188)),
+};
+
+static const struct resource vin1_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xe6ef1000, SZ_4K, "vin1"),
+	DEFINE_RES_IRQ(gic_spi(189)),
+};
+
+static const struct resource vin2_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xe6ef2000, SZ_4K, "vin2"),
+	DEFINE_RES_IRQ(gic_spi(190)),
+};
+
+static const struct resource vin3_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xe6ef3000, SZ_4K, "vin3"),
+	DEFINE_RES_IRQ(gic_spi(191)),
+};
+
+static const struct resource *vin_resources[4] = {
+	vin0_resources,
+	vin1_resources,
+	vin2_resources,
+	vin3_resources,
+};
+
+static struct vin_info vin_info[] = {
+	[0] = {
+		.input = VIN_INPUT_ITUR_BT709_24BIT,
+		.flags = 0,
+	},
+	[1] = {
+		.input = VIN_INPUT_ITUR_BT656_8BIT,
+		.flags = 0,
+	},
+	[2] = {
+		.input = VIN_INPUT_UNDEFINED,
+		.flags = 0,
+	},
+	[3] = {
+		.input = VIN_INPUT_UNDEFINED,
+		.flags = 0,
+	},
+};
+
+void __init r8a7790_register_vin(unsigned int index)
+{
+	struct platform_device_info info = {
+		.name = "vin",
+		.id = index,
+		.data = &vin_info[index],
+		.size_data = sizeof(struct vin_info),
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	if (index >= ARRAY_SIZE(vin_resources))
+		return;
+
+	info.res = vin_resources[index];
+	info.num_res = 2;
+
+	platform_device_register_full(&info);
+}
+
 void __init r8a7790_add_standard_devices(void)
 {
 	usbh_init();
@@ -1108,6 +1175,10 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_usbh_ohci(1);
 	r8a7790_register_usbh_ohci(2);
 	r8a7790_register_usbh_xhci(0);
+	r8a7790_register_vin(0);
+	r8a7790_register_vin(1);
+	r8a7790_register_vin(2);
+	r8a7790_register_vin(3);
 }
 
 #define MODEMR 0xe6160060
