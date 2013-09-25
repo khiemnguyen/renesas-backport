@@ -98,6 +98,7 @@ SH_FIXED_RATIO_CLK_SET(cp_clk,			extal_clk,	1, 2);
 
 SH_FIXED_RATIO_CLK_SET(pll1_div2_clk,		pll1_clk,	1, 2);
 SH_FIXED_RATIO_CLK_SET(zg_clk,			pll1_clk,	1, 3);
+SH_FIXED_RATIO_CLK_SET(zs_clk,			pll1_clk,	1, 6);
 SH_FIXED_RATIO_CLK_SET(hp_clk,			pll1_clk,	1, 12);
 SH_FIXED_RATIO_CLK_SET(p_clk,			pll1_clk,	1, 24);
 SH_FIXED_RATIO_CLK_SET(rclk_clk,		pll1_clk,	1, (48 * 1024));
@@ -123,6 +124,7 @@ static struct clk *main_clks[] = {
 	&pll1_div2_clk,
 	&pll3_clk,
 	&zg_clk,
+	&zs_clk,
 	&qspi_clk,
 	&hp_clk,
 	&p_clk,
@@ -215,9 +217,9 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP815] = SH_CLK_MSTP32(&sata0_clk, SMSTPCR8, 15, 0), /* sata0 */
 	[MSTP814] = SH_CLK_MSTP32(&sata1_clk, SMSTPCR8, 14, 0), /* sata1 */
 	[MSTP813] = SH_CLK_MSTP32(&p_clk, SMSTPCR8, 13, 0), /* Ether */
-	[MSTP811] = SH_CLK_MSTP32(&zg_clk, SMSTPCR8, 11, 0), /* vin0 */
-	[MSTP810] = SH_CLK_MSTP32(&zg_clk, SMSTPCR8, 10, 0), /* vin1 */
-	[MSTP809] = SH_CLK_MSTP32(&zg_clk, SMSTPCR8,  9, 0), /* vin2 */
+	[MSTP811] = SH_CLK_MSTP32(&zs_clk, SMSTPCR8, 11, 0), /* vin0 */
+	[MSTP810] = SH_CLK_MSTP32(&zs_clk, SMSTPCR8, 10, 0), /* vin1 */
+	[MSTP809] = SH_CLK_MSTP32(&zs_clk, SMSTPCR8,  9, 0), /* vin2 */
 	[MSTP726] = SH_CLK_MSTP32(&zx_clk, SMSTPCR7, 26, 0), /* LVDS0 */
 	[MSTP724] = SH_CLK_MSTP32(&zx_clk, SMSTPCR7, 24, 0), /* DU0 */
 	[MSTP723] = SH_CLK_MSTP32(&zx_clk, SMSTPCR7, 23, 0), /* DU1 */
@@ -261,6 +263,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("pll1_div2",	&pll1_div2_clk),
 	CLKDEV_CON_ID("pll3",		&pll3_clk),
 	CLKDEV_CON_ID("zx",		&zx_clk),
+	CLKDEV_CON_ID("zs",		&zs_clk),
 	CLKDEV_CON_ID("hp",		&hp_clk),
 	CLKDEV_CON_ID("p",		&p_clk),
 	CLKDEV_CON_ID("rclk",		&rclk_clk),
