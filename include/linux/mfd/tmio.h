@@ -142,6 +142,7 @@ struct tmio_mmc_data {
 	int (*write16_hook)(struct tmio_mmc_host *host, int addr);
 	bool (*dma_filter)(struct dma_chan *chan, void *arg);
 	void (*disable_auto_cmd12)(int *val);
+	void (*set_transfer_size)(struct tmio_mmc_host *host, int enable);
 	/* clock management callbacks */
 	int (*clk_enable)(struct platform_device *pdev, unsigned int *f);
 	void (*clk_disable)(struct platform_device *pdev);
