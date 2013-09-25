@@ -25,6 +25,7 @@
 #include <linux/kernel.h>
 #include <linux/mfd/tmio.h>
 #include <linux/mmc/sh_mmcif.h>
+#include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
@@ -424,42 +425,42 @@ static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
 	{
 		.slave_id	= SHDMA_SLAVE_SDHI0_TX,
 		.addr		= 0xee100060,
-		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_TX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xcd,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI0_RX,
 		.addr		= 0xee100060 + 0x2000,
-		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_RX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xce,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI1_TX,
 		.addr		= 0xee120030,
-		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_TX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xc9,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI1_RX,
 		.addr		= 0xee120030 + 0x2000,
-		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_RX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xca,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI2_TX,
 		.addr		= 0xee140030,
-		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_TX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xc1,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI2_RX,
 		.addr		= 0xee140030 + 0x2000,
-		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_RX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xc2,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI3_TX,
 		.addr		= 0xee160030,
-		.chcr		= CHCR_TX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_TX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xd3,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI3_RX,
 		.addr		= 0xee160030 + 0x2000,
-		.chcr		= CHCR_RX(XMIT_SZ_16BIT),
+		.chcr		= CHCR_RX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xd4,
 	}, {
 		.slave_id	= SHDMA_SLAVE_MMC0_TX,
@@ -764,6 +765,53 @@ void __init r8a7790_register_sata(unsigned int index)
 
 	info.res = sata_resources[index];
 	info.num_res = 2;
+
+	platform_device_register_full(&info);
+}
+
+/* SDHI */
+static const struct resource sdhi0_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee100000, SZ_1K, "sdhi0"),
+	DEFINE_RES_IRQ(gic_spi(165)),
+};
+
+static const struct resource sdhi1_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee120000, SZ_1K, "sdhi1"),
+	DEFINE_RES_IRQ(gic_spi(166)),
+};
+
+static const struct resource sdhi2_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee140000, SZ_256, "sdhi2"),
+	DEFINE_RES_IRQ(gic_spi(167)),
+};
+
+static const struct resource sdhi3_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee160000, SZ_256, "sdhi3"),
+	DEFINE_RES_IRQ(gic_spi(168)),
+};
+
+static const struct resource *sdhi_resources[4] = {
+	sdhi0_resources,
+	sdhi1_resources,
+	sdhi2_resources,
+	sdhi3_resources,
+};
+
+void __init r8a7790_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,
+				    unsigned int index)
+{
+	struct platform_device_info info = {
+		.name = "sh_mobile_sdhi",
+		.id = index,
+		.data = pdata,
+		.size_data = sizeof(*pdata),
+		.num_res = 2,
+	};
+
+	if (index >= ARRAY_SIZE(sdhi_resources))
+		return;
+
+	info.res = sdhi_resources[index];
 
 	platform_device_register_full(&info);
 }
@@ -1164,6 +1212,21 @@ void __init r8a7790_register_vin(unsigned int index)
 
 void __init r8a7790_add_standard_devices(void)
 {
+	void __iomem *pfcctl;
+
+	pfcctl = ioremap(0xe6060000, 0x300);
+
+	/* SD control registers IOCTRLn: SD pins driving ability */
+	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
+	iowrite32(0xaaaaaaaa, pfcctl + 0x60);	/* IOCTRL0 */
+	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
+	iowrite32(0xaaaaaaaa, pfcctl + 0x64);	/* IOCTRL1 */
+	iowrite32(~0x00154000, pfcctl);		/* PMMR */
+	iowrite32(0x00154000, pfcctl + 0x88);	/* IOCTRL5 */
+	iowrite32(~0xffffffff, pfcctl);		/* PMMR */
+	iowrite32(0xffffffff, pfcctl + 0x8c);	/* IOCTRL6 */
+	iounmap(pfcctl);
+
 	usbh_init();
 
 	r8a7790_register_scif(SCIFA0);
