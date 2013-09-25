@@ -38,7 +38,6 @@
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
-#include <sound/soc.h>
 #include <sound/sh_scu.h>
 
 #undef DEBUG
@@ -154,55 +153,31 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
+	int route = 0;
+	int audma_slave_id = 0;
+	int audmapp_slave_id = 0;
 	int ret = 0;
 
 	FNC_ENTRY
-	if (!dir) { /* playback */
-		switch (pcminfo->routeinfo->p_route) {
-		case RP_MEM_SSI0:
-			/* dma(mem->ssi) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
-			break;
-		case RP_MEM_SRC0_SSI0:
-			/* dma(mem->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
+	if (!dir) /* playback */
+		route = pcminfo->routeinfo->p_route;
+	else /* capture */
+		route = pcminfo->routeinfo->c_route;
 
-			/* dma(src->ssi) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC0_SSI0, ss);
-			break;
-		case RP_MEM_SRC0_DVC0_SSI0:
-			/* dma(mem->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
+	audma_slave_id = scu_find_data(route, pcminfo->pdata->audma_slave,
+					pcminfo->pdata->audma_slave_num);
+	audmapp_slave_id = scu_find_data(route, pcminfo->pdata->audmapp_slave,
+					pcminfo->pdata->audmapp_slave_num);
+	if (audma_slave_id != -1) {
+		ret = scu_dmae_req_chan(audma_slave_id, ss);
+		if (ret < 0)
+			return ret;
+	}
 
-			/* dma(cmd->ssi) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD0_SSI0, ss);
-			break;
-		default:
-			break;
-		};
-	} else { /* capture */
-		switch (pcminfo->routeinfo->c_route) {
-		case RC_SSI1_MEM:
-			/* dma(ssi->mem) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
-			break;
-		case RC_SSI1_SRC1_MEM:
-			/* dma(src->mem) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
-
-			/* dma(ssi->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
-			break;
-		case RC_SSI1_SRC1_DVC1_MEM:
-			/* dma(cmd->mem) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
-
-			/* dma(ssi->src) channel allocation */
-			ret = scu_dmae_req_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
-			break;
-		default:
-			break;
-		};
+	if (audmapp_slave_id != -1) {
+		ret = scu_dmae_req_chan(audmapp_slave_id, ss);
+		if (ret < 0)
+			return ret;
 	}
 
 	FNC_EXIT
@@ -213,42 +188,26 @@ static int scu_dmae_release(struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
+	int route = 0;
+	int audma_slave_id = 0;
+	int audmapp_slave_id = 0;
 	int ret = 0;
 
 	FNC_ENTRY
-	if (!dir) { /* playback */
-		switch (pcminfo->routeinfo->p_route) {
-		case RP_MEM_SSI0:
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
-			break;
-		case RP_MEM_SRC0_SSI0:
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SRC0_SSI0, ss);
-			break;
-		case RP_MEM_SRC0_DVC0_SSI0:
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_CMD0_SSI0, ss);
-			break;
-		default:
-			break;
-		};
-	} else { /* capture */
-		switch (pcminfo->routeinfo->c_route) {
-		case RC_SSI1_MEM:
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
-			break;
-		case RC_SSI1_SRC1_MEM:
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
-			break;
-		case RC_SSI1_SRC1_DVC1_MEM:
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
-			scu_dmae_rel_chan(SHDMA_SLAVE_PCM_SSI1_SRC1, ss);
-			break;
-		default:
-			break;
-		};
-	}
+	if (!dir) /* playback */
+		route = pcminfo->routeinfo->p_route;
+	else /* capture */
+		route = pcminfo->routeinfo->c_route;
+
+	audma_slave_id = scu_find_data(route, pcminfo->pdata->audma_slave,
+					pcminfo->pdata->audma_slave_num);
+	audmapp_slave_id = scu_find_data(route, pcminfo->pdata->audmapp_slave,
+					pcminfo->pdata->audmapp_slave_num);
+	if (audma_slave_id != -1)
+		scu_dmae_rel_chan(audma_slave_id, ss);
+
+	if (audmapp_slave_id != -1)
+		scu_dmae_rel_chan(audmapp_slave_id, ss);
 
 	FNC_EXIT
 	return ret;
@@ -321,112 +280,57 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
+	int route = 0;
+	int audma_slave_id = 0;
+	int ssi_depend = 0;
+	int ssi_mode = 0;
+	int src_ch = 0;
+	int src_mode = 0;
+	int dvc_ch = 0;
+	struct scu_pcm_callback callback;
 
 	FNC_ENTRY
 	if (!dir) { /* playback */
-		switch (pcminfo->routeinfo->p_route) {
-		case RP_MEM_SSI0:
-			/* start dma */
-			scu_audma_start(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
-
-			if (first_flag) {
-				/* start dma */
-				scu_audma_start(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
-
-				/* start ssi */
-				pcminfo->routeinfo->pcb.init_ssi(PCH, CCH);
-			}
-			break;
-		case RP_MEM_SRC0_SSI0:
-			/* start dma */
-			scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-
-			if (first_flag) {
-				/* start dma */
-				scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-
-				/* start ssi */
-				pcminfo->routeinfo->pcb.init_ssi_src(PCH, CCH);
-
-				/* start src */
-				pcminfo->routeinfo->pcb.init_src(PCH,
-					ss->runtime->rate, SRC_CR_SYNC);
-			}
-			break;
-		case RP_MEM_SRC0_DVC0_SSI0:
-			/* start dma */
-			scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-
-			if (first_flag) {
-				/* start dma */
-				scu_audma_start(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-
-				/* start ssi */
-				pcminfo->routeinfo->pcb.init_ssi_dvc(PCH, CCH);
-
-				/* start dvc */
-				pcminfo->routeinfo->pcb.init_dvc(PCH);
-
-				/* start src */
-				pcminfo->routeinfo->pcb.init_src(PCH,
-					ss->runtime->rate, SRC_CR_SYNC);
-			}
-			break;
-		default:
-			break;
-		};
+		route = pcminfo->routeinfo->p_route;
+		callback = pcminfo->routeinfo->pcb;
 	} else { /* capture */
-		switch (pcminfo->routeinfo->c_route) {
-		case RC_SSI1_MEM:
-			/* start dma */
-			scu_audma_start(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
+		route = pcminfo->routeinfo->c_route;
+		callback = pcminfo->routeinfo->ccb;
+	}
 
-			if (first_flag) {
-				/* start dma */
-				scu_audma_start(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
+	audma_slave_id = scu_find_data(route, pcminfo->pdata->audma_slave,
+					pcminfo->pdata->audma_slave_num);
+	ssi_depend = scu_find_data(route, pcminfo->pdata->ssi_depend,
+					pcminfo->pdata->ssi_depend_num);
+	ssi_mode = scu_find_data(route, pcminfo->pdata->ssi_mode,
+					pcminfo->pdata->ssi_mode_num);
+	src_ch = scu_find_data(route, pcminfo->pdata->src_ch,
+					pcminfo->pdata->src_ch_num);
+	src_mode = scu_find_data(route, pcminfo->pdata->src_mode,
+					pcminfo->pdata->src_mode_num);
+	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
+					pcminfo->pdata->dvc_ch_num);
 
-				/* start ssi */
-				pcminfo->routeinfo->ccb.init_ssi(CCH, PCH);
-			}
-			break;
-		case RC_SSI1_SRC1_MEM:
-			/* start dma */
-			scu_audma_start(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
+	/* start dma */
+	scu_audma_start(audma_slave_id, ss);
 
-			if (first_flag) {
-				/* start dma */
-				scu_audma_start(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
+	if (first_flag) {
+		/* start dma */
+		scu_audma_start(audma_slave_id, ss);
 
-				/* start ssi */
-				pcminfo->routeinfo->ccb.init_ssi_src(CCH, PCH);
+		/* start ssi */
+		if (callback.init_ssi)
+			callback.init_ssi(pcminfo->pdata->ssi_master,
+				pcminfo->pdata->ssi_slave,
+				ssi_mode, ssi_depend, dir);
 
-				/* start src */
-				pcminfo->routeinfo->ccb.init_src(CCH,
-					ss->runtime->rate, SRC_CR_SYNC);
-			}
-			break;
-		case RC_SSI1_SRC1_DVC1_MEM:
-			/* start dma */
-			scu_audma_start(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
+		/* start dvc */
+		if (callback.init_dvc)
+			callback.init_dvc(dvc_ch);
 
-			if (first_flag) {
-				/* start dma */
-				scu_audma_start(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
-
-				/* start ssi */
-				pcminfo->routeinfo->ccb.init_ssi_dvc(CCH, PCH);
-
-				/* start dvc */
-				pcminfo->routeinfo->ccb.init_dvc(CCH);
-
-				/* start src */
-				pcminfo->routeinfo->ccb.init_src_dvc(CCH,
-					ss->runtime->rate, SRC_CR_ASYNC);
-			}
-			break;
-		default:
-			break;
-		};
+		/* start src */
+		if (callback.init_src)
+			callback.init_src(src_ch, ss->runtime->rate, src_mode);
 	}
 
 	FNC_EXIT
@@ -437,67 +341,51 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
+	int route = 0;
+	int audma_slave_id = 0;
+	int ssi_ch = 0;
+	int ssi_depend = 0;
+	int ssi_mode = 0;
+	int src_ch = 0;
+	int dvc_ch = 0;
+	struct scu_pcm_callback callback;
 
 	FNC_ENTRY
 	if (!dir) { /* playback */
-		switch (pcminfo->routeinfo->p_route) {
-		case RP_MEM_SSI0:
-			/* stop ssi */
-			pcminfo->routeinfo->pcb.deinit_ssi(PCH);
-			/* stop dma */
-			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SSI0, ss);
-			break;
-		case RP_MEM_SRC0_SSI0:
-			/* stop src */
-			pcminfo->routeinfo->pcb.deinit_src(PCH);
-			/* stop ssi */
-			pcminfo->routeinfo->pcb.deinit_ssi_src(PCH);
-			/* stop dma */
-			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-			break;
-		case RP_MEM_SRC0_DVC0_SSI0:
-			/* stop src */
-			pcminfo->routeinfo->pcb.deinit_src(PCH);
-			/* stop dvc */
-			pcminfo->routeinfo->pcb.deinit_dvc(PCH);
-			/* stop ssi */
-			pcminfo->routeinfo->pcb.deinit_ssi_dvc(PCH);
-			/* stop dma */
-			scu_audma_stop(SHDMA_SLAVE_PCM_MEM_SRC0, ss);
-			break;
-		default:
-			break;
-		};
+		route = pcminfo->routeinfo->p_route;
+		callback = pcminfo->routeinfo->pcb;
 	} else { /* capture */
-		switch (pcminfo->routeinfo->c_route) {
-		case RC_SSI1_MEM:
-			/* stop ssi */
-			pcminfo->routeinfo->ccb.deinit_ssi(CCH);
-			/* stop dma */
-			scu_audma_stop(SHDMA_SLAVE_PCM_SSI1_MEM, ss);
-			break;
-		case RC_SSI1_SRC1_MEM:
-			/* stop src */
-			pcminfo->routeinfo->ccb.deinit_src(CCH);
-			/* stop ssi */
-			pcminfo->routeinfo->ccb.deinit_ssi_src(CCH);
-			/* stop dma */
-			scu_audma_stop(SHDMA_SLAVE_PCM_SRC1_MEM, ss);
-			break;
-		case RC_SSI1_SRC1_DVC1_MEM:
-			/* stop src */
-			pcminfo->routeinfo->ccb.deinit_src_dvc(CCH);
-			/* stop dvc */
-			pcminfo->routeinfo->ccb.deinit_dvc(CCH);
-			/* stop ssi */
-			pcminfo->routeinfo->ccb.deinit_ssi_dvc(CCH);
-			/* stop dma */
-			scu_audma_stop(SHDMA_SLAVE_PCM_CMD1_MEM, ss);
-			break;
-		default:
-			break;
-		};
+		route = pcminfo->routeinfo->c_route;
+		callback = pcminfo->routeinfo->ccb;
 	}
+
+	audma_slave_id = scu_find_data(route, pcminfo->pdata->audma_slave,
+					pcminfo->pdata->audma_slave_num);
+	ssi_ch = scu_find_data(route, pcminfo->pdata->ssi_ch,
+					pcminfo->pdata->ssi_ch_num);
+	ssi_depend = scu_find_data(route, pcminfo->pdata->ssi_depend,
+					pcminfo->pdata->ssi_depend_num);
+	ssi_mode = scu_find_data(route, pcminfo->pdata->ssi_mode,
+					pcminfo->pdata->ssi_mode_num);
+	src_ch = scu_find_data(route, pcminfo->pdata->src_ch,
+					pcminfo->pdata->src_ch_num);
+	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
+					pcminfo->pdata->dvc_ch_num);
+
+	/* stop src */
+	if (callback.deinit_src)
+		callback.deinit_src(src_ch);
+
+	/* stop dvc */
+	if (callback.deinit_dvc)
+		callback.deinit_dvc(dvc_ch);
+
+	/* stop ssi */
+	if (callback.deinit_ssi)
+		callback.deinit_ssi(ssi_ch, ssi_mode, ssi_depend, dir);
+
+	/* stop dma */
+	scu_audma_stop(audma_slave_id, ss);
 
 	FNC_EXIT
 	return;

@@ -26,6 +26,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
 #include <linux/pm_runtime.h>
@@ -34,7 +35,6 @@
 #include <linux/clk.h>
 
 #include <sound/control.h>
-#include <sound/soc.h>
 #include <sound/sh_scu.h>
 
 #undef DEBUG
@@ -141,7 +141,7 @@ static void scu_ssiu_init(void)
 	return;
 }
 
-static void scu_ssi_control(int master_ch, int slave_ch)
+static void scu_ssi_control(int master_ch, int slave_ch, int mode)
 {
 	FNC_ENTRY
 	/* SSI setting */
@@ -149,19 +149,27 @@ static void scu_ssi_control(int master_ch, int slave_ch)
 		writel(SSICR_P4643_ST, &rinfo->ssireg[master_ch]->cr);
 		writel(SSIWS_ST, &rinfo->ssireg[master_ch]->wsr);
 	}
-	if ((readl(&rinfo->ssireg[slave_ch]->cr) & SSICR_ENABLE) == 0)
+	if ((mode == SSI_SLAVE) &&
+	    ((readl(&rinfo->ssireg[slave_ch]->cr) & SSICR_ENABLE) == 0))
 		writel(SSICR_C4643_ST, &rinfo->ssireg[slave_ch]->cr);
 
 	FNC_EXIT
 	return;
 }
 
-static void scu_ssi_start(int ssi_ch)
+static void scu_ssi_start(int ssi_ch, int ssi_dir)
 {
 	u32 val;
+	int offset = scu_find_data(ssi_ch, pdata->ssiu_control,
+					pdata->ssiu_control_num);
 
 	FNC_ENTRY
-	if (ssi_ch == 0) {
+	if (offset == -1) {
+		pr_info("%s ssi channel error\n", __func__);
+		return;
+	}
+
+	if (ssi_dir == SSI_OUT) {
 		/* SSI enable (figure.39.12 flow) */
 		val = readl(&rinfo->ssireg[ssi_ch]->cr);
 		val |= (SSICR_DMEN | SSICR_UIEN | SSICR_OIEN | SSICR_ENABLE);
@@ -169,30 +177,36 @@ static void scu_ssi_start(int ssi_ch)
 
 		/* SSIU start (figure.39.12 flow) */
 		scu_or_writel(SSI_CTRL_4CH_START0,
-			(u32 *)(rinfo->ssiureg + SSI0_0_CONTROL));
-	} else if (ssi_ch == 1) {
+			(u32 *)(rinfo->ssiureg + offset));
+	} else { /* ssi_dir == SSI_IN */
 		/* SSIU start (figure.39.14 flow) */
 		scu_or_writel(SSI_CTRL_4CH_START0,
-			(u32 *)(rinfo->ssiureg + SSI1_0_CONTROL));
+			(u32 *)(rinfo->ssiureg + offset));
 
 		/* SSI enable (figure.39.14 flow) */
 		val = readl(&rinfo->ssireg[ssi_ch]->cr);
 		val |= (SSICR_DMEN | SSICR_UIEN | SSICR_OIEN | SSICR_ENABLE);
 		writel(val, &rinfo->ssireg[ssi_ch]->cr);
-	} else
-		pr_info("%s ssi channel error", __func__);
+	}
 
 	FNC_EXIT
 	return;
 }
 
-static void scu_ssi_stop(int ssi_ch)
+static void scu_ssi_stop(int ssi_ch, int ssi_dir)
 {
 	u32 val;
 	int tmout;
+	int offset = scu_find_data(ssi_ch, pdata->ssiu_control,
+					pdata->ssiu_control_num);
 
 	FNC_ENTRY
-	if (ssi_ch == 0) {
+	if (offset == -1) {
+		pr_info("%s ssi channel error\n", __func__);
+		return;
+	}
+
+	if (ssi_dir == SSI_OUT) {
 		/* SSI disable (figure.39.13 flow) */
 		val = readl(&rinfo->ssireg[ssi_ch]->cr);
 		val &= ~SSICR_DMEN;
@@ -217,10 +231,10 @@ static void scu_ssi_stop(int ssi_ch)
 			pr_info("timeout waiting for SSI idle\n");
 
 		/* SSIU stop (figure.39.13 flow) */
-		writel(0, (u32 *)(rinfo->ssiureg + SSI0_0_CONTROL));
-	} else if (ssi_ch == 1) {
+		writel(0, (u32 *)(rinfo->ssiureg + offset));
+	} else { /* ssi_dir == SSI_IN */
 		/* SSIU stop (figure.39.15 flow) */
-		writel(0, (u32 *)(rinfo->ssiureg + SSI1_0_CONTROL));
+		writel(0, (u32 *)(rinfo->ssiureg + offset));
 
 		/* SSI disable (figure.39.15 flow) */
 		val = readl(&rinfo->ssireg[ssi_ch]->cr);
@@ -233,8 +247,7 @@ static void scu_ssi_stop(int ssi_ch)
 			udelay(1);
 		if (!tmout)
 			pr_info("timeout waiting for SSI idle\n");
-	} else
-		pr_info("%s ssi channel error", __func__);
+	}
 
 	FNC_EXIT
 }
@@ -406,16 +419,17 @@ static void scu_src_stop(int src_ch, int src_dir)
 
 static void scu_dvc_init(int dvc_ch)
 {
+	int dvcrs = scu_find_data(dvc_ch, pdata->dvc_route_select,
+					pdata->dvc_route_select_num);
+
 	FNC_ENTRY
+	if (dvcrs == -1) {
+		pr_info("%s dvc channel error\n", __func__);
+		return;
+	}
+
 	/* SCU CMD_ROUTE_SELECT */
-	if (dvc_ch == 0) /* SRC0 route */
-		writel((CMD_ROUTE_SELECT_CASE_CTU2 |
-			CMD_ROUTE_SELECT_CTU2_SRC0),
-			(u32 *)&rinfo->scucmdreg[dvc_ch]->route_select);
-	else /* SRC1 route */
-		writel((CMD_ROUTE_SELECT_CASE_CTU2 |
-			CMD_ROUTE_SELECT_CTU2_SRC1),
-			(u32 *)&rinfo->scucmdreg[dvc_ch]->route_select);
+	writel(dvcrs, (u32 *)&rinfo->scucmdreg[dvc_ch]->route_select);
 
 	/* SCU CMD_CONTROL */
 	writel(CMD_CONTROL_START_OUT,
@@ -498,157 +512,79 @@ static void scu_dvc_stop(int dvc_ch)
 	DAPM callback function
 
 ************************************************************************/
-void scu_init_ssi_ind_master(int master_ch, int slave_ch)
+void scu_init_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 {
-	if (master_ch == 0) {
-		/* SSI0_0_BUSIF_ADINR */
-		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-		/* SSI_MODE0 (SSI independant) */
-		scu_or_writel(SSI_MODE0_IND0,
-			(u32 *)(rinfo->ssiureg + SSI_MODE0));
-	} else {
-		pr_info("%s ssi master channel error", __func__);
+	int ch = (mode == SSI_MASTER) ? master_ch : slave_ch;
+	int offset = scu_find_data(ch, pdata->ssiu_busif_adinr,
+					pdata->ssiu_busif_adinr_num);
+	int mode1 = scu_find_data(ch, pdata->ssiu_mode1,
+					pdata->ssiu_mode1_num);
+
+	if (offset == -1) {
+		pr_info("%s ssi master channel error\n", __func__);
 		return;
 	}
 
-	/* SSI init */
-	scu_ssi_control(master_ch, slave_ch);
-	/* SSI start */
-	scu_ssi_start(master_ch);
-}
-EXPORT_SYMBOL(scu_init_ssi_ind_master);
-
-void scu_deinit_ssi_ind_master(int master_ch)
-{
-	/* SSI stop */
-	scu_ssi_stop(master_ch);
-
-	if (master_ch == 0) {
-		/* SSI_MODE0 (SSI independant) */
-		scu_and_writel(~SSI_MODE0_IND0,
-			(u32 *)(rinfo->ssiureg + SSI_MODE0));
-		/* SSI0_0_BUSIF_ADINR */
-		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-	} else
-		pr_info("%s ssi master channel error", __func__);
-}
-EXPORT_SYMBOL(scu_deinit_ssi_ind_master);
-
-void scu_init_ssi_ind_slave(int slave_ch, int master_ch)
-{
-	if (slave_ch == 1) {
-		/* SSI1_0_BUSIF_ADINR */
-		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-		/* SSI_MODE0 (SSI independant) */
-		scu_or_writel(SSI_MODE0_IND1,
-			(u32 *)(rinfo->ssiureg + SSI_MODE0));
-		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-		scu_or_writel(SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	} else {
-		pr_info("%s ssi slave channel error", __func__);
+	if ((mode == SSI_SLAVE) && (offset == -1 || mode1 == -1)) {
+		pr_info("%s ssi slave channel error\n", __func__);
 		return;
 	}
 
-	/* SSI init */
-	scu_ssi_control(master_ch, slave_ch);
-	/* SSI start */
-	scu_ssi_start(slave_ch);
-}
-EXPORT_SYMBOL(scu_init_ssi_ind_slave);
+	/* SSI_BUSIF_ADINR */
+	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+		(u32 *)(rinfo->ssiureg + offset));
 
-void scu_deinit_ssi_ind_slave(int slave_ch)
-{
-	/* SSI stop */
-	scu_ssi_stop(slave_ch);
+	/* SSI_MODE1 */
+	if (mode == SSI_SLAVE)
+		scu_or_writel(mode1, (u32 *)(rinfo->ssiureg + SSI_MODE1));
 
-	if (slave_ch == 1) {
-		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-		scu_and_writel(~SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-		/* SSI_MODE0 (SSI independant) */
-		scu_and_writel(~SSI_MODE0_IND1,
+	/* SSI_MODE0 (SSI independant) */
+	if (ind == SSI_INDEPENDANT)
+		scu_or_writel((1 << ch),
 			(u32 *)(rinfo->ssiureg + SSI_MODE0));
-		/* SSI0_0_BUSIF_ADINR */
-		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-	} else
-		pr_info("%s ssi slave channel error", __func__);
-}
-EXPORT_SYMBOL(scu_deinit_ssi_ind_slave);
 
-void scu_init_ssi_master(int master_ch, int slave_ch)
+	/* SSI init */
+	scu_ssi_control(master_ch, slave_ch, mode);
+
+	/* SSI start */
+	scu_ssi_start(ch, dir);
+}
+EXPORT_SYMBOL(scu_init_ssi);
+
+void scu_deinit_ssi(int ch, int mode, int ind, int dir)
 {
-	if (master_ch == 0) {
-		/* SSI0_0_BUSIF_ADINR */
-		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-	} else {
-		pr_info("%s ssi master channel error", __func__);
+	int offset = scu_find_data(ch, pdata->ssiu_busif_adinr,
+					pdata->ssiu_busif_adinr_num);
+	int mode1 = scu_find_data(ch, pdata->ssiu_mode1,
+					pdata->ssiu_mode1_num);
+
+	if (offset == -1) {
+		pr_info("%s ssi channel error\n", __func__);
 		return;
 	}
 
-	/* SSI init */
-	scu_ssi_control(master_ch, slave_ch);
-	/* SSI start */
-	scu_ssi_start(master_ch);
-}
-EXPORT_SYMBOL(scu_init_ssi_master);
-
-void scu_deinit_ssi_master(int master_ch)
-{
-	/* SSI stop */
-	scu_ssi_stop(master_ch);
-
-	if (master_ch == 0) {
-		/* SSI0_0_BUSIF_ADINR */
-		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI0_0_BUSIF_ADINR));
-	} else
-		pr_info("%s ssi master channel error", __func__);
-}
-EXPORT_SYMBOL(scu_deinit_ssi_master);
-
-void scu_init_ssi_slave(int slave_ch, int master_ch)
-{
-	if (slave_ch == 1) {
-		/* SSI1_0_BUSIF_ADINR */
-		scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-		scu_or_writel(SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-	} else {
-		pr_info("%s ssi slave channel error", __func__);
+	if ((mode == SSI_SLAVE) && (mode1 == -1)) {
+		pr_info("%s ssi slave channel error\n", __func__);
 		return;
 	}
 
-	/* SSI init */
-	scu_ssi_control(master_ch, slave_ch);
-	/* SSI start */
-	scu_ssi_start(slave_ch);
-}
-EXPORT_SYMBOL(scu_init_ssi_slave);
-
-void scu_deinit_ssi_slave(int slave_ch)
-{
 	/* SSI stop */
-	scu_ssi_stop(slave_ch);
+	scu_ssi_stop(ch, dir);
 
-	if (slave_ch == 1) {
-		/* SSI_MODE1 (SSI1 slave, SSI0 master) */
-		scu_and_writel(~SSI_MODE1_SSI1_MASTER,
-			(u32 *)(rinfo->ssiureg + SSI_MODE1));
-		/* SSI0_0_BUSIF_ADINR */
-		scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
-			(u32 *)(rinfo->ssiureg + SSI1_0_BUSIF_ADINR));
-	} else
-		pr_info("%s ssi slave channel error", __func__);
+	/* SSI_MODE0 (SSI independant) */
+	if (ind == SSI_INDEPENDANT)
+		scu_and_writel(~(1 << ch),
+			(u32 *)(rinfo->ssiureg + SSI_MODE0));
+
+	/* SSI_MODE1 */
+	if (mode == SSI_SLAVE)
+		scu_and_writel(~mode1, (u32 *)(rinfo->ssiureg + SSI_MODE1));
+
+	/* SSI_BUSIF_ADINR */
+	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
+		(u32 *)(rinfo->ssiureg + offset));
 }
-EXPORT_SYMBOL(scu_deinit_ssi_slave);
+EXPORT_SYMBOL(scu_deinit_ssi);
 
 void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
 {

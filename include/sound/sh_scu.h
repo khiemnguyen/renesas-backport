@@ -22,7 +22,7 @@
 #define SH_SCU_H
 
 #include <linux/sh_dma-desc.h>
-#include <mach/r8a7790.h>
+#include <sound/soc.h>
 
 /************************************************************************
 
@@ -48,9 +48,9 @@
 #define RP_MEM_SRC0_SSI0	(W_SSI0 | W_SRC0)
 #define RP_MEM_SRC0_DVC0_SSI0	(W_SSI0 | W_SRC0 | W_DVC0)
 /* capture route */
-#define	W_SSI1			0x00000001
-#define	W_SRC1			0x00000002
-#define	W_DVC1			0x00000004
+#define	W_SSI1			0x00010000
+#define	W_SRC1			0x00020000
+#define	W_DVC1			0x00040000
 #define RC_SSI1_MEM		W_SSI1
 #define RC_SSI1_SRC1_MEM	(W_SSI1 | W_SRC1)
 #define RC_SSI1_SRC1_DVC1_MEM	(W_SSI1 | W_SRC1 | W_DVC1)
@@ -199,6 +199,20 @@
 /*
  *	SRC
  */
+/* SRC channel */
+enum {
+	SRC0,
+	SRC1,
+	SRC2,
+	SRC3,
+	SRC4,
+	SRC5,
+	SRC6,
+	SRC7,
+	SRC8,
+	SRC9,
+};
+
 /* SRC_ADINR */
 #define	SRCADIN_OTBL_24BIT	(0<<16)
 #define	SRCADIN_OTBL_22BIT	(2<<16)
@@ -252,6 +266,12 @@
 /*
  *	DVC
  */
+/* DVC channel */
+enum {
+	DVC0,
+	DVC1,
+};
+
 /* DVC_ADINR */
 #define	DVCADIN_OTBL_24BIT	(0<<16)
 #define	DVCADIN_OTBL_22BIT	(2<<16)
@@ -471,6 +491,36 @@
 /*
  *	SSI
  */
+/* SSI channel */
+enum {
+	SSI0,
+	SSI1,
+	SSI2,
+	SSI3,
+	SSI4,
+	SSI5,
+	SSI6,
+	SSI7,
+	SSI8,
+	SSI9,
+};
+
+/* SSI input/output */
+#define	SSI_OUT		0
+#define	SSI_IN		1
+
+/* SSI mode */
+enum {
+	SSI_MASTER,
+	SSI_SLAVE,
+};
+
+/* SSI dependant/independat transfer */
+enum {
+	SSI_DEPENDANT,
+	SSI_INDEPENDANT,
+};
+
 /* SSICRn bit */
 #define	SSICR_EN	(1<<0)
 #define	SSICR_TRMD_RX	(0<<1)
@@ -2063,31 +2113,12 @@ struct scu_reg_info {
 	void __iomem		*adgreg;
 };
 
-struct scu_playback_callback {
-	void (*init_ssi)(int, int);
-	void (*init_ssi_src)(int, int);
-	void (*init_ssi_dvc)(int, int);
+struct scu_pcm_callback {
+	void (*init_ssi)(int, int, int, int, int);
 	void (*init_src)(int, unsigned int, unsigned int);
 	void (*init_dvc)(int);
-	void (*deinit_ssi)(int);
-	void (*deinit_ssi_src)(int);
-	void (*deinit_ssi_dvc)(int);
+	void (*deinit_ssi)(int, int, int, int);
 	void (*deinit_src)(int);
-	void (*deinit_dvc)(int);
-};
-
-struct scu_capture_callback {
-	void (*init_ssi)(int, int);
-	void (*init_ssi_src)(int, int);
-	void (*init_ssi_dvc)(int, int);
-	void (*init_src)(int, unsigned int, unsigned int);
-	void (*init_src_dvc)(int, unsigned int, unsigned int);
-	void (*init_dvc)(int);
-	void (*deinit_ssi)(int);
-	void (*deinit_ssi_src)(int);
-	void (*deinit_ssi_dvc)(int);
-	void (*deinit_src)(int);
-	void (*deinit_src_dvc)(int);
 	void (*deinit_dvc)(int);
 };
 
@@ -2101,9 +2132,9 @@ struct scu_route_info {
 	int route_mix[MAXCH_CMD];
 	int route_dvc[MAXCH_CMD];
 	/* playback callback */
-	struct scu_playback_callback pcb;
+	struct scu_pcm_callback pcb;
 	/* capture callback */
-	struct scu_capture_callback ccb;
+	struct scu_pcm_callback ccb;
 };
 
 struct scu_clock_info {
@@ -2128,8 +2159,39 @@ struct scu_audio_info {
 	unsigned int mute[2];
 };
 
+struct scu_config {
+	int label;
+	int value;
+};
+
 struct scu_platform_data {
+	int ssi_master;
+	int ssi_slave;
+	struct scu_config *ssi_ch;
+	int ssi_ch_num;
+	struct scu_config *src_ch;
+	int src_ch_num;
+	struct scu_config *dvc_ch;
+	int dvc_ch_num;
 	int dma_slave_maxnum;
+	struct scu_config *audma_slave;
+	int audma_slave_num;
+	struct scu_config *audmapp_slave;
+	int audmapp_slave_num;
+	struct scu_config *ssiu_busif_adinr;
+	int ssiu_busif_adinr_num;
+	struct scu_config *ssiu_control;
+	int ssiu_control_num;
+	struct scu_config *ssiu_mode1;
+	int ssiu_mode1_num;
+	struct scu_config *dvc_route_select;
+	int dvc_route_select_num;
+	struct scu_config *ssi_depend;
+	int ssi_depend_num;
+	struct scu_config *ssi_mode;
+	int ssi_mode_num;
+	struct scu_config *src_mode;
+	int src_mode_num;
 };
 
 struct scu_pcm_info {
@@ -2149,6 +2211,24 @@ struct scu_pcm_info {
 
 /************************************************************************
 
+	inline function
+
+************************************************************************/
+static inline int scu_find_data(int val, struct scu_config *data, int size)
+{
+	int i;
+	struct scu_config *data_p = data;
+
+	for (i = 0; i < size; data_p++, i++) {
+		if (val == data_p->label)
+			return data_p->value;
+	}
+
+	return -1;
+}
+
+/************************************************************************
+
 	external prototype declaration
 
 ************************************************************************/
@@ -2157,17 +2237,11 @@ extern struct snd_soc_platform_driver scu_platform;
 extern struct scu_route_info *scu_get_route_info(void);
 extern struct scu_platform_data *scu_get_platform_data(void);
 
-extern void scu_init_ssi_ind_master(int, int);
-extern void scu_init_ssi_ind_slave(int, int);
-extern void scu_init_ssi_master(int, int);
-extern void scu_init_ssi_slave(int, int);
+extern void scu_init_ssi(int, int, int, int, int);
 extern void scu_init_src(int, unsigned int, unsigned int);
 extern void scu_init_dvc(int);
 
-extern void scu_deinit_ssi_ind_master(int);
-extern void scu_deinit_ssi_ind_slave(int);
-extern void scu_deinit_ssi_master(int);
-extern void scu_deinit_ssi_slave(int);
+extern void scu_deinit_ssi(int, int, int, int);
 extern void scu_deinit_src(int);
 extern void scu_deinit_dvc(int);
 
