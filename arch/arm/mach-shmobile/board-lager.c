@@ -24,6 +24,8 @@
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
 #include <linux/leds.h>
+#include <linux/mfd/tmio.h>
+#include <linux/mmc/sh_mmcif.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/pinctrl/machine.h>
@@ -153,6 +155,48 @@ static struct resource ether_resources[] __initdata = {
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
 
+/* MMC */
+static void shmmcif_set_pwr(struct platform_device *pdev, int state)
+{
+}
+
+static void shmmcif_down_pwr(struct platform_device *pdev)
+{
+}
+
+static int shmmcif_get_cd(struct platform_device *pdev)
+{
+	return 1;
+}
+
+static struct sh_mmcif_plat_data sh_mmcif0_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC0_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC0_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
+static struct sh_mmcif_plat_data sh_mmcif1_plat = {
+	.set_pwr	= shmmcif_set_pwr,
+	.down_pwr	= shmmcif_down_pwr,
+	.get_cd		= shmmcif_get_cd,
+	.slave_id_tx	= SHDMA_SLAVE_MMC1_TX,
+	.slave_id_rx	= SHDMA_SLAVE_MMC1_RX,
+	.use_cd_gpio	= 0,
+	.cd_gpio	= 0,
+	.sup_pclk	= 0 ,
+	.caps		= MMC_CAP_MMC_HIGHSPEED |
+			  MMC_CAP_8_BIT_DATA | MMC_CAP_NONREMOVABLE ,
+	.ocr		= MMC_VDD_32_33 | MMC_VDD_33_34 ,
+};
+
 /* MSIOF spidev */
 static const struct spi_board_info spi_bus[] __initconst = {
 	{
@@ -234,6 +278,11 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "intc_irq0", "intc"),
+	/* MMC1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
+				  "mmc1_data8", "mmc1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
+				  "mmc1_ctrl", "mmc1"),
 	/* MSIOF1 */
 	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7790",
 				  "msiof1_clk", "msiof1"),
@@ -288,6 +337,8 @@ static void __init lager_add_standard_devices(void)
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
 
+	r8a7790_add_mmc_device(&sh_mmcif0_plat, 0);
+	r8a7790_add_mmc_device(&sh_mmcif1_plat, 1);
 	lager_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 	lager_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 }
