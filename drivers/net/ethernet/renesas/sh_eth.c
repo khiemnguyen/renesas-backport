@@ -412,6 +412,7 @@ static struct sh_eth_cpu_data r8a779x_data = {
 	.hw_swap	= 1,
 	.rmiimode	= 1,
 	.shift_rd0	= 1,
+	.rmcr_value	= 0x00000001,
 };
 
 static void sh_eth_set_rate_sh7724(struct net_device *ndev)
