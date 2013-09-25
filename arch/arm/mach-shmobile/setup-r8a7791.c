@@ -616,6 +616,41 @@ static const struct resource qspi_resources[] __initconst = {
 					qspi_resources,		\
 					ARRAY_SIZE(qspi_resources))
 
+/* SATA */
+static const struct resource sata0_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee300000, SZ_2M, "sata0"),
+	DEFINE_RES_IRQ(gic_spi(105)),
+};
+
+static const struct resource sata1_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee500000, SZ_2M, "sata1"),
+	DEFINE_RES_IRQ(gic_spi(106)),
+};
+
+static const struct resource *sata_resources[2] = {
+	sata0_resources,
+	sata1_resources,
+};
+
+void __init r8a7791_register_sata(unsigned int index)
+{
+	struct platform_device_info info = {
+		.name = "sata_rcar",
+		.id = index,
+		.data = NULL,
+		.size_data = 0,
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	if (index >= ARRAY_SIZE(sata_resources))
+		return;
+
+	info.res = sata_resources[index];
+	info.num_res = 2;
+
+	platform_device_register_full(&info);
+}
+
 /* USB */
 struct usb_ehci_pdata ehci_pdata = {
 	.caps_offset	= 0,
@@ -973,6 +1008,8 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_msiof(1);
 	r8a7791_register_msiof(2);
 	r8a7791_register_qspi();
+	r8a7791_register_sata(0);
+	r8a7791_register_sata(1);
 	r8a7791_register_usbh_ehci(0);
 	r8a7791_register_usbh_ehci(1);
 	r8a7791_register_usbh_ohci(0);
