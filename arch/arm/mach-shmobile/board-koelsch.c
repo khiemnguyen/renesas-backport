@@ -26,6 +26,7 @@
 #include <linux/leds.h>
 #include <linux/mfd/tmio.h>
 #include <linux/mmc/sh_mmcif.h>
+#include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/pinctrl/machine.h>
@@ -289,6 +290,47 @@ static const struct spi_board_info spi_info[] __initconst = {
 
 #define koelsch_add_qspi_device spi_register_board_info
 
+/* SDHI */
+static struct sh_mobile_sdhi_info sdhi0_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
+				TMIO_MMC_CLK_NO_SLEEP |
+				TMIO_MMC_HAS_IDLE_WAIT |
+				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
+				TMIO_MMC_NO_CTL_RESET_SDIO |
+				TMIO_MMC_SDIO_STATUS_QUIRK,
+};
+
+static struct sh_mobile_sdhi_info sdhi1_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC |
+				TMIO_MMC_CLK_NO_SLEEP |
+				TMIO_MMC_HAS_IDLE_WAIT |
+				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
+				TMIO_MMC_NO_CTL_RESET_SDIO |
+				TMIO_MMC_SDIO_STATUS_QUIRK,
+};
+
+static struct sh_mobile_sdhi_info sdhi2_platform_data = {
+	.dma_slave_tx	= SHDMA_SLAVE_SDHI2_TX,
+	.dma_slave_rx	= SHDMA_SLAVE_SDHI2_RX,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
+	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC |
+				TMIO_MMC_CLK_NO_SLEEP |
+				TMIO_MMC_HAS_IDLE_WAIT |
+				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
+				TMIO_MMC_NO_CTL_RESET_SDIO |
+				TMIO_MMC_SDIO_STATUS_QUIRK |
+				TMIO_MMC_WRPROTECT_DISABLE,
+};
+
 /* VIN camera */
 static struct i2c_board_info lager_i2c_camera[] = {
 	{ I2C_BOARD_INFO("adv7612", 0x4c), },
@@ -382,6 +424,33 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "msiof0_rx", "msiof0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
 				  "msiof0_tx", "msiof0"),
+	/* SDHI0 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7791",
+				  "sdhi0_data4", "sdhi0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7791",
+				  "sdhi0_ctrl", "sdhi0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7791",
+				  "sdhi0_cd", "sdhi0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7791",
+				  "sdhi0_wp", "sdhi0"),
+	/* SDHI1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.1", "pfc-r8a7791",
+				  "sdhi1_data4", "sdhi1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.1", "pfc-r8a7791",
+				  "sdhi1_ctrl", "sdhi1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.1", "pfc-r8a7791",
+				  "sdhi1_cd", "sdhi1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.1", "pfc-r8a7791",
+				  "sdhi1_wp", "sdhi1"),
+	/* SDHI2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
+				  "sdhi2_data4", "sdhi2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
+				  "sdhi2_ctrl", "sdhi2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
+				  "sdhi2_cd", "sdhi2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
+				  "sdhi2_wp", "sdhi2"),
 	/* USB0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7791",
 				  "usb0_pwen", "usb0"),
@@ -433,6 +502,9 @@ static void __init koelsch_add_standard_devices(void)
 
 	r8a7791_add_mmc_device(&sh_mmcif_plat);
 	r8a7791_add_scu_device(&scu_pdata);
+	r8a7791_add_sdhi_device(&sdhi0_platform_data, 0);
+	r8a7791_add_sdhi_device(&sdhi1_platform_data, 1);
+	r8a7791_add_sdhi_device(&sdhi2_platform_data, 2);
 	koelsch_add_alsa_device(2, alsa_i2c, ARRAY_SIZE(alsa_i2c));
 	koelsch_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 	koelsch_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
