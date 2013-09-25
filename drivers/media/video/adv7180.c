@@ -305,8 +305,8 @@ static int adv7180_s_std(struct v4l2_subdev *sd, v4l2_std_id std)
 	if (std == V4L2_STD_ALL) {
 		ret = i2c_smbus_write_byte_data(client,
 			ADV7180_INPUT_CONTROL_REG,
-			ADV7180_INPUT_CONTROL_AD_PAL_BG_NTSC_J_SECAM
-				| state->input);
+			ADV7180_INPUT_CONTROL_AD_PAL_BG_NTSC_J_SECAM |
+				state->input);
 		if (ret < 0)
 			goto out;
 
@@ -786,8 +786,8 @@ static int init_device(struct i2c_client *client, struct adv7180_state *state)
 	if (state->autodetect) {
 		ret = i2c_smbus_write_byte_data(client,
 				ADV7180_INPUT_CONTROL_REG,
-				ADV7180_INPUT_CONTROL_AD_PAL_BG_NTSC_J_SECAM
-					| state->input);
+				ADV7180_INPUT_CONTROL_AD_PAL_BG_NTSC_J_SECAM |
+					state->input);
 		if (ret < 0)
 			return ret;
 
