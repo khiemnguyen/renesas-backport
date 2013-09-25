@@ -534,6 +534,29 @@ static const struct resource r8a7791_audmapp_resources[] __initconst = {
 		&r8a7791_audmapp_pdata,					\
 		sizeof(r8a7791_audmapp_pdata))
 
+/* DU */
+static const struct resource du_resources[] = {
+	DEFINE_RES_MEM(0xfeb00000, 0x40000),
+	DEFINE_RES_MEM_NAMED(0xfeb90000, 0x1c, "lvds.0"),
+	DEFINE_RES_IRQ(gic_spi(256)),
+	DEFINE_RES_IRQ(gic_spi(268)),
+};
+
+void __init r8a7791_add_du_device(struct rcar_du_platform_data *pdata)
+{
+	struct platform_device_info info = {
+		.name = "rcar-du-r8a7791",
+		.id = -1,
+		.res = du_resources,
+		.num_res = ARRAY_SIZE(du_resources),
+		.data = pdata,
+		.size_data = sizeof(*pdata),
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	platform_device_register_full(&info);
+}
+
 /* I2C */
 static const struct resource r8a7791_i2c0_resources[] __initconst = {
 	DEFINE_RES_MEM(0xe6508000, SZ_32K),
