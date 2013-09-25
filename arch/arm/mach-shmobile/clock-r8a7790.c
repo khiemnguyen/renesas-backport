@@ -315,6 +315,7 @@ static struct clk_lookup lookups[] = {
 
 	/* DIV4 */
 	CLKDEV_CON_ID("sdh",		&div4_clks[DIV4_SDH]),
+	CLKDEV_CON_ID("sdhi0",		&div4_clks[DIV4_SD0]),
 
 	/* DIV6 */
 	CLKDEV_CON_ID("ssp",		&div6_clks[DIV6_SSP]),
@@ -420,6 +421,19 @@ static void __init r8a7790_sdhi_clock_init(void)
 {
 	int ret = 0;
 	struct clk *sdhi_clk;
+
+	/* set SDHI0 clock to 156 MHz */
+	sdhi_clk = clk_get(NULL, "sdhi0");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi0 clock\n");
+		goto sdhi0_out;
+	}
+	ret = clk_set_rate(sdhi_clk, 156000000);
+	if (ret < 0)
+		pr_err("Cannot set sdhi0 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+sdhi0_out:
 
 	/* set SDHI2 clock to 97.5 MHz */
 	sdhi_clk = clk_get(NULL, "sdhi2");
