@@ -133,6 +133,12 @@ struct tmio_mmc_data {
 	void (*set_clk_div)(struct platform_device *host, int state);
 	int (*get_cd)(struct platform_device *host);
 	int (*get_ro)(struct platform_device *host);
+	int (*start_signal_voltage_switch)(struct tmio_mmc_host *host,
+						unsigned char signal_voltage);
+	void (*init_tuning)(struct tmio_mmc_host *host, unsigned long *num);
+	int (*prepare_tuning)(struct tmio_mmc_host *host, unsigned long tap);
+	int (*select_tuning)(struct tmio_mmc_host *host, unsigned long *tap);
+	bool (*retuning)(struct tmio_mmc_host *host);
 	int (*write16_hook)(struct tmio_mmc_host *host, int addr);
 	bool (*dma_filter)(struct dma_chan *chan, void *arg);
 	void (*disable_auto_cmd12)(int *val);
