@@ -1683,6 +1683,12 @@ static int sh_eth_phy_start(struct net_device *ndev)
 
 	/* reset phy - this also wakes it from PDOWN */
 	phy_write(mdp->phydev, MII_BMCR, BMCR_RESET);
+#if defined(CONFIG_MACH_LAGER) || defined(CONFIG_MACH_KOELSCH)
+	ret = phy_read(mdp->phydev, 0x1e);
+	ret &= ~0xc000;
+	ret |= 0x4000;
+	phy_write(mdp->phydev, 0x1e, ret);
+#endif
 	phy_start(mdp->phydev);
 
 	return 0;
