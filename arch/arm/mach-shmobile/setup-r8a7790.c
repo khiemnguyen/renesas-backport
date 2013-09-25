@@ -23,6 +23,8 @@
 #include <linux/i2c/i2c-rcar.h>
 #include <linux/irq.h>
 #include <linux/kernel.h>
+#include <linux/mfd/tmio.h>
+#include <linux/mmc/sh_mmcif.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
@@ -623,6 +625,41 @@ R8A7790_I2C(3);
 		ARRAY_SIZE(r8a7790_i2c##idx##_resources),		\
 		&r8a7790_i2c##idx##_platform_data,			\
 		sizeof(r8a7790_i2c##idx##_platform_data))
+
+/* MMC */
+static const struct resource sh_mmcif0_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee200000, SZ_128, "mmc0"),
+	DEFINE_RES_IRQ(gic_spi(169)),
+};
+
+static const struct resource sh_mmcif1_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee220000, SZ_128, "mmc1"),
+	DEFINE_RES_IRQ(gic_spi(170)),
+};
+
+static const struct resource *sh_mmcif_resources[2] = {
+	sh_mmcif0_resources,
+	sh_mmcif1_resources,
+};
+
+void __init r8a7790_add_mmc_device(struct sh_mmcif_plat_data *pdata,
+				    unsigned int index)
+{
+	struct platform_device_info info = {
+		.name = "sh_mmcif",
+		.id = index,
+		.data = pdata,
+		.size_data = sizeof(*pdata),
+	};
+
+	if (index >= ARRAY_SIZE(sh_mmcif_resources))
+		return;
+
+	info.res = sh_mmcif_resources[index];
+	info.num_res = 2;
+
+	platform_device_register_full(&info);
+}
 
 /* MSIOF */
 static const struct sh_msiof_spi_info sh_msiof_info __initconst = {
