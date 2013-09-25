@@ -92,6 +92,28 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 	unsigned long clk;
 	u32 value;
 	u32 div;
+#if defined(CONFIG_MACH_KOELSCH)
+	struct drm_connector *connector;
+	struct drm_display_mode *ref_mode = NULL;
+#endif
+
+#if defined(CONFIG_MACH_KOELSCH)
+	list_for_each_entry(connector,
+		 &rcrtc->crtc.dev->mode_config.connector_list, head) {
+		if (connector->interlace_allowed == true)
+			break;
+	}
+	if (strcmp(mode->name, "1920x1080") == 0) {
+		list_for_each_entry(ref_mode, &connector->modes, head) {
+			if ((ref_mode->hdisplay == 1920) &&
+				(ref_mode->vdisplay == 1080) &&
+				(ref_mode->flags & DRM_MODE_FLAG_INTERLACE)) {
+				rcrtc->crtc.mode = *ref_mode;
+				break;
+			}
+		}
+	}
+#endif
 
 	/* Dot clock */
 	clk = clk_get_rate(rcrtc->clock);
