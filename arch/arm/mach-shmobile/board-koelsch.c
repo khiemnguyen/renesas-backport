@@ -37,6 +37,7 @@
 #include <mach/common.h>
 #include <mach/irqs.h>
 #include <mach/r8a7791.h>
+#include <media/vin.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 
@@ -140,6 +141,63 @@ static const struct spi_board_info spi_info[] __initconst = {
 
 #define koelsch_add_qspi_device spi_register_board_info
 
+/* VIN camera */
+static struct i2c_board_info lager_i2c_camera[] = {
+	{ I2C_BOARD_INFO("adv7612", 0x4c), },
+	{ I2C_BOARD_INFO("adv7180", 0x20), },
+};
+
+static void camera_power_on(void)
+{
+	return;
+}
+
+static void camera_power_off(void)
+{
+	return;
+}
+
+static int adv7612_power(struct device *dev, int mode)
+{
+	if (mode)
+		camera_power_on();
+	else
+		camera_power_off();
+
+	return 0;
+}
+
+static int adv7180_power(struct device *dev, int mode)
+{
+	if (mode)
+		camera_power_on();
+	else
+		camera_power_off();
+
+	return 0;
+}
+
+static const struct soc_camera_link adv7612_ch0_link __initconst = {
+	.bus_id = 0,
+	.power  = adv7612_power,
+	.board_info = &lager_i2c_camera[0],
+	.i2c_adapter_id = 2,
+	.module_name = "adv7612",
+};
+
+static const struct soc_camera_link adv7180_ch1_link __initconst = {
+	.bus_id = 1,
+	.power  = adv7180_power,
+	.board_info = &lager_i2c_camera[1],
+	.i2c_adapter_id = 2,
+	.module_name = "adv7180",
+};
+
+#define koelsch_add_vin_device(idx, link)			\
+	platform_device_register_data(&platform_bus, "soc-camera-pdrv",	\
+				      idx , &link,			\
+				      sizeof(struct soc_camera_link));
+
 static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	/* DU (CN10: ARGB0, CN13: LVDS) */
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7791", "pfc-r8a7791",
@@ -186,6 +244,28 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "usb1_pwen", "usb1"),
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.1", "pfc-r8a7791",
 				  "usb1_ovc", "usb1"),
+	/* VIN0 */
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_data_g", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_data_r", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_data_b", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_hsync_signal", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_vsync_signal", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_field_signal", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_data_enable", "vin0"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.0", "pfc-r8a7791",
+				  "vin0_clk", "vin0"),
+	/* VIN1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.1", "pfc-r8a7791",
+				  "vin1_data", "vin1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("vin.1", "pfc-r8a7791",
+				  "vin1_clk", "vin1"),
 };
 
 static void __init koelsch_add_standard_devices(void)
@@ -206,6 +286,8 @@ static void __init koelsch_add_standard_devices(void)
 	r8a7791_add_mmc_device(&sh_mmcif_plat);
 	koelsch_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 	koelsch_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
+	koelsch_add_vin_device(0, adv7612_ch0_link);
+	koelsch_add_vin_device(1, adv7180_ch1_link);
 }
 
 static const char *koelsch_boards_compat_dt[] __initdata = {
