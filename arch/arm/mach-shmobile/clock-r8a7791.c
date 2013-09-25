@@ -382,7 +382,7 @@ sdhi2_out:
 	return;
 }
 
-static int __init r8a7791_mmc_clock_init(void)
+static void __init r8a7791_mmc_clock_init(void)
 {
 	int ret = 0;
 	struct clk *mmc_clk;
