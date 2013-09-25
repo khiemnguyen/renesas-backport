@@ -40,6 +40,7 @@
 #include <mach/irqs.h>
 #include <mach/r8a7791.h>
 #include <media/vin.h>
+#include <sound/sh_scu.h>
 #include <asm/mach/arch.h>
 
 static const struct resource pfc_resources[] __initconst = {
@@ -206,6 +207,32 @@ static const struct resource cmt00_resources[] __initconst = {
 					  ARRAY_SIZE(cmt##idx##_resources), \
 					  &cmt##idx##_platform_data,	\
 					  sizeof(struct sh_timer_config))
+
+/* Audio */
+#define r8a7791_register_alsa(idx)					\
+	platform_device_register_resndata(&platform_bus,		\
+		"koelsch_alsa_soc_platform", idx, NULL, 0, NULL, 0)
+
+static const struct resource r8a7791_scu_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xec000000, 0x501000, "scu"),
+	DEFINE_RES_MEM_NAMED(0xec540000, 0x860, "ssiu"),
+	DEFINE_RES_MEM_NAMED(0xec541000, 0x280, "ssi"),
+	DEFINE_RES_MEM_NAMED(0xec5a0000, 0x68, "adg"),
+};
+
+void __init r8a7791_add_scu_device(struct scu_platform_data *pdata)
+{
+	struct platform_device_info info = {
+		.name = "scu-pcm-audio",
+		.id = 0,
+		.data = pdata,
+		.size_data = sizeof(*pdata),
+		.res = r8a7791_scu_resources,
+		.num_res = ARRAY_SIZE(r8a7791_scu_resources),
+	};
+
+	platform_device_register_full(&info);
+}
 
 /* DMA */
 #define DMA_CHANNEL(a, b, c)	\
@@ -1050,6 +1077,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
 	r8a7791_register_cmt(00);
+	r8a7791_register_alsa(0);
 	r8a7791_register_audma(l, SHDMA_DEVID_AUDIO_LO);
 	r8a7791_register_audma(u, SHDMA_DEVID_AUDIO_UP);
 	r8a7791_register_sysdma(l, SHDMA_DEVID_SYS_LO);
