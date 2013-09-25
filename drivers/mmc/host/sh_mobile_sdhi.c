@@ -63,6 +63,18 @@ static void sh_mobile_sdhi_clk_disable(struct platform_device *pdev)
 	clk_disable(priv->clk);
 }
 
+static void sh_mobile_sdhi_set_clk_div(struct platform_device *pdev, int clk)
+{
+	struct mmc_host *mmc = dev_get_drvdata(&pdev->dev);
+	struct tmio_mmc_host *host = mmc_priv(mmc);
+
+	if (clk == true) {
+		sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, ~0x0100 &
+				sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+		sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x00ff);
+	}
+}
+
 static void sh_mobile_sdhi_set_pwr(struct platform_device *pdev, int state)
 {
 	struct sh_mobile_sdhi_info *p = pdev->dev.platform_data;
@@ -192,6 +204,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	mmc_data->clk_disable = sh_mobile_sdhi_clk_disable;
 	mmc_data->capabilities = MMC_CAP_MMC_HIGHSPEED;
 	mmc_data->disable_auto_cmd12 = sh_mobile_sdhi_disable_auto_cmd12;
+	mmc_data->set_clk_div = sh_mobile_sdhi_set_clk_div;
 	if (p) {
 		mmc_data->flags = p->tmio_flags;
 		if (mmc_data->flags & TMIO_MMC_HAS_IDLE_WAIT)
