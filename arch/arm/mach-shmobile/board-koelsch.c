@@ -19,6 +19,7 @@
 
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
+#include <linux/i2c.h>
 #include <linux/input.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
@@ -38,6 +39,7 @@
 #include <mach/irqs.h>
 #include <mach/r8a7791.h>
 #include <media/vin.h>
+#include <sound/sh_scu.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 
@@ -54,6 +56,152 @@ static struct resource ether_resources[] __initdata = {
 	DEFINE_RES_MEM(0xee700000, 0x400),
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
+
+/* Audio */
+static struct scu_config ssi_ch_value[] = {
+	{RP_MEM_SSI0,		SSI0},
+	{RP_MEM_SRC0_SSI0,	SSI0},
+	{RP_MEM_SRC0_DVC0_SSI0,	SSI0},
+	{RC_SSI1_MEM,		SSI1},
+	{RC_SSI1_SRC1_MEM,	SSI1},
+	{RC_SSI1_SRC1_DVC1_MEM,	SSI1},
+};
+
+static struct scu_config src_ch_value[] = {
+	{RP_MEM_SSI0,		-1},
+	{RP_MEM_SRC0_SSI0,	SRC0},
+	{RP_MEM_SRC0_DVC0_SSI0,	SRC0},
+	{RC_SSI1_MEM,		-1},
+	{RC_SSI1_SRC1_MEM,	SRC1},
+	{RC_SSI1_SRC1_DVC1_MEM,	SRC1},
+};
+
+static struct scu_config dvc_ch_value[] = {
+	{RP_MEM_SSI0,		-1},
+	{RP_MEM_SRC0_SSI0,	-1},
+	{RP_MEM_SRC0_DVC0_SSI0,	DVC0},
+	{RC_SSI1_MEM,		-1},
+	{RC_SSI1_SRC1_MEM,	-1},
+	{RC_SSI1_SRC1_DVC1_MEM,	DVC1},
+};
+
+static struct scu_config audma_slave_value[] = {
+	{RP_MEM_SSI0,		SHDMA_SLAVE_PCM_MEM_SSI0},
+	{RP_MEM_SRC0_SSI0,	SHDMA_SLAVE_PCM_MEM_SRC0},
+	{RP_MEM_SRC0_DVC0_SSI0,	SHDMA_SLAVE_PCM_MEM_SRC0},
+	{RC_SSI1_MEM,		SHDMA_SLAVE_PCM_SSI1_MEM},
+	{RC_SSI1_SRC1_MEM,	SHDMA_SLAVE_PCM_SRC1_MEM},
+	{RC_SSI1_SRC1_DVC1_MEM,	SHDMA_SLAVE_PCM_CMD1_MEM},
+};
+
+static struct scu_config audmapp_slave_value[] = {
+	{RP_MEM_SSI0,		-1},
+	{RP_MEM_SRC0_SSI0,	SHDMA_SLAVE_PCM_SRC0_SSI0},
+	{RP_MEM_SRC0_DVC0_SSI0,	SHDMA_SLAVE_PCM_CMD0_SSI0},
+	{RC_SSI1_MEM,		-1},
+	{RC_SSI1_SRC1_MEM,	SHDMA_SLAVE_PCM_SSI1_SRC1},
+	{RC_SSI1_SRC1_DVC1_MEM,	SHDMA_SLAVE_PCM_SSI1_SRC1},
+};
+
+static struct scu_config ssiu_busif_adinr_offset[] = {
+	{SSI0, SSI0_0_BUSIF_ADINR},
+	{SSI1, SSI1_0_BUSIF_ADINR},
+	{SSI2, SSI2_0_BUSIF_ADINR},
+	{SSI3, SSI3_BUSIF_ADINR},
+	{SSI4, SSI4_BUSIF_ADINR},
+	{SSI5, SSI5_BUSIF_ADINR},
+	{SSI6, SSI6_BUSIF_ADINR},
+	{SSI7, SSI7_BUSIF_ADINR},
+	{SSI8, SSI8_BUSIF_ADINR},
+	{SSI9, SSI9_0_BUSIF_ADINR},
+};
+
+static struct scu_config ssiu_control_offset[] = {
+	{SSI0, SSI0_0_CONTROL},
+	{SSI1, SSI1_0_CONTROL},
+	{SSI2, SSI2_0_CONTROL},
+	{SSI3, SSI3_CONTROL},
+	{SSI4, SSI4_CONTROL},
+	{SSI5, SSI5_CONTROL},
+	{SSI6, SSI6_CONTROL},
+	{SSI7, SSI7_CONTROL},
+	{SSI8, SSI8_CONTROL},
+	{SSI9, SSI9_0_CONTROL},
+};
+
+static struct scu_config ssiu_mode1_value[] = {
+	{SSI1, SSI_MODE1_SSI1_MASTER},
+	{SSI2, SSI_MODE1_SSI2_IND},
+	{SSI4, SSI_MODE1_SSI4_IND},
+};
+
+static struct scu_config dvc_route_select_value[] = {
+	{DVC0, (CMD_ROUTE_SELECT_CASE_CTU2 | CMD_ROUTE_SELECT_CTU2_SRC0)},
+	{DVC1, (CMD_ROUTE_SELECT_CASE_CTU2 | CMD_ROUTE_SELECT_CTU2_SRC1)},
+};
+
+static struct scu_config ssi_depend_value[] = {
+	{RP_MEM_SSI0,		SSI_INDEPENDANT},
+	{RP_MEM_SRC0_SSI0,	SSI_DEPENDANT},
+	{RP_MEM_SRC0_DVC0_SSI0,	SSI_DEPENDANT},
+	{RC_SSI1_MEM,		SSI_INDEPENDANT},
+	{RC_SSI1_SRC1_MEM,	SSI_DEPENDANT},
+	{RC_SSI1_SRC1_DVC1_MEM,	SSI_DEPENDANT},
+};
+
+static struct scu_config ssi_mode_value[] = {
+	{RP_MEM_SSI0,		SSI_MASTER},
+	{RP_MEM_SRC0_SSI0,	SSI_MASTER},
+	{RP_MEM_SRC0_DVC0_SSI0,	SSI_MASTER},
+	{RC_SSI1_MEM,		SSI_SLAVE},
+	{RC_SSI1_SRC1_MEM,	SSI_SLAVE},
+	{RC_SSI1_SRC1_DVC1_MEM,	SSI_SLAVE},
+};
+
+static struct scu_config src_mode_value[] = {
+	{RP_MEM_SSI0,		SRC_CR_SYNC},
+	{RP_MEM_SRC0_SSI0,	SRC_CR_SYNC},
+	{RP_MEM_SRC0_DVC0_SSI0,	SRC_CR_SYNC},
+	{RC_SSI1_MEM,		SRC_CR_SYNC},
+	{RC_SSI1_SRC1_MEM,	SRC_CR_SYNC},
+	{RC_SSI1_SRC1_DVC1_MEM,	SRC_CR_ASYNC},
+};
+
+static struct scu_platform_data scu_pdata __initdata = {
+	.ssi_master		= SSI0,
+	.ssi_slave		= SSI1,
+	.ssi_ch			= ssi_ch_value,
+	.ssi_ch_num		= ARRAY_SIZE(ssi_ch_value),
+	.src_ch			= src_ch_value,
+	.src_ch_num		= ARRAY_SIZE(src_ch_value),
+	.dvc_ch			= dvc_ch_value,
+	.dvc_ch_num		= ARRAY_SIZE(dvc_ch_value),
+	.dma_slave_maxnum	= SHDMA_SLAVE_PCM_MAX,
+	.audma_slave		= audma_slave_value,
+	.audma_slave_num	= ARRAY_SIZE(audma_slave_value),
+	.audmapp_slave		= audmapp_slave_value,
+	.audmapp_slave_num	= ARRAY_SIZE(audmapp_slave_value),
+	.ssiu_busif_adinr	= ssiu_busif_adinr_offset,
+	.ssiu_busif_adinr_num	= ARRAY_SIZE(ssiu_busif_adinr_offset),
+	.ssiu_control		= ssiu_control_offset,
+	.ssiu_control_num	= ARRAY_SIZE(ssiu_control_offset),
+	.ssiu_mode1		= ssiu_mode1_value,
+	.ssiu_mode1_num		= ARRAY_SIZE(ssiu_mode1_value),
+	.dvc_route_select	= dvc_route_select_value,
+	.dvc_route_select_num	= ARRAY_SIZE(dvc_route_select_value),
+	.ssi_depend		= ssi_depend_value,
+	.ssi_depend_num		= ARRAY_SIZE(ssi_depend_value),
+	.ssi_mode		= ssi_mode_value,
+	.ssi_mode_num		= ARRAY_SIZE(ssi_mode_value),
+	.src_mode		= src_mode_value,
+	.src_mode_num		= ARRAY_SIZE(src_mode_value),
+};
+
+static struct i2c_board_info alsa_i2c[] = {
+	{ I2C_BOARD_INFO("ak4642", 0x12), },
+};
+
+#define koelsch_add_alsa_device i2c_register_board_info
 
 /* MMC */
 static void shmmcif_set_pwr(struct platform_device *pdev, int state)
@@ -284,6 +432,8 @@ static void __init koelsch_add_standard_devices(void)
 					  &ether_pdata, sizeof(ether_pdata));
 
 	r8a7791_add_mmc_device(&sh_mmcif_plat);
+	r8a7791_add_scu_device(&scu_pdata);
+	koelsch_add_alsa_device(2, alsa_i2c, ARRAY_SIZE(alsa_i2c));
 	koelsch_add_msiof_device(spi_bus, ARRAY_SIZE(spi_bus));
 	koelsch_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 	koelsch_add_vin_device(0, adv7612_ch0_link);
