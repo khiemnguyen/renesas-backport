@@ -434,12 +434,12 @@ static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
 		.mid_rid	= 0xce,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI1_TX,
-		.addr		= 0xee120030,
+		.addr		= 0xee120060,
 		.chcr		= CHCR_TX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xc9,
 	}, {
 		.slave_id	= SHDMA_SLAVE_SDHI1_RX,
-		.addr		= 0xee120030 + 0x2000,
+		.addr		= 0xee120060 + 0x2000,
 		.chcr		= CHCR_RX(XMIT_SZ_256BIT),
 		.mid_rid	= 0xca,
 	}, {
