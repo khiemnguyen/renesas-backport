@@ -22,6 +22,8 @@
 #include <linux/i2c/i2c-rcar.h>
 #include <linux/irq.h>
 #include <linux/kernel.h>
+#include <linux/mfd/tmio.h>
+#include <linux/mmc/sh_mmcif.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/gpio-rcar.h>
 #include <linux/platform_data/rcar-du.h>
@@ -554,6 +556,26 @@ R8A7791_I2C(5);
 		ARRAY_SIZE(r8a7791_i2c##idx##_resources),		\
 		&r8a7791_i2c##idx##_platform_data,			\
 		sizeof(r8a7791_i2c##idx##_platform_data))
+
+/* MMC */
+static const struct resource sh_mmcif_resources[] __initconst = {
+	DEFINE_RES_MEM_NAMED(0xee200000, SZ_128, "mmc"),
+	DEFINE_RES_IRQ(gic_spi(169)),
+};
+
+void __init r8a7791_add_mmc_device(struct sh_mmcif_plat_data *pdata)
+{
+	struct platform_device_info info = {
+		.name = "sh_mmcif",
+		.id = 0,
+		.data = pdata,
+		.size_data = sizeof(*pdata),
+		.res = sh_mmcif_resources,
+		.num_res = 2,
+	};
+
+	platform_device_register_full(&info);
+}
 
 /* MSIOF */
 static const struct sh_msiof_spi_info sh_msiof_info __initconst = {
