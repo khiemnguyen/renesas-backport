@@ -390,6 +390,11 @@ static const struct spi_board_info spi_bus[] __initconst = {
 
 #define lager_add_msiof_device spi_register_board_info
 
+/* POWER IC */
+static struct i2c_board_info poweric_i2c[] = {
+	{ I2C_BOARD_INFO("da9063", 0x58), },
+};
+
 /* QSPI flash memory */
 static struct mtd_partition spiflash_part[] = {
 	/* Reserved for user loader program, read-only */
@@ -756,6 +761,36 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "vin1_clk", "vin1"),
 };
 
+static void lager_restart(char mode, const char *cmd)
+{
+	struct i2c_adapter *adap;
+	struct i2c_client *client;
+	u8 val;
+	int busnum = 3;
+
+	adap = i2c_get_adapter(busnum);
+	if (!adap) {
+		pr_err("failed to get adapter i2c%d\n", busnum);
+		return;
+	}
+
+	client = i2c_new_device(adap, &poweric_i2c[0]);
+	if (!client)
+		pr_err("failed to register %s to i2c%d\n",
+		       poweric_i2c[0].type, busnum);
+
+	i2c_put_adapter(adap);
+
+	val = i2c_smbus_read_byte_data(client, 0x13);
+
+	if (val < 0)
+		pr_err("couldn't access da9063\n");
+
+	val |= 0x02;
+
+	i2c_smbus_write_byte_data(client, 0x13, val);
+}
+
 static void __init lager_add_standard_devices(void)
 {
 	r8a7790_clock_init();
@@ -814,5 +849,6 @@ DT_MACHINE_START(LAGER_DT, "lager")
 	.init_early	= r8a7790_init_early,
 	.timer		= &r8a7790_timer,
 	.init_machine	= lager_add_standard_devices,
+	.restart	= lager_restart,
 	.dt_compat	= lager_boards_compat_dt,
 MACHINE_END
