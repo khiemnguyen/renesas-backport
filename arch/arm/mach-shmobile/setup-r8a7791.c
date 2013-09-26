@@ -610,6 +610,19 @@ R8A7791_I2C(5);
 		&r8a7791_i2c##idx##_platform_data,			\
 		sizeof(r8a7791_i2c##idx##_platform_data))
 
+/* IIC */
+static const struct resource r8a7791_iic6_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe60b0000, SZ_4K),
+	DEFINE_RES_IRQ(gic_spi(173)),
+	DEFINE_RES_IRQ(gic_spi(174)),
+};
+
+#define r8a7791_register_iic(idx)					\
+	platform_device_register_simple("i2c-sh_mobile",		\
+				idx,					\
+				r8a7791_iic##idx##_resources,		\
+				ARRAY_SIZE(r8a7791_iic##idx##_resources))
+
 /* MMC */
 static const struct resource sh_mmcif_resources[] __initconst = {
 	DEFINE_RES_MEM_NAMED(0xee200000, SZ_128, "mmc"),
@@ -1218,6 +1231,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_i2c(3);
 	r8a7791_register_i2c(4);
 	r8a7791_register_i2c(5);
+	r8a7791_register_iic(6);
 	r8a7791_register_msiof(0);
 	r8a7791_register_msiof(1);
 	r8a7791_register_msiof(2);
