@@ -671,6 +671,25 @@ static const struct resource sh_msiof2_resources[] __initconst = {
 				  &sh_msiof_info,		\
 				  sizeof(struct sh_msiof_spi_info))
 
+/* POWERVR */
+static struct resource powervr_resources[] = {
+	{
+		.start  = 0xfd800000,
+		.end    = 0xfd80ffff,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.start  = gic_spi(119),
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+static struct platform_device powervr_device = {
+	.name           = "pvrsrvkm",
+	.id             = -1,
+	.resource       = powervr_resources,
+	.num_resources  = ARRAY_SIZE(powervr_resources),
+};
+
 /* QSPI */
 static const struct resource qspi_resources[] __initconst = {
 	DEFINE_RES_MEM_NAMED(0xe6b10000, SZ_4K, "qspi"),
@@ -1182,6 +1201,10 @@ void __init r8a7791_add_vsp1_device(struct vsp1_platform_data *pdata,
 	platform_device_register_full(&info);
 }
 
+static struct platform_device *r8a7791_early_devices[] __initdata = {
+	&powervr_device,
+};
+
 void __init r8a7791_add_standard_devices(void)
 {
 	void __iomem *pfcctl;
@@ -1246,6 +1269,9 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_vin(0);
 	r8a7791_register_vin(1);
 	r8a7791_register_vin(2);
+
+	platform_add_devices(r8a7791_early_devices,
+		     ARRAY_SIZE(r8a7791_early_devices));
 }
 
 #define MODEMR 0xe6160060
