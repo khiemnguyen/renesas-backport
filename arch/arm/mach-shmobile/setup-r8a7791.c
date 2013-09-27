@@ -27,6 +27,7 @@
 #include <linux/platform_data/rcar-du.h>
 #include <linux/platform_data/irq-renesas-irqc.h>
 #include <linux/serial_sci.h>
+#include <linux/sh_audma-pp.h>
 #include <linux/sh_dma-desc.h>
 #include <linux/sh_timer.h>
 #include <mach/common.h>
@@ -416,6 +417,81 @@ static const struct resource r8a7791_sysdmau_resources[] __initconst = {
 		&r8a7791_sysdma_pdata,					\
 		sizeof(r8a7791_sysdma_pdata))
 
+#define AUDMAPP_CHANNEL(a)	\
+{				\
+	.offset		= a,	\
+}
+
+static const struct sh_audmapp_slave_config r8a7791_audmapp_slaves[] = {
+	{
+		.slave_id	= SHDMA_SLAVE_PCM_SRC0_SSI0,
+		.sar		= 0xec304000,
+		.dar		= 0xec400000,
+		.chcr		= 0x2d000000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_CMD0_SSI0,
+		.sar		= 0xec308000,
+		.dar		= 0xec400000,
+		.chcr		= 0x37000000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_SSI1_SRC1,
+		.sar		= 0xec401000,
+		.dar		= 0xec300400,
+		.chcr		= 0x042e0000,
+	},
+};
+
+static const struct sh_audmapp_channel r8a7791_audmapp_channels[] = {
+	AUDMAPP_CHANNEL(0x0000),
+	AUDMAPP_CHANNEL(0x0010),
+	AUDMAPP_CHANNEL(0x0020),
+	AUDMAPP_CHANNEL(0x0030),
+	AUDMAPP_CHANNEL(0x0040),
+	AUDMAPP_CHANNEL(0x0050),
+	AUDMAPP_CHANNEL(0x0060),
+	AUDMAPP_CHANNEL(0x0070),
+	AUDMAPP_CHANNEL(0x0080),
+	AUDMAPP_CHANNEL(0x0090),
+	AUDMAPP_CHANNEL(0x00a0),
+	AUDMAPP_CHANNEL(0x00b0),
+	AUDMAPP_CHANNEL(0x00c0),
+	AUDMAPP_CHANNEL(0x00d0),
+	AUDMAPP_CHANNEL(0x00e0),
+	AUDMAPP_CHANNEL(0x00f0),
+	AUDMAPP_CHANNEL(0x0100),
+	AUDMAPP_CHANNEL(0x0110),
+	AUDMAPP_CHANNEL(0x0120),
+	AUDMAPP_CHANNEL(0x0130),
+	AUDMAPP_CHANNEL(0x0140),
+	AUDMAPP_CHANNEL(0x0150),
+	AUDMAPP_CHANNEL(0x0160),
+	AUDMAPP_CHANNEL(0x0170),
+	AUDMAPP_CHANNEL(0x0180),
+	AUDMAPP_CHANNEL(0x0190),
+	AUDMAPP_CHANNEL(0x01a0),
+	AUDMAPP_CHANNEL(0x01b0),
+	AUDMAPP_CHANNEL(0x01c0),
+};
+
+static const struct sh_audmapp_pdata r8a7791_audmapp_pdata __initconst = {
+	.slave		= r8a7791_audmapp_slaves,
+	.slave_num	= ARRAY_SIZE(r8a7791_audmapp_slaves),
+	.channel	= r8a7791_audmapp_channels,
+	.channel_num	= ARRAY_SIZE(r8a7791_audmapp_channels),
+};
+
+static const struct resource r8a7791_audmapp_resources[] __initconst = {
+	DEFINE_RES_MEM(0xec740020, 0x1d0),
+};
+
+#define r8a7791_register_audmapp(devid)					\
+	platform_device_register_resndata(&platform_bus,		\
+		"sh-audmapp-engine", devid,				\
+		r8a7791_audmapp_resources,				\
+		ARRAY_SIZE(r8a7791_audmapp_resources),			\
+		&r8a7791_audmapp_pdata,					\
+		sizeof(r8a7791_audmapp_pdata))
+
 /* I2C */
 static const struct resource r8a7791_i2c0_resources[] __initconst = {
 	DEFINE_RES_MEM(0xe6508000, SZ_32K),
@@ -485,6 +561,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_audma(u, SHDMA_DEVID_AUDIO_UP);
 	r8a7791_register_sysdma(l, SHDMA_DEVID_SYS_LO);
 	r8a7791_register_sysdma(u, SHDMA_DEVID_SYS_UP);
+	r8a7791_register_audmapp(SHDMA_DEVID_AUDIOPP);
 	r8a7791_register_i2c(0);
 	r8a7791_register_i2c(1);
 	r8a7791_register_i2c(2);
