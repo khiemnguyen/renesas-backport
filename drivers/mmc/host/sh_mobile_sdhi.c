@@ -132,19 +132,13 @@ static int sh_mobile_sdhi_write16_hook(struct tmio_mmc_host *host, int addr)
 
 static bool sh_mobile_sdhi_dma_filter(struct dma_chan *chan, void *arg)
 {
+	bool result;
+	int *slave_id = (int *)arg;
 
-	struct platform_device *pdev = to_platform_device(chan->device->dev);
-	struct sh_dmadesc_pdata *pdata = pdev->dev.platform_data;
-	dev_dbg(chan->device->dev, "%s: slave data %p\n", __func__, arg);
-
-	if (!pdata->dma_filter)
-		return false;
-	if (!pdata->dma_filter(pdev))
-		return false;
-
-	chan->private = arg;
-
-	return true;
+	result = shdma_chan_filter(chan, (void *)*slave_id);
+	if (result)
+		chan->private = arg;
+	return result;
 }
 
 #define SH_MOBILE_SDHI_DISABLE_AUTO_CMD12	0x4000
