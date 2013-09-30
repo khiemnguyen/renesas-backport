@@ -1253,6 +1253,10 @@ void __init r8a7790_add_standard_devices(void)
 
 	usbh_init();
 
+	r8a7790_pm_init();
+
+	r8a7790_init_pm_domain(&r8a7790_rgx);
+
 	r8a7790_register_scif(SCIFA0);
 	r8a7790_register_scif(SCIFA1);
 	r8a7790_register_scif(SCIFB0);
@@ -1297,6 +1301,8 @@ void __init r8a7790_add_standard_devices(void)
 
 	platform_add_devices(r8a7790_early_devices,
 			     ARRAY_SIZE(r8a7790_early_devices));
+
+	r8a7790_add_device_to_domain(&r8a7790_rgx, &powervr_device);
 }
 
 #define MODEMR 0xe6160060
