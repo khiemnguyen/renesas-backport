@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/gpio_keys.h>
 #include <linux/i2c.h>
@@ -291,17 +292,108 @@ static const struct spi_board_info spi_info[] __initconst = {
 #define koelsch_add_qspi_device spi_register_board_info
 
 /* SDHI */
+static void sdhi_set_pwr(struct platform_device *pdev, int state)
+{
+	switch (pdev->id) {
+	case 0:
+		gpio_set_value(RCAR_GP_PIN(7, 17), state);
+		break;
+	case 2:
+		gpio_set_value(RCAR_GP_PIN(7, 19), state);
+		break;
+	default:
+		break;
+	}
+}
+
+static void sdhi_set_ioctrl(int ch, int state)
+{
+	void __iomem *pfcctl;
+	unsigned int ctrl, mask;
+
+	pfcctl = ioremap(0xe6060000, 0x300);
+
+	ctrl = ioread32(pfcctl + 0x8c);
+	/* Set 1.8V/3.3V */
+	mask = 0xff << (24 - ch * 8);
+
+	if (state == SH_MOBILE_SDHI_SIGNAL_330V)
+		ctrl |= mask;
+	else if (state == SH_MOBILE_SDHI_SIGNAL_180V)
+		ctrl &= ~mask;
+	else
+		pr_err("update_ioctrl6: unknown state\n");
+
+	iowrite32(~ctrl, pfcctl);	/* PMMR */
+	iowrite32(ctrl, pfcctl + 0x8c);	/* IOCTRL6 */
+
+	iounmap(pfcctl);
+}
+
+static int sdhi_set_vlt(struct platform_device *pdev, int state)
+{
+	/* Set 1.8V/3.3V */
+	switch (pdev->id) {
+	case 0:
+		/* SDHI0 */
+		if (state)
+			sdhi_set_ioctrl(pdev->id, state);
+		gpio_set_value(RCAR_GP_PIN(2, 12), state);
+		if (!state)
+			sdhi_set_ioctrl(pdev->id, state);
+		break;
+	case 2:
+		/* SDHI2 */
+		if (state)
+			sdhi_set_ioctrl(pdev->id, state);
+		gpio_set_value(RCAR_GP_PIN(2, 26), state);
+		if (!state)
+			sdhi_set_ioctrl(pdev->id, state);
+		break;
+	default:
+		return -EINVAL;
+	}
+	usleep_range(5000, 5500);
+	return 0;
+}
+
+static int sdhi_get_vlt(struct platform_device *pdev)
+{
+	int ret;
+
+	switch (pdev->id) {
+	case 0:
+		/* SDHI0 */
+		ret = gpio_get_value(RCAR_GP_PIN(2, 12));
+		break;
+	case 2:
+		/* SDHI2 */
+		ret = gpio_get_value(RCAR_GP_PIN(2, 26));
+		break;
+	default:
+		return -EINVAL;
+	}
+	return ret ? 1 : 0;
+}
+
 static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
-	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
+				MMC_CAP_UHS_SDR50 |
+				MMC_CAP_UHS_SDR104 |
+				MMC_CAP_CMD23,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
+				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_SDIO_STATUS_QUIRK,
+	.set_pwr	= sdhi_set_pwr,
+	.set_vlt	= sdhi_set_vlt,
+	.get_vlt	= sdhi_get_vlt,
 };
 
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
@@ -320,15 +412,20 @@ static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI2_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI2_RX,
-	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
+				MMC_CAP_UHS_SDR50,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
+				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_SDIO_STATUS_QUIRK |
 				TMIO_MMC_WRPROTECT_DISABLE,
+	.set_pwr	= sdhi_set_pwr,
+	.set_vlt	= sdhi_set_vlt,
+	.get_vlt	= sdhi_get_vlt,
 };
 
 /* VIN camera */
@@ -499,6 +596,15 @@ static void __init koelsch_add_standard_devices(void)
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
+
+	gpio_request(RCAR_GP_PIN(7, 17), "SDHI0_vdd");
+	gpio_request(RCAR_GP_PIN(7, 19), "SDHI2_vdd");
+	gpio_request(RCAR_GP_PIN(2, 12), "SDHI0_vol");
+	gpio_request(RCAR_GP_PIN(2, 26), "SDHI2_vol");
+	gpio_direction_output(RCAR_GP_PIN(7, 17), 0);
+	gpio_direction_output(RCAR_GP_PIN(7, 19), 0);
+	gpio_direction_output(RCAR_GP_PIN(2, 12), 0);
+	gpio_direction_output(RCAR_GP_PIN(2, 26), 0);
 
 	r8a7791_add_mmc_device(&sh_mmcif_plat);
 	r8a7791_add_scu_device(&scu_pdata);
