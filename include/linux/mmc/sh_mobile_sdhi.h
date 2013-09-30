@@ -10,6 +10,9 @@ struct tmio_mmc_data;
 #define SH_MOBILE_SDHI_IRQ_SDCARD	"sdcard"
 #define SH_MOBILE_SDHI_IRQ_SDIO		"sdio"
 
+#define SH_MOBILE_SDHI_SIGNAL_180V	0
+#define SH_MOBILE_SDHI_SIGNAL_330V	1
+
 /**
  * struct sh_mobile_sdhi_ops - SDHI driver callbacks
  * @cd_wakeup:		trigger a card-detection run
@@ -30,6 +33,8 @@ struct sh_mobile_sdhi_info {
 	void (*set_pwr)(struct platform_device *pdev, int state);
 	int (*get_cd)(struct platform_device *pdev);
 	int (*get_ro)(struct platform_device *pdev);
+	int (*set_vlt)(struct platform_device *pdev, int state);
+	int (*get_vlt)(struct platform_device *pdev);
 
 	/* callbacks for board specific setup code */
 	int (*init)(struct platform_device *pdev,

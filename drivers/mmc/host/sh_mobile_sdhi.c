@@ -97,6 +97,225 @@ static int sh_mobile_sdhi_get_ro(struct platform_device *pdev)
 
 }
 
+#define SH_MOBILE_SDHI_POWEROFF	0
+#define SH_MOBILE_SDHI_POWERON	1
+
+static int sh_mobile_sdhi_start_signal_voltage_switch(
+	struct tmio_mmc_host *host, unsigned char signal_voltage)
+{
+	struct sh_mobile_sdhi_info *p = host->pdev->dev.platform_data;
+	unsigned short reg;
+	int voltage;
+	int ret;
+
+	/* Check voltage */
+	voltage = p->get_vlt(host->pdev);
+
+	if ((voltage != SH_MOBILE_SDHI_SIGNAL_330V) &&
+	(signal_voltage == MMC_SIGNAL_VOLTAGE_330)) {
+		/* power cycle */
+		/* power off SD bus */
+		if (host->set_pwr)
+			host->set_pwr(host->pdev, SH_MOBILE_SDHI_POWEROFF);
+
+		usleep_range(1000, 1500);
+
+		/* power up SD bus */
+		if (host->set_pwr)
+			host->set_pwr(host->pdev, SH_MOBILE_SDHI_POWERON);
+
+		/* Enable 3.3V Signal */
+		ret = p->set_vlt(host->pdev, SH_MOBILE_SDHI_SIGNAL_330V);
+
+		usleep_range(5000, 5500);
+
+		return ret;
+	} else if ((voltage != SH_MOBILE_SDHI_SIGNAL_180V) &&
+	(signal_voltage == MMC_SIGNAL_VOLTAGE_180)) {
+		/* Stop SDCLK */
+		reg = 0x0100;
+		if (sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL) & 0x0200)
+			reg |= 0x0200;
+
+		sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, ~reg &
+			sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+		/* check to see if DAT[3:0] is 0000b  */
+		if (sd_ctrl_read16(host, CTL_STATUS2) & 0x0080) {
+			dev_warn(&host->pdev->dev, "DAT0 is not LOW\n");
+			goto power_cycle;
+		}
+
+		/* Enable 1.8V Signal */
+		ret = p->set_vlt(host->pdev, SH_MOBILE_SDHI_SIGNAL_180V);
+		if (ret)
+			goto power_cycle;
+
+		/* Wait for 5ms */
+		usleep_range(5000, 5500);
+
+		voltage = p->get_vlt(host->pdev);
+		if (voltage == SH_MOBILE_SDHI_SIGNAL_180V) {
+			/* Start SDCLK */
+			sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0100 |
+				sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+			/* Wait for 1ms */
+			usleep_range(1000, 1500);
+
+			/* check to see if DAT[3:0] is 1111b  */
+			if (!(sd_ctrl_read16(host, CTL_STATUS2) & 0x0080)) {
+				dev_warn(&host->pdev->dev,
+					"DAT0 is not HIGH\n");
+				goto power_cycle;
+			}
+
+			if (reg & 0x0200) {
+				sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL,
+					0x0200 | sd_ctrl_read16(host,
+							CTL_SD_CARD_CLK_CTL));
+			}
+			return 0;
+		}
+	} else
+		/* No signal voltage switch required */
+		return 0;
+
+power_cycle:
+	/* power off SD bus */
+	if (host->set_pwr)
+		host->set_pwr(host->pdev, SH_MOBILE_SDHI_POWEROFF);
+
+	usleep_range(1000, 1500);
+
+	/* power up SD bus */
+	if (host->set_pwr)
+		host->set_pwr(host->pdev, SH_MOBILE_SDHI_POWERON);
+
+	return -EAGAIN;
+}
+
+/* SCC registers */
+#define SH_MOBILE_SDHI_SCC_DTCNTL	0x300
+#define SH_MOBILE_SDHI_SCC_TAPSET	0x304
+#define SH_MOBILE_SDHI_SCC_CKSEL	0x30C
+#define SH_MOBILE_SDHI_SCC_RVSCNTL	0x310
+#define SH_MOBILE_SDHI_SCC_RVSREQ	0x314
+
+/* Definitions for values the SH_MOBILE_SDHI_SCC_DTCNTL register */
+#define SH_MOBILE_SDHI_SCC_DTCNTL_TAPEN		(1 << 0)
+/* Definitions for values the SH_MOBILE_SDHI_SCC_CKSEL register */
+#define SH_MOBILE_SDHI_SCC_CKSEL_DTSEL		(1 << 0)
+/* Definitions for values the SH_MOBILE_SDHI_SCC_RVSCNTL register */
+#define SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN	(1 << 0)
+/* Definitions for values the SH_MOBILE_SDHI_SCC_RVSREQ register */
+#define SH_MOBILE_SDHI_SCC_RVSREQ_RVSERR	(1 << 2)
+
+static void sh_mobile_sdhi_init_tuning(struct tmio_mmc_host *host,
+							unsigned long *num)
+{
+	unsigned short div;
+
+	/* Initialize SCC */
+	sd_ctrl_write32(host, CTL_STATUS, 0x00000000);
+	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, ~0x0100 &
+		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+	/* Save SDCLK div */
+	div = sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL);
+	/* Set SDCLK div 1/2 */
+	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0000);
+
+	writel(SH_MOBILE_SDHI_SCC_DTCNTL_TAPEN |
+		readl(host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL),
+		host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL);
+	writel(SH_MOBILE_SDHI_SCC_CKSEL_DTSEL,
+		host->ctl + SH_MOBILE_SDHI_SCC_CKSEL);
+	writel(~SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN |
+		readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL),
+		host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL);
+
+	/* Read TAPNUM */
+	*num = (readl(host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL) >> 16) & 0xf;
+
+	/* Restore SDCLK div */
+	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, div & 0x00ff);
+
+	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0100 |
+		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+}
+
+static int sh_mobile_sdhi_prepare_tuning(struct tmio_mmc_host *host,
+							unsigned long tap)
+{
+	/* Set sampling clock position */
+	writel(tap, host->ctl + SH_MOBILE_SDHI_SCC_TAPSET);
+
+	return 0;
+}
+
+#define SH_MOBILE_SDHI_MAX_TAP	3
+static int sh_mobile_sdhi_select_tuning(struct tmio_mmc_host *host,
+							unsigned long *tap)
+{
+	unsigned long i, tap_num, tap_cnt, tap_set;
+	unsigned long tap_start = 0, tap_end = 0;
+
+	/* Clear SCC_RVSREQ */
+	writel(0x00000000, host->ctl + SH_MOBILE_SDHI_SCC_RVSREQ);
+
+	/* Select SCC */
+	tap_num = (readl(host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL) >> 16) & 0xf;
+
+	tap_cnt = 0;
+	for (i = 0; i < tap_num * 2; i++) {
+		if (tap[i] == 0) {
+			if (tap_cnt == 0)
+				tap_start = i;
+			tap_cnt++;
+			if (tap_cnt == tap_num) {
+				tap_start = 0;
+				tap_end = i;
+				break;
+			}
+		} else {
+			if (tap_cnt >= SH_MOBILE_SDHI_MAX_TAP) {
+				tap_end = i;
+				break;
+			}
+			tap_cnt = 0;
+		}
+	}
+
+	if (tap_cnt >= SH_MOBILE_SDHI_MAX_TAP)
+		tap_set = (tap_start + tap_end) / 2;
+	else
+		return -EIO;
+
+	/* Set SCC */
+	writel(tap_set, host->ctl + SH_MOBILE_SDHI_SCC_TAPSET);
+
+	/* Enable auto re-tuning */
+	writel(SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN |
+		readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL),
+		host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL);
+	return 0;
+}
+
+static bool sh_mobile_sdhi_retuning(struct tmio_mmc_host *host)
+{
+	/* Check SCC error */
+	if (readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSREQ) &
+			SH_MOBILE_SDHI_SCC_RVSREQ_RVSERR) {
+		/* Clear SCC error */
+		writel(0x00000000,
+			host->ctl + SH_MOBILE_SDHI_SCC_RVSREQ);
+		return true;
+	}
+	return false;
+}
+
 static int sh_mobile_sdhi_wait_idle(struct tmio_mmc_host *host)
 {
 	int timeout = 1000;
@@ -197,6 +416,10 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	mmc_data->clk_enable = sh_mobile_sdhi_clk_enable;
 	mmc_data->clk_disable = sh_mobile_sdhi_clk_disable;
 	mmc_data->capabilities = MMC_CAP_MMC_HIGHSPEED;
+	mmc_data->init_tuning = sh_mobile_sdhi_init_tuning;
+	mmc_data->prepare_tuning = sh_mobile_sdhi_prepare_tuning;
+	mmc_data->select_tuning = sh_mobile_sdhi_select_tuning;
+	mmc_data->retuning = sh_mobile_sdhi_retuning;
 	mmc_data->disable_auto_cmd12 = sh_mobile_sdhi_disable_auto_cmd12;
 	mmc_data->set_clk_div = sh_mobile_sdhi_set_clk_div;
 	if (p) {
@@ -213,6 +436,9 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 			mmc_data->get_cd = sh_mobile_sdhi_get_cd;
 		if (p->get_ro)
 			mmc_data->get_ro = sh_mobile_sdhi_get_ro;
+		if ((p->set_vlt) && (p->get_vlt))
+			mmc_data->start_signal_voltage_switch =
+				sh_mobile_sdhi_start_signal_voltage_switch;
 
 		if (p->dma_slave_tx > 0 && p->dma_slave_rx > 0) {
 			priv->param_tx.shdma_slave.slave_id = p->dma_slave_tx;
