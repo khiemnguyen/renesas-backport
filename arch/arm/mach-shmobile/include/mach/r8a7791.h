@@ -48,10 +48,12 @@ extern int r8a7791_sysc_power_up(struct r8a7791_pm_ch *r8a7791_ch);
 #ifdef CONFIG_PM
 extern struct r8a7791_pm_domain r8a7791_sgx;
 
+extern void r8a7791_pm_init(void);
 extern void r8a7791_init_pm_domain(struct r8a7791_pm_domain *r8a7791_pd);
 extern void r8a7791_add_device_to_domain(struct r8a7791_pm_domain *r8a7791_pd,
 					 struct platform_device *pdev);
 #else
+#define r8a7791_pm_init() do { } while (0)
 #define r8a7791_init_pm_domain(pd) do { } while (0)
 #define r8a7791_add_device_to_domain(pd, pdev) do { } while (0)
 #endif /* CONFIG_PM */
