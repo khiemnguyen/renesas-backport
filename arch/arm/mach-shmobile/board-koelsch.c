@@ -815,7 +815,7 @@ static void __init koelsch_add_standard_devices(void)
 				  ARRAY_SIZE(koelsch_pinctrl_map));
 	r8a7791_pinmux_init();
 
-	r8a7791_add_dt_devices();
+	r8a7791_add_standard_devices();
 
 	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
