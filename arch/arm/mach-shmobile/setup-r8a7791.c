@@ -1396,6 +1396,7 @@ void __init r8a7791_add_standard_devices(void)
 
 	r8a7791_init_pm_domain(&r8a7791_sgx);
 
+	r8a7791_add_dt_devices();
 	r8a7791_register_thermal();
 	r8a7791_register_alsa(0);
 	r8a7791_register_audma(l, SHDMA_DEVID_AUDIO_LO);
