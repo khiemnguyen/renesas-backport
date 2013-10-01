@@ -28,6 +28,7 @@
 #include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/of_platform.h>
 #include <linux/platform_data/gpio-rcar.h>
+#include <linux/platform_data/irq-renesas-irqc.h>
 #include <linux/serial_sci.h>
 #include <linux/sh_audma-pp.h>
 #include <linux/sh_dma-desc.h>
@@ -202,6 +203,31 @@ static inline void r8a7791_register_scif(int idx)
 
 	platform_device_register_full(&pdevinfo);
 }
+
+static const struct renesas_irqc_config irqc0_data __initconst = {
+	.irq_base = irq_pin(0), /* IRQ0 -> IRQ9 */
+};
+
+static const struct resource irqc0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe61c0000, 0x200), /* IRQC Event Detector Block_0 */
+	DEFINE_RES_IRQ(gic_spi(0)), /* IRQ0 */
+	DEFINE_RES_IRQ(gic_spi(1)), /* IRQ1 */
+	DEFINE_RES_IRQ(gic_spi(2)), /* IRQ2 */
+	DEFINE_RES_IRQ(gic_spi(3)), /* IRQ3 */
+	DEFINE_RES_IRQ(gic_spi(12)), /* IRQ4 */
+	DEFINE_RES_IRQ(gic_spi(13)), /* IRQ5 */
+	DEFINE_RES_IRQ(gic_spi(14)), /* IRQ6 */
+	DEFINE_RES_IRQ(gic_spi(15)), /* IRQ7 */
+	DEFINE_RES_IRQ(gic_spi(16)), /* IRQ8 */
+	DEFINE_RES_IRQ(gic_spi(17)), /* IRQ9 */
+};
+
+#define r8a7791_register_irqc(idx)					\
+	platform_device_register_resndata(&platform_bus, "renesas_irqc", \
+					  idx, irqc##idx##_resources,	\
+					  ARRAY_SIZE(irqc##idx##_resources), \
+					  &irqc##idx##_data,		\
+					  sizeof(struct renesas_irqc_config))
 
 static const struct resource thermal_resources[] __initconst = {
 	DEFINE_RES_MEM(0xe61f0000, 0x14),
@@ -1397,6 +1423,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_init_pm_domain(&r8a7791_sgx);
 
 	r8a7791_add_dt_devices();
+	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
 	r8a7791_register_alsa(0);
 	r8a7791_register_audma(l, SHDMA_DEVID_AUDIO_LO);
