@@ -55,6 +55,7 @@ struct irqc_priv {
 	struct platform_device *pdev;
 	struct irq_chip irq_chip;
 	struct irq_domain *irq_domain;
+	u32 no_suspend; /* do not disable this GPIO port during suspend */
 };
 
 static void irqc_dbg(struct irqc_irq *i, char *str)
@@ -76,6 +77,15 @@ static void irqc_irq_disable(struct irq_data *d)
 {
 	struct irqc_priv *p = irq_data_get_irq_chip_data(d);
 	int hw_irq = irqd_to_hwirq(d);
+
+	if (p->no_suspend & BIT(hw_irq)) {
+		/*
+		 * This IRQC port is claimed as a wake-up source and
+		 * currently in a no-suspend-requested state.  Don't
+		 * disable this IRQ during suspend.
+		 */
+		return;
+	}
 
 	irqc_dbg(&p->irq[hw_irq], "disable");
 	iowrite32(BIT(hw_irq), p->cpu_int_base + IRQC_EN_STS);
@@ -108,6 +118,20 @@ static int irqc_irq_set_type(struct irq_data *d, unsigned int type)
 	tmp &= ~0x3f;
 	tmp |= value ^ INTC_IRQ_SENSE_VALID;
 	iowrite32(tmp, p->iomem + IRQC_CONFIG(hw_irq));
+	return 0;
+}
+
+static int irqc_irq_set_wake(struct irq_data *d, unsigned int on)
+{
+	struct irqc_priv *p = irq_data_get_irq_chip_data(d);
+	int hw_irq = irqd_to_hwirq(d);
+
+	irqc_dbg(&p->irq[hw_irq], "wake");
+
+	if (on)
+		p->no_suspend |= BIT(hw_irq);
+	else
+		p->no_suspend &= ~BIT(hw_irq);
 	return 0;
 }
 
@@ -215,7 +239,8 @@ static int irqc_probe(struct platform_device *pdev)
 	irq_chip->irq_enable = irqc_irq_enable;
 	irq_chip->irq_disable = irqc_irq_disable;
 	irq_chip->irq_set_type = irqc_irq_set_type;
-	irq_chip->flags	= IRQCHIP_SKIP_SET_WAKE;
+	irq_chip->irq_set_wake = irqc_irq_set_wake;
+	irq_chip->flags	= 0;
 
 	p->irq_domain = irq_domain_add_simple(pdev->dev.of_node,
 					      p->number_of_irqs,
