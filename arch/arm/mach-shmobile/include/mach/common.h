@@ -83,6 +83,10 @@ extern void r8a7740_meram_workaround(void);
 
 extern void r8a7779_register_twd(void);
 
+extern void r8a779x_deassert_reset(unsigned int cpu);
+extern void r8a779x_assert_reset(unsigned int cpu);
+extern void __iomem *r8a779x_rst_base;
+
 #ifdef CONFIG_SUSPEND
 int shmobile_suspend_init(void);
 #else

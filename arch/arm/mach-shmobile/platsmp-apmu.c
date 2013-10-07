@@ -34,7 +34,7 @@ static int apmu_power_on(void __iomem *p, int bit)
 
 	/* wait for APMU to finish */
 	while (readl_relaxed(p + WUPCR_OFFS) != 0)
-		;
+		cpu_relax();
 
 	return 0;
 }
@@ -84,7 +84,7 @@ static struct {
 	int cpus[4];
 } apmu_config[] = {
 	{
-		.iomem = DEFINE_RES_MEM(0xe6152000, 0x88),
+		.iomem = DEFINE_RES_MEM(0xe6152000, 0x188),
 		.cpus = { 0, 1, 2, 3 },
 	}
 };
@@ -119,10 +119,14 @@ void __init shmobile_smp_apmu_prepare_cpus(unsigned int max_cpus)
 
 int shmobile_smp_apmu_boot_secondary(unsigned int cpu, struct task_struct *idle)
 {
+	int ret;
+
 	/* For this particular CPU register boot vector */
 	shmobile_smp_hook(cpu, virt_to_phys(shmobile_invalidate_start), 0);
 
-	return apmu_wrap(cpu, apmu_power_on);
+	ret = apmu_wrap(cpu, apmu_power_on);
+	r8a779x_deassert_reset(cpu);
+	return ret;
 }
 
 #ifdef CONFIG_HOTPLUG_CPU
@@ -173,6 +177,10 @@ void shmobile_smp_apmu_cpu_die(unsigned int cpu)
 
 int shmobile_smp_apmu_cpu_kill(unsigned int cpu)
 {
-	return apmu_wrap(cpu, apmu_power_off_poll);
+	int ret;
+
+	ret = apmu_wrap(cpu, apmu_power_off_poll);
+	r8a779x_assert_reset(cpu);
+	return ret;
 }
 #endif
