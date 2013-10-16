@@ -223,10 +223,26 @@ struct r8a7790_pm_domain r8a7790_rgx = {
 
 #endif /* CONFIG_PM */
 
+#if defined(CONFIG_SUSPEND)
+static int r8a7790_enter_suspend(suspend_state_t state)
+{
+	return shmobile_smp_apmu_enter_core_standby();
+}
+
+static void r8a7790_suspend_init(void)
+{
+	shmobile_suspend_ops.enter = r8a7790_enter_suspend;
+}
+#else
+static void r8a7790_suspend_init(void) {}
+#endif /* CONFIG_SUSPEND */
+
 void __init r8a7790_pm_init(void)
 {
 	static int once;
 
 	if (!once++)
 		r8a7790_sysc_init();
+
+	r8a7790_suspend_init();
 }

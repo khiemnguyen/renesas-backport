@@ -13,9 +13,11 @@
 #include <linux/ioport.h>
 #include <linux/of_address.h>
 #include <linux/smp.h>
+#include <linux/suspend.h>
 #include <asm/cacheflush.h>
 #include <asm/cp15.h>
 #include <asm/smp_plat.h>
+#include <asm/suspend.h>
 #include <mach/common.h>
 
 static struct {
@@ -26,6 +28,7 @@ static struct {
 #define WUPCR_OFFS 0x10
 #define PSTR_OFFS 0x40
 #define CPUNCR_OFFS(n) (0x100 + (0x10 * (n)))
+#define CPUCMCR 0x84
 
 static int apmu_power_on(void __iomem *p, int bit)
 {
@@ -74,6 +77,9 @@ static void apmu_init_cpu(struct resource *res, int cpu, int bit)
 
 	apmu_cpus[cpu].iomem = ioremap_nocache(res->start, resource_size(res));
 	apmu_cpus[cpu].bit = bit;
+
+	/* TODO: we don't know what L2RST is for, don't use it */
+	writel_relaxed(0x2, apmu_cpus[cpu].iomem + CPUCMCR);
 
 	pr_debug("apmu ioremap %d %d 0x%08x 0x%08x\n", cpu, bit,
 		 res->start, resource_size(res));
@@ -126,6 +132,9 @@ static void apmu_parse_cfg(void (*fn)(struct resource *res, int cpu, int bit))
 
 void __init shmobile_smp_apmu_prepare_cpus(unsigned int max_cpus)
 {
+	/* pass physical address of cpu_resume() to assembly resume code */
+	shmobile_cpu_resume = virt_to_phys(cpu_resume);
+
 	/* install boot code shared by all CPUs */
 	shmobile_boot_hook(virt_to_phys(shmobile_smp_boot), MPIDR_HWID_BITMASK);
 
@@ -177,6 +186,22 @@ static inline void cpu_enter_lowpower_a15(void)
 	dsb();
 }
 
+static inline void cpu_leave_lowpower(void)
+{
+	unsigned int v;
+
+	asm volatile(
+	"mrc	p15, 0, %0, c1, c0, 0\n"
+	"	orr	%0, %0, %1\n"
+	"	mcr	p15, 0, %0, c1, c0, 0\n"
+	"	mrc	p15, 0, %0, c1, c0, 1\n"
+	"	orr	%0, %0, %2\n"
+	"	mcr	p15, 0, %0, c1, c0, 1\n"
+	  : "=&r" (v)
+	  : "Ir" (CR_C), "Ir" (0x40)
+	  : "cc");
+}
+
 void shmobile_smp_apmu_cpu_die(unsigned int cpu)
 {
 	/* For this particular CPU deregister boot vector */
@@ -200,4 +225,33 @@ int shmobile_smp_apmu_cpu_kill(unsigned int cpu)
 	r8a779x_assert_reset(cpu);
 	return ret;
 }
+
+/* helper to put a CPU core into CoreStandby (shutdown) mode */
+static int shmobile_smp_apmu_cpu_core_standby(unsigned long cpu)
+{
+	/* For this particular CPU register boot vector */
+	shmobile_smp_hook(cpu, virt_to_phys(shmobile_resume_core_standby), 0);
+
+	/* Select next sleep mode using the APMU */
+	apmu_wrap(cpu, apmu_power_off);
+
+	/* Do ARM specific CPU shutdown */
+	cpu_enter_lowpower_a15();
+
+	/* jump to shared mach-shmobile sleep / reset code */
+	shmobile_smp_sleep();
+
+	return 0;
+}
+
+int shmobile_smp_apmu_enter_core_standby(void)
+{
+	unsigned int cpu;
+
+	cpu = cpu_logical_map(smp_processor_id());
+	cpu_suspend(cpu, shmobile_smp_apmu_cpu_core_standby);
+	cpu_leave_lowpower();
+	return 0;
+}
+
 #endif

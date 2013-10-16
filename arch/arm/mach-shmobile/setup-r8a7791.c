@@ -1486,6 +1486,7 @@ static const char * const r8a7791_boards_compat_dt[] __initconst = {
 DT_MACHINE_START(R8A7791_DT, "Generic R8A7791 (Flattened Device Tree)")
 	.smp		= smp_ops(r8a7791_smp_ops),
 	.init_early	= r8a7791_init_early,
+	.init_late	= shmobile_init_late,
 	.timer		= &rcar_gen2_timer,
 	.dt_compat	= r8a7791_boards_compat_dt,
 MACHINE_END

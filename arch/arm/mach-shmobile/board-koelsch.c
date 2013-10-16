@@ -877,6 +877,7 @@ DT_MACHINE_START(KOELSCH_DT, "koelsch")
 	.init_early	= r8a7791_init_early,
 	.timer		= &rcar_gen2_timer,
 	.init_machine	= koelsch_add_standard_devices,
+	.init_late	= shmobile_init_late,
 	.restart	= koelsch_restart,
 	.dt_compat	= koelsch_boards_compat_dt,
 MACHINE_END
