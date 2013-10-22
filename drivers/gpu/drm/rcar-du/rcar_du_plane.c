@@ -217,8 +217,10 @@ void rcar_du_plane_update_base(struct rcar_du_plane *plane)
 	 * require a halved Y position value.
 	 */
 	rcar_du_plane_write(rgrp, index, PnSPXR, plane->src_x);
-	rcar_du_plane_write(rgrp, index, PnSPYR, plane->src_y *
-			    (plane->format->bpp == 32 ? 2 : 1));
+	if ((!plane->interlace_flag) && (plane->format->bpp == 32))
+		rcar_du_plane_write(rgrp, index, PnSPYR, plane->src_y * 2);
+	else
+		rcar_du_plane_write(rgrp, index, PnSPYR, plane->src_y);
 	rcar_du_plane_write(rgrp, index, PnDSA0R, plane->dma[0]);
 
 	if (plane->format->planes == 2) {
