@@ -69,12 +69,12 @@ static int rpf_s_stream(struct v4l2_subdev *subdev, int enable)
 
 	rpf->offsets[0] = crop->top * format->plane_fmt[0].bytesperline
 			+ crop->left * fmtinfo->bpp[0] / 8;
-	pstride = format->plane_fmt[0].bytesperline
+	pstride = format->width
 		<< VI6_RPF_SRCM_PSTRIDE_Y_SHIFT;
 	if (format->num_planes > 1) {
 		rpf->offsets[1] = crop->top * format->plane_fmt[1].bytesperline
 				+ crop->left * fmtinfo->bpp[1] / 8;
-		pstride |= format->plane_fmt[1].bytesperline
+		pstride |= format->width
 			<< VI6_RPF_SRCM_PSTRIDE_C_SHIFT;
 	}
 
