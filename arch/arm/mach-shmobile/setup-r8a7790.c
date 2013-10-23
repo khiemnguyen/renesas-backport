@@ -37,7 +37,13 @@
 #include <linux/sh_timer.h>
 #include <linux/spi/sh_msiof.h>
 #include <linux/usb/ehci_pdriver.h>
+#ifdef CONFIG_USB_R8A66597
+#include <linux/usb/gpio_vbus.h>
+#endif
 #include <linux/usb/ohci_pdriver.h>
+#ifdef CONFIG_USB_R8A66597
+#include <linux/usb/r8a66597.h>
+#endif
 #include <mach/common.h>
 #include <mach/dma-register.h>
 #include <mach/irqs.h>
@@ -963,6 +969,99 @@ void __init r8a7790_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,
 	platform_device_register_full(&info);
 }
 
+#ifdef CONFIG_USB_R8A66597
+/* USB2.0 Function */
+#define LPSTS		0x102 /* 16-bit */
+#define UGCTRL		0x180 /* 32-bit */
+#define UGCTRL2		0x184 /* 32-bit */
+#define UGSTS		0x190 /* 32-bit */
+static void __iomem *hsusb;
+
+static void usb_func_start(void)
+{
+	u32 status;
+
+	if (!hsusb)
+		hsusb = ioremap_nocache(0xe6590000, 0x200);
+
+	/*
+	 * TODO: we should give a software reset to the HS-USB module from
+	 * HS-USB operation point of view.  The module reset, however, blows
+	 * away UGCTRL2 register content, that means USB2.0 Ch 0/2 selection
+	 * settings get lost.
+	 */
+	printk(KERN_DEBUG "UGCTRL 0x%08x UGCTRL2 0x%08x UGSTS 0x%08x\n",
+		readl_relaxed(hsusb + UGCTRL), readl_relaxed(hsusb + UGCTRL2),
+		readl_relaxed(hsusb + UGSTS));
+
+	/* PLL reset release */
+	writel_relaxed(0, hsusb + UGCTRL); /* clear PLLRESET */
+
+	/* UTMI normal mode */
+	writew_relaxed(1 << 14, hsusb + LPSTS); /* SUSPM */
+
+	/* check embedded USB PHY lock status */
+	status = readl_relaxed(hsusb + UGSTS);
+	if (status != 0x3) {
+		printk(KERN_DEBUG "Embedded USB PHY PLL Lock status 0x%04x\n",
+			 status);
+		/* FIXME: LOCK[1:0] can never be 0x3, why? */
+	}
+
+	writel_relaxed(1 << 2, hsusb + UGCTRL); /* CONNECT */
+}
+
+static void usb_func_stop(void)
+{
+	writel_relaxed(0, hsusb + UGCTRL); /* PHY receiver halted */
+	writel_relaxed(1 << 0, hsusb + UGCTRL); /* PLL reset assert */
+}
+
+static struct r8a66597_platdata usb_func_platform_data = {
+	.module_start	= usb_func_start,
+	.module_stop	= usb_func_stop,
+	.on_chip	= 1,
+	.buswait	= 9,
+	.max_bufnum	= 0xff,
+	.dmac		= 1,
+};
+
+static struct resource usb_func_resources[] = {
+	DEFINE_RES_MEM(0xe6590000, 0x194),
+	DEFINE_RES_IRQ(gic_spi(107)),
+	DEFINE_RES_MEM_NAMED(0xe65a0000, 0x64, "dmac"),
+	DEFINE_RES_IRQ(gic_spi(109)),
+};
+
+void __init r8a7790_register_usbf(void)
+{
+	struct platform_device_info info = {
+		.parent = &platform_bus,
+		.name = "r8a66597_udc",
+		.id = 0,
+		.data = &usb_func_platform_data,
+		.size_data = sizeof(struct r8a66597_platdata),
+		.dma_mask = DMA_BIT_MASK(32),
+		.res = usb_func_resources,
+		.num_res = ARRAY_SIZE(usb_func_resources),
+	};
+
+	platform_device_register_full(&info);
+}
+
+/* GPIO VBUS sensing */
+static struct gpio_vbus_mach_info gpio_vbus_platform_data = {
+	.gpio_vbus	= RCAR_GP_PIN(5, 19),
+	.gpio_pullup	= -1,
+	.wakeup		= true,
+};
+
+#define r8a7790_register_gpio_vbus()					\
+	platform_device_register_data(&platform_bus, "gpio-vbus", -1,	\
+					&gpio_vbus_platform_data,	\
+					sizeof(struct gpio_vbus_mach_info))
+#endif
+
 /* USB */
 struct usb_ehci_pdata ehci_pdata = {
 	.caps_offset	= 0,
@@ -1231,12 +1330,21 @@ static void __init usbh_pci_int_enable(int ch)
 static int __init usbh_init(void)
 {
 	struct clk *clk_hs, *clk_ehci;
-#if defined(CONFIG_USB_XHCI_HCD)
+#ifdef CONFIG_USB_XHCI_HCD
 	struct clk *clk_xhci;
 #endif /* CONFIG_USB_XHCI_HCD */
 	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
-	unsigned int ch;
+	unsigned int ch = 0;
 	int ret = 0;
+	u32 ugctrl2 = 0x00000011;
+
+#ifdef CONFIG_USB_R8A66597
+	ch++;
+	ugctrl2 |= UGCTRL2_USB0SEL_HSUSB;
+#endif /* CONFIG_USB_R8A66597 */
+#ifdef CONFIG_USB_XHCI_HCD
+	ugctrl2 |= UGCTRL2_USB2SEL_XHCI;
+#endif /* CONFIG_USB_XHCI_HCD */
 
 	if (!hs_usb)
 		return -ENOMEM;
@@ -1256,7 +1364,7 @@ static int __init usbh_init(void)
 	clk_enable(clk_hs);
 	clk_enable(clk_ehci);
 
-#if defined(CONFIG_USB_XHCI_HCD)
+#ifdef CONFIG_USB_XHCI_HCD
 	clk_xhci = clk_get(NULL, "ss_usb");
 	if (IS_ERR(clk_xhci)) {
 		ret = PTR_ERR(clk_xhci);
@@ -1264,15 +1372,11 @@ static int __init usbh_init(void)
 	}
 
 	clk_enable(clk_xhci);
-
-	/* Select XHCI for ch2 and EHCI for ch0 */
-	iowrite32(0x80000011, (hs_usb + 0x184));
-#else
-	/* Set EHCI for UGCTRL2 */
-	iowrite32(0x00000011, (hs_usb + 0x184));
 #endif /* CONFIG_USB_XHCI_HCD */
 
-	for (ch = 0; ch < SHUSBH_MAX_CH; ch++) {
+	iowrite32(ugctrl2, hs_usb + 0x184);
+
+	for (; ch < SHUSBH_MAX_CH; ch++) {
 		/* internal pci-bus bridge initialize */
 		usbh_internal_pci_bridge_init(ch);
 
@@ -1403,6 +1507,9 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_sysdma(l, SHDMA_DEVID_SYS_LO);
 	r8a7790_register_sysdma(u, SHDMA_DEVID_SYS_UP);
 	r8a7790_register_audmapp(SHDMA_DEVID_AUDIOPP);
+#ifdef CONFIG_USB_R8A66597
+	r8a7790_register_gpio_vbus();
+#endif
 	r8a7790_register_i2c(0);
 	r8a7790_register_i2c(1);
 	r8a7790_register_i2c(2);
@@ -1414,10 +1521,17 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_qspi();
 	r8a7790_register_sata(0);
 	r8a7790_register_sata(1);
+#ifdef CONFIG_USB_R8A66597
+	r8a7790_register_usbf();
+#endif
+#ifndef CONFIG_USB_R8A66597
 	r8a7790_register_usbh_ehci(0);
+#endif
 	r8a7790_register_usbh_ehci(1);
 	r8a7790_register_usbh_ehci(2);
+#ifndef CONFIG_USB_R8A66597
 	r8a7790_register_usbh_ohci(0);
+#endif
 	r8a7790_register_usbh_ohci(1);
 	r8a7790_register_usbh_ohci(2);
 	r8a7790_register_usbh_xhci(0);
