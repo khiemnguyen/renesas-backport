@@ -686,7 +686,7 @@ config SERIAL_SH_SCI_CONSOLE
 
 config SERIAL_SH_SCI_DMA
 	bool "DMA support"
-	depends on SERIAL_SH_SCI && SH_DMAE && EXPERIMENTAL
+	depends on SERIAL_SH_SCI && (SH_DMAE || SH_DMAE_DESC) && EXPERIMENTAL
 
 choice
 	prompt "Choice SCIF0/SCIFA0"
