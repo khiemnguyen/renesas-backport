@@ -671,12 +671,47 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "du_sync_1", "du"),
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
 				  "du_clk_out_0", "du"),
+
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIF0)
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.6", "pfc-r8a7790",
 				  "scif0_data", "scif0"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIF1)
 	/* SCIF1 (CN20: DEBUG SERIAL1) */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.7", "pfc-r8a7790",
 				  "scif1_data", "scif1"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFA0)
+	/* SCIFA0 (CN19: DEBUG SERIAL0) */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.0", "pfc-r8a7790",
+				  "scifa0_data", "scifa0"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFA1)
+	/* SCIFA1 (CN20: DEBUG SERIAL1) */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.1", "pfc-r8a7790",
+				  "scifa1_data", "scifa1"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFA2)
+	/* SCIFA2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.5", "pfc-r8a7790",
+				  "scifa2_data", "scifa2"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFB0)
+	/* SCIFB0 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.2", "pfc-r8a7790",
+				  "scifb0_data", "scifb0"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFB1)
+	/* SCIFB1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.3", "pfc-r8a7790",
+				  "scifb1_data", "scifb1"),
+#endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFB2)
+	/* SCIFB2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.4", "pfc-r8a7790",
+				  "scifb2_data", "scifb2"),
+#endif
 	/* Ether */
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "eth_link", "eth"),
