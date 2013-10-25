@@ -107,29 +107,31 @@ void __init r8a7791_pinmux_init(void)
 	r8a7791_register_gpio(7);
 }
 
-#define SCIF_COMMON(scif_type, baseaddr, irq)			\
+#define SCIF_COMMON(scif_type, baseaddr, irq, dma_tx, dma_rx)	\
 	.type		= scif_type,				\
 	.mapbase	= baseaddr,				\
 	.flags		= UPF_BOOT_AUTOCONF | UPF_IOREMAP,	\
-	.irqs		= SCIx_IRQ_MUXED(irq)
+	.irqs		= SCIx_IRQ_MUXED(irq),			\
+	.dma_slave_tx	= dma_tx,				\
+	.dma_slave_rx	= dma_rx
 
-#define SCIFA_DATA(index, baseaddr, irq)		\
+#define SCIFA_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
 [index] = {						\
-	SCIF_COMMON(PORT_SCIFA, baseaddr, irq),		\
+	SCIF_COMMON(PORT_SCIFA, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_4,			\
 	.scscr = SCSCR_RE | SCSCR_TE | SCSCR_CKE0,	\
 }
 
-#define SCIFB_DATA(index, baseaddr, irq)	\
+#define SCIFB_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
 [index] = {					\
-	SCIF_COMMON(PORT_SCIFB, baseaddr, irq),	\
+	SCIF_COMMON(PORT_SCIF, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_4,		\
 	.scscr = SCSCR_RE | SCSCR_TE,		\
 }
 
-#define SCIF_DATA(index, baseaddr, irq)		\
+#define SCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)		\
 [index] = {						\
-	SCIF_COMMON(PORT_SCIF, baseaddr, irq),		\
+	SCIF_COMMON(PORT_SCIF, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_2,			\
 	.scscr = SCSCR_RE | SCSCR_TE,	\
 }
@@ -138,27 +140,49 @@ enum { SCIFA0 = 0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
 	SCIF2 = 10, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5 };
 
 static const struct plat_sci_port scif[] __initconst = {
-	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144)), /* SCIFA0 */
-	SCIFA_DATA(SCIFA1, 0xe6c50000, gic_spi(145)), /* SCIFA1 */
-	SCIFB_DATA(SCIFB0, 0xe6c20000, gic_spi(148)), /* SCIFB0 */
-	SCIFB_DATA(SCIFB1, 0xe6c30000, gic_spi(149)), /* SCIFB1 */
-	SCIFB_DATA(SCIFB2, 0xe6ce0000, gic_spi(150)), /* SCIFB2 */
-	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151)), /* SCIFA2 */
-	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152)), /* SCIF0 */
-	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153)), /* SCIF1 */
-	SCIF_DATA(SCIF2, 0xe6e58000, gic_spi(22)), /* SCIF2 */
-	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23)), /* SCIF3 */
-	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24)), /* SCIF4 */
-	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25)), /* SCIF5 */
-	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29)), /* SCIFA3 */
-	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30)), /* SCIFA4 */
-	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31)), /* SCIFA5 */
+	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144),
+		SHDMA_SLAVE_SCIFA0_TX, SHDMA_SLAVE_SCIFA0_RX), /* SCIFA0 */
+	SCIFA_DATA(SCIFA1, 0xe6c50000, gic_spi(145),
+		SHDMA_SLAVE_SCIFA1_TX, SHDMA_SLAVE_SCIFA1_RX), /* SCIFA1 */
+	SCIFB_DATA(SCIFB0, 0xe6c20000, gic_spi(148),
+		SHDMA_SLAVE_SCIFB0_TX, SHDMA_SLAVE_SCIFB0_RX), /* SCIFB0 */
+	SCIFB_DATA(SCIFB1, 0xe6c30000, gic_spi(149),
+		SHDMA_SLAVE_SCIFB1_TX, SHDMA_SLAVE_SCIFB1_RX), /* SCIFB1 */
+	SCIFB_DATA(SCIFB2, 0xe6ce0000, gic_spi(150),
+		SHDMA_SLAVE_SCIFB2_TX, SHDMA_SLAVE_SCIFB2_RX), /* SCIFB2 */
+	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151),
+		SHDMA_SLAVE_SCIFA2_TX, SHDMA_SLAVE_SCIFA2_RX), /* SCIFA2 */
+	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152),
+		SHDMA_SLAVE_SCIF0_TX, SHDMA_SLAVE_SCIF0_RX), /* SCIF0 */
+	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153),
+		SHDMA_SLAVE_SCIF1_TX, SHDMA_SLAVE_SCIF1_RX), /* SCIF1 */
+	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164), 0, 0), /* SCIF2 */
+	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23), 0, 0), /* SCIF3 */
+	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24), 0, 0), /* SCIF4 */
+	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25), 0, 0), /* SCIF5 */
+	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29), 0, 0), /* SCIFA3 */
+	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30), 0, 0), /* SCIFA4 */
+	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31), 0, 0), /* SCIFA5 */
 };
 
 static inline void r8a7791_register_scif(int idx)
 {
-	platform_device_register_data(&platform_bus, "sh-sci", idx, &scif[idx],
-				      sizeof(struct plat_sci_port));
+	struct platform_device_info pdevinfo = {
+		.parent = &platform_bus,
+		.name = "sh-sci",
+		.id = idx,
+		.res = NULL,
+		.num_res = 0,
+		.data = &scif[idx],
+		.size_data = sizeof(struct plat_sci_port),
+		.dma_mask = 0,
+	};
+
+#if defined(CONFIG_SERIAL_SH_SCI_DMA)
+	pdevinfo.dma_mask = DMA_BIT_MASK(32);
+#endif /* CONFIG_SERIAL_SH_SCI_DMA */
+
+	platform_device_register_full(&pdevinfo);
 }
 
 static const struct renesas_irqc_config irqc0_data __initconst = {
@@ -402,6 +426,81 @@ static const struct sh_dmadesc_slave_config r8a7791_sysdma_slaves[] = {
 		.addr		= 0xee200034,
 		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
 		.mid_rid	= 0xd2,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF0_RX,
+		.addr		= 0xe6e60000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x2a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF1_TX,
+		.addr		= 0xe6e68000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x2d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF1_RX,
+		.addr		= 0xe6e68000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x2e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA0_TX,
+		.addr		= 0xe7c40000 + 0x20,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x21,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA0_RX,
+		.addr		= 0xe7c40000 + 0x24,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x22,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA1_TX,
+		.addr		= 0xe7c50000 + 0x20,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x25,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA1_RX,
+		.addr		= 0xe7c50000 + 0x24,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x26,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA2_TX,
+		.addr		= 0xe7c60000 + 0x20,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x27,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA2_RX,
+		.addr		= 0xe7c60000 + 0x24,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x28,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB0_TX,
+		.addr		= 0xe7c20000 + 0x40,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB0_RX,
+		.addr		= 0xe7c20000 + 0x60,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB1_TX,
+		.addr		= 0xe7c30000 + 0x40,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x19,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB1_RX,
+		.addr		= 0xe7c30000 + 0x60,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x1a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB2_TX,
+		.addr		= 0xe7ce0000 + 0x40,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x1d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB2_RX,
+		.addr		= 0xe7ce0000 + 0x60,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x1e,
 	},
 };
 
