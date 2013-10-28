@@ -774,6 +774,16 @@ config SERIAL_SH_SCI_USE_SCIFB2
 	  IF your system doesn't use SCIFB channel number 2,
 	  you may disable this option.
 
+config SERIAL_SH_SCI_USE_HSCIF1
+	bool "USE HSCIF-1"
+	depends on SERIAL_SH_SCI && (ARCH_R8A7790 || ARCH_R8A7791)
+	default n
+	help
+	  This option enables HSCIF channel number 1.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  Renesas Lager platform is used by choice in HSCIF channel number 1
+	  and HSCIFA channel number 1.
+
 config SERIAL_PNX8XXX
 	bool "Enable PNX8XXX SoCs' UART Support"
 	depends on MIPS && (SOC_PNX8550 || SOC_PNX833X)
