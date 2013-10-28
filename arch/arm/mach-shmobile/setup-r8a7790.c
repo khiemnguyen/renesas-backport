@@ -193,11 +193,12 @@ void __init r8a7790_add_vsp1_device(struct vsp1_platform_data *pdata,
 	.scscr = SCSCR_RE | SCSCR_TE,	\
 }
 
-#define HSCIF_DATA(index, baseaddr, irq)		\
+#define HSCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
 [index] = {						\
-	SCIF_COMMON(PORT_HSCIF, baseaddr, irq, 0, 0),	\
+	SCIF_COMMON(PORT_HSCIF, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_6,			\
 	.scscr = SCSCR_RE | SCSCR_TE,	\
+	.capabilities = SCIx_HAVE_RTSCTS,	\
 }
 
 enum { SCIFA0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
@@ -220,8 +221,10 @@ static const struct plat_sci_port scif[] __initconst = {
 		SHDMA_SLAVE_SCIF0_TX, SHDMA_SLAVE_SCIF0_RX), /* SCIF0 */
 	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153),
 		SHDMA_SLAVE_SCIF1_TX, SHDMA_SLAVE_SCIF1_RX), /* SCIF1 */
-	HSCIF_DATA(HSCIF0, 0xe62c0000, gic_spi(154)), /* HSCIF0 */
-	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155)), /* HSCIF1 */
+	HSCIF_DATA(HSCIF0, 0xe62c0000, gic_spi(154),
+		SHDMA_SLAVE_HSCIF0_TX, SHDMA_SLAVE_HSCIF0_RX), /* HSCIF0 */
+	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155),
+		SHDMA_SLAVE_HSCIF1_TX, SHDMA_SLAVE_HSCIF1_RX), /* HSCIF1 */
 	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164), 0, 0), /* SCIF2 */
 };
 
@@ -586,6 +589,26 @@ static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
 		.addr		= 0xe7ce0000 + 0x60,
 		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
 		.mid_rid	= 0x1e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF0_TX,
+		.addr		= 0xe62c0000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x39,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF0_RX,
+		.addr		= 0xe62c0000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF1_TX,
+		.addr		= 0xe62c8000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x4d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF1_RX,
+		.addr		= 0xe62c8000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x4e,
 	},
 };
 
