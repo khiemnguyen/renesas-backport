@@ -606,6 +606,15 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.4", "pfc-r8a7790",
 				  "scifb2_data", "scifb2"),
 #endif
+#if defined(CONFIG_SERIAL_SH_SCI_USE_HSCIF1)
+	/* HSCIF1 (CN20: DEBUG SERIAL1) */
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.9", "pfc-r8a7791",
+				  "hscif1_data", "hscif1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.9", "pfc-r8a7791",
+				  "hscif1_ctrl", "hscif1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.9", "pfc-r8a7791",
+				  "hscif1_clk", "hscif1"),
+#endif
 	/* Ether */
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7791",
 				  "eth_link", "eth"),
