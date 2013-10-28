@@ -70,6 +70,9 @@ extern void r8a7791_add_device_to_domain(struct r8a7791_pm_domain *r8a7791_pd,
 #define SHUSBH_XHCI_BASE	UL(0xEE000000)
 #define SHUSBH_XHCI_SIZE	0x0C00
 
+#define UGCTRL2_USB2SEL_XHCI	0x80000000
+#define UGCTRL2_USB0SEL_HSUSB	0x00000030
+
 /* PCI Configuration Registers for AHB-PCI Bridge Registers */
 #define PCI_CONF_AHBPCI_BAS	(SHUSBH_BASE + 0x10000)
 #define VID_DID			0x0000
