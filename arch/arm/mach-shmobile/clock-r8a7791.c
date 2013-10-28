@@ -191,7 +191,8 @@ static struct clk div6_clks[DIV6_NR] = {
 /* MSTP */
 enum {
 	MSTP1107, MSTP1106, MSTP1105, MSTP721, MSTP720, MSTP719, MSTP718,
-	MSTP715, MSTP714, MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
+	MSTP717, MSTP716, MSTP715, MSTP714, MSTP713,
+	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, MSTP1014,
 	MSTP1005, MSTP922,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
@@ -249,8 +250,11 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP720] = MSTP(7, 20, &p_clk, 0), /* SCIF1 */
 	[MSTP719] = MSTP(7, 19, &p_clk, 0), /* SCIF2 */
 	[MSTP718] = MSTP(7, 18, &p_clk, 0), /* SCIF3 */
+	[MSTP717] = MSTP(7, 17, &zs_clk, 0), /* HSCIF0 */
+	[MSTP716] = MSTP(7, 16, &zs_clk, 0), /* HSCIF1 */
 	[MSTP715] = MSTP(7, 15, &p_clk, 0), /* SCIF4 */
 	[MSTP714] = MSTP(7, 14, &p_clk, 0), /* SCIF5 */
+	[MSTP713] = MSTP(7, 13, &p_clk, 0), /* HSCIF2 */
 	[MSTP704] = MSTP(7,  4, &mp_clk, 0), /* HSUSB */
 	[MSTP703] = MSTP(7,  3, &mp_clk, 0), /* EHCI */
 	[MSTP502] = MSTP(5,  2, &hp_clk, 0), /* MPDMAC0 */
@@ -323,6 +327,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.5", &mstp_clks[MSTP202]), /* SCIFA2 */
 	CLKDEV_DEV_ID("sh-sci.6", &mstp_clks[MSTP721]), /* SCIF0 */
 	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]), /* SCIF1 */
+	CLKDEV_DEV_ID("sh-sci.8", &mstp_clks[MSTP717]), /* HSCIF0 */
+	CLKDEV_DEV_ID("sh-sci.9", &mstp_clks[MSTP716]), /* HSCIF1 */
 	CLKDEV_DEV_ID("sh-sci.10", &mstp_clks[MSTP719]), /* SCIF2 */
 	CLKDEV_DEV_ID("sh-sci.11", &mstp_clks[MSTP718]), /* SCIF3 */
 	CLKDEV_DEV_ID("sh-sci.12", &mstp_clks[MSTP715]), /* SCIF4 */
@@ -330,6 +336,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.14", &mstp_clks[MSTP1105]), /* SCIFA3 */
 	CLKDEV_DEV_ID("sh-sci.15", &mstp_clks[MSTP1106]), /* SCIFA4 */
 	CLKDEV_DEV_ID("sh-sci.16", &mstp_clks[MSTP1107]), /* SCIFA5 */
+	CLKDEV_DEV_ID("sh-sci.17", &mstp_clks[MSTP713]), /* HSCIF2 */
 	CLKDEV_DEV_ID("r8a779x-ether", &mstp_clks[MSTP813]),
 	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
 	CLKDEV_DEV_ID("sh_mmcif.0", &mstp_clks[MSTP315]),

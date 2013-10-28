@@ -136,8 +136,17 @@ void __init r8a7791_pinmux_init(void)
 	.scscr = SCSCR_RE | SCSCR_TE,	\
 }
 
+#define HSCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
+[index] = {						\
+	SCIF_COMMON(PORT_HSCIF, baseaddr, irq, dma_tx, dma_rx),	\
+	.scbrr_algo_id	= SCBRR_ALGO_6,			\
+	.scscr = SCSCR_RE | SCSCR_TE,	\
+	.capabilities = SCIx_HAVE_RTSCTS,	\
+}
+
 enum { SCIFA0 = 0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
-	SCIF2 = 10, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5 };
+	HSCIF0, HSCIF1, SCIF2, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5,
+	HSCIF2 };
 
 static const struct plat_sci_port scif[] __initconst = {
 	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144),
@@ -156,6 +165,10 @@ static const struct plat_sci_port scif[] __initconst = {
 		SHDMA_SLAVE_SCIF0_TX, SHDMA_SLAVE_SCIF0_RX), /* SCIF0 */
 	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153),
 		SHDMA_SLAVE_SCIF1_TX, SHDMA_SLAVE_SCIF1_RX), /* SCIF1 */
+	HSCIF_DATA(HSCIF0, 0xe62c0000, gic_spi(154),
+		SHDMA_SLAVE_HSCIF0_TX, SHDMA_SLAVE_HSCIF0_RX), /* HSCIF0 */
+	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155),
+		SHDMA_SLAVE_HSCIF1_TX, SHDMA_SLAVE_HSCIF1_RX), /* HSCIF1 */
 	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164), 0, 0), /* SCIF2 */
 	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23), 0, 0), /* SCIF3 */
 	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24), 0, 0), /* SCIF4 */
@@ -163,6 +176,7 @@ static const struct plat_sci_port scif[] __initconst = {
 	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29), 0, 0), /* SCIFA3 */
 	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30), 0, 0), /* SCIFA4 */
 	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31), 0, 0), /* SCIFA5 */
+	HSCIF_DATA(HSCIF2, 0xe62d0000, gic_spi(21), 0, 0), /* HSCIF2 */
 };
 
 static inline void r8a7791_register_scif(int idx)
@@ -501,6 +515,26 @@ static const struct sh_dmadesc_slave_config r8a7791_sysdma_slaves[] = {
 		.addr		= 0xe7ce0000 + 0x60,
 		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
 		.mid_rid	= 0x1e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF0_TX,
+		.addr		= 0xe62c0000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x39,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF0_RX,
+		.addr		= 0xe62c0000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF1_TX,
+		.addr		= 0xe62c8000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x4d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF1_RX,
+		.addr		= 0xe62c8000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x4e,
 	},
 };
 
@@ -1335,6 +1369,8 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_scif(SCIFA2);
 	r8a7791_register_scif(SCIF0);
 	r8a7791_register_scif(SCIF1);
+	r8a7791_register_scif(HSCIF0);
+	r8a7791_register_scif(HSCIF1);
 	r8a7791_register_scif(SCIF2);
 	r8a7791_register_scif(SCIF3);
 	r8a7791_register_scif(SCIF4);
@@ -1342,6 +1378,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_scif(SCIFA3);
 	r8a7791_register_scif(SCIFA4);
 	r8a7791_register_scif(SCIFA5);
+	r8a7791_register_scif(HSCIF2);
 	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
 	r8a7791_register_cmt(00);
