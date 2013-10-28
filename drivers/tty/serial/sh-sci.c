@@ -1255,7 +1255,10 @@ static unsigned int sci_get_mctrl(struct uart_port *port)
 	 * CTS/RTS is handled in hardware when supported, while nothing
 	 * else is wired up. Keep it simple and simply assert DSR/CAR.
 	 */
-	return TIOCM_DSR | TIOCM_CAR;
+	unsigned int mctrl = TIOCM_DSR | TIOCM_CAR;
+	if (port->type == PORT_HSCIF)
+		mctrl |= TIOCM_CTS;
+	return mctrl;
 }
 
 #ifdef CONFIG_SERIAL_SH_SCI_DMA
