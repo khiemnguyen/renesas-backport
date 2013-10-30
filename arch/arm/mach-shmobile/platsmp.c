@@ -38,6 +38,12 @@ extern unsigned long shmobile_smp_fn[];
 extern unsigned long shmobile_smp_arg[];
 extern unsigned long shmobile_smp_mpidr[];
 
+void shmobile_boot_hook(unsigned long fn, unsigned long arg)
+{
+	shmobile_boot_fn = fn;
+	shmobile_boot_arg = arg;
+}
+
 void shmobile_smp_hook(unsigned int cpu, unsigned long fn, unsigned long arg)
 {
 	shmobile_smp_fn[cpu] = 0;
