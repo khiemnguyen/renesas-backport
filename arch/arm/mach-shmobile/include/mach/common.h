@@ -9,6 +9,7 @@ extern void shmobile_setup_delay(unsigned int max_cpu_core_mhz,
 struct twd_local_timer;
 extern void shmobile_setup_console(void);
 extern void shmobile_boot_vector(void);
+extern void __iomem *shmobile_boot_p;
 extern unsigned long shmobile_boot_fn;
 extern unsigned long shmobile_boot_arg;
 extern void shmobile_secondary_vector_scu(void);
