@@ -1528,13 +1528,18 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_usbh_ehci(0);
 #endif
 	r8a7790_register_usbh_ehci(1);
+#ifndef CONFIG_USB_XHCI_HCD
 	r8a7790_register_usbh_ehci(2);
+#endif
 #ifndef CONFIG_USB_R8A66597
 	r8a7790_register_usbh_ohci(0);
 #endif
 	r8a7790_register_usbh_ohci(1);
+#ifndef CONFIG_USB_XHCI_HCD
 	r8a7790_register_usbh_ohci(2);
+#else
 	r8a7790_register_usbh_xhci(0);
+#endif
 	r8a7790_register_vin(0);
 	r8a7790_register_vin(1);
 	r8a7790_register_vin(2);
