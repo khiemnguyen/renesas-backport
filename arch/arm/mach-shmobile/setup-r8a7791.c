@@ -36,7 +36,13 @@
 #include <linux/sh_timer.h>
 #include <linux/spi/sh_msiof.h>
 #include <linux/usb/ehci_pdriver.h>
+#ifdef CONFIG_USB_R8A66597
+#include <linux/usb/gpio_vbus.h>
+#endif
 #include <linux/usb/ohci_pdriver.h>
+#ifdef CONFIG_USB_R8A66597
+#include <linux/usb/r8a66597.h>
+#endif
 #include <mach/common.h>
 #include <mach/dma-register.h>
 #include <mach/irqs.h>
@@ -107,58 +113,96 @@ void __init r8a7791_pinmux_init(void)
 	r8a7791_register_gpio(7);
 }
 
-#define SCIF_COMMON(scif_type, baseaddr, irq)			\
+#define SCIF_COMMON(scif_type, baseaddr, irq, dma_tx, dma_rx)	\
 	.type		= scif_type,				\
 	.mapbase	= baseaddr,				\
 	.flags		= UPF_BOOT_AUTOCONF | UPF_IOREMAP,	\
-	.irqs		= SCIx_IRQ_MUXED(irq)
+	.irqs		= SCIx_IRQ_MUXED(irq),			\
+	.dma_slave_tx	= dma_tx,				\
+	.dma_slave_rx	= dma_rx
 
-#define SCIFA_DATA(index, baseaddr, irq)		\
+#define SCIFA_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
 [index] = {						\
-	SCIF_COMMON(PORT_SCIFA, baseaddr, irq),		\
+	SCIF_COMMON(PORT_SCIFA, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_4,			\
 	.scscr = SCSCR_RE | SCSCR_TE | SCSCR_CKE0,	\
 }
 
-#define SCIFB_DATA(index, baseaddr, irq)	\
+#define SCIFB_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
 [index] = {					\
-	SCIF_COMMON(PORT_SCIFB, baseaddr, irq),	\
+	SCIF_COMMON(PORT_SCIF, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_4,		\
 	.scscr = SCSCR_RE | SCSCR_TE,		\
 }
 
-#define SCIF_DATA(index, baseaddr, irq)		\
+#define SCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)		\
 [index] = {						\
-	SCIF_COMMON(PORT_SCIF, baseaddr, irq),		\
+	SCIF_COMMON(PORT_SCIF, baseaddr, irq, dma_tx, dma_rx),	\
 	.scbrr_algo_id	= SCBRR_ALGO_2,			\
 	.scscr = SCSCR_RE | SCSCR_TE,	\
 }
 
+#define HSCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
+[index] = {						\
+	SCIF_COMMON(PORT_HSCIF, baseaddr, irq, dma_tx, dma_rx),	\
+	.scbrr_algo_id	= SCBRR_ALGO_6,			\
+	.scscr = SCSCR_RE | SCSCR_TE,	\
+	.capabilities = SCIx_HAVE_RTSCTS,	\
+}
+
 enum { SCIFA0 = 0, SCIFA1, SCIFB0, SCIFB1, SCIFB2, SCIFA2, SCIF0, SCIF1,
-	SCIF2 = 10, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5 };
+	HSCIF0, HSCIF1, SCIF2, SCIF3, SCIF4, SCIF5, SCIFA3, SCIFA4, SCIFA5,
+	HSCIF2 };
 
 static const struct plat_sci_port scif[] __initconst = {
-	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144)), /* SCIFA0 */
-	SCIFA_DATA(SCIFA1, 0xe6c50000, gic_spi(145)), /* SCIFA1 */
-	SCIFB_DATA(SCIFB0, 0xe6c20000, gic_spi(148)), /* SCIFB0 */
-	SCIFB_DATA(SCIFB1, 0xe6c30000, gic_spi(149)), /* SCIFB1 */
-	SCIFB_DATA(SCIFB2, 0xe6ce0000, gic_spi(150)), /* SCIFB2 */
-	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151)), /* SCIFA2 */
-	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152)), /* SCIF0 */
-	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153)), /* SCIF1 */
-	SCIF_DATA(SCIF2, 0xe6e58000, gic_spi(22)), /* SCIF2 */
-	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23)), /* SCIF3 */
-	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24)), /* SCIF4 */
-	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25)), /* SCIF5 */
-	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29)), /* SCIFA3 */
-	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30)), /* SCIFA4 */
-	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31)), /* SCIFA5 */
+	SCIFA_DATA(SCIFA0, 0xe6c40000, gic_spi(144),
+		SHDMA_SLAVE_SCIFA0_TX, SHDMA_SLAVE_SCIFA0_RX), /* SCIFA0 */
+	SCIFA_DATA(SCIFA1, 0xe6c50000, gic_spi(145),
+		SHDMA_SLAVE_SCIFA1_TX, SHDMA_SLAVE_SCIFA1_RX), /* SCIFA1 */
+	SCIFB_DATA(SCIFB0, 0xe6c20000, gic_spi(148),
+		SHDMA_SLAVE_SCIFB0_TX, SHDMA_SLAVE_SCIFB0_RX), /* SCIFB0 */
+	SCIFB_DATA(SCIFB1, 0xe6c30000, gic_spi(149),
+		SHDMA_SLAVE_SCIFB1_TX, SHDMA_SLAVE_SCIFB1_RX), /* SCIFB1 */
+	SCIFB_DATA(SCIFB2, 0xe6ce0000, gic_spi(150),
+		SHDMA_SLAVE_SCIFB2_TX, SHDMA_SLAVE_SCIFB2_RX), /* SCIFB2 */
+	SCIFA_DATA(SCIFA2, 0xe6c60000, gic_spi(151),
+		SHDMA_SLAVE_SCIFA2_TX, SHDMA_SLAVE_SCIFA2_RX), /* SCIFA2 */
+	SCIF_DATA(SCIF0, 0xe6e60000, gic_spi(152),
+		SHDMA_SLAVE_SCIF0_TX, SHDMA_SLAVE_SCIF0_RX), /* SCIF0 */
+	SCIF_DATA(SCIF1, 0xe6e68000, gic_spi(153),
+		SHDMA_SLAVE_SCIF1_TX, SHDMA_SLAVE_SCIF1_RX), /* SCIF1 */
+	HSCIF_DATA(HSCIF0, 0xe62c0000, gic_spi(154),
+		SHDMA_SLAVE_HSCIF0_TX, SHDMA_SLAVE_HSCIF0_RX), /* HSCIF0 */
+	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155),
+		SHDMA_SLAVE_HSCIF1_TX, SHDMA_SLAVE_HSCIF1_RX), /* HSCIF1 */
+	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164), 0, 0), /* SCIF2 */
+	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23), 0, 0), /* SCIF3 */
+	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24), 0, 0), /* SCIF4 */
+	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25), 0, 0), /* SCIF5 */
+	SCIFA_DATA(SCIFA3, 0xe6c70000, gic_spi(29), 0, 0), /* SCIFA3 */
+	SCIFA_DATA(SCIFA4, 0xe6c78000, gic_spi(30), 0, 0), /* SCIFA4 */
+	SCIFA_DATA(SCIFA5, 0xe6c80000, gic_spi(31), 0, 0), /* SCIFA5 */
+	HSCIF_DATA(HSCIF2, 0xe62d0000, gic_spi(21), 0, 0), /* HSCIF2 */
 };
 
 static inline void r8a7791_register_scif(int idx)
 {
-	platform_device_register_data(&platform_bus, "sh-sci", idx, &scif[idx],
-				      sizeof(struct plat_sci_port));
+	struct platform_device_info pdevinfo = {
+		.parent = &platform_bus,
+		.name = "sh-sci",
+		.id = idx,
+		.res = NULL,
+		.num_res = 0,
+		.data = &scif[idx],
+		.size_data = sizeof(struct plat_sci_port),
+		.dma_mask = 0,
+	};
+
+#if defined(CONFIG_SERIAL_SH_SCI_DMA)
+	pdevinfo.dma_mask = DMA_BIT_MASK(32);
+#endif /* CONFIG_SERIAL_SH_SCI_DMA */
+
+	platform_device_register_full(&pdevinfo);
 }
 
 static const struct renesas_irqc_config irqc0_data __initconst = {
@@ -402,6 +446,101 @@ static const struct sh_dmadesc_slave_config r8a7791_sysdma_slaves[] = {
 		.addr		= 0xee200034,
 		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
 		.mid_rid	= 0xd2,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF0_RX,
+		.addr		= 0xe6e60000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x2a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF1_TX,
+		.addr		= 0xe6e68000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x2d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF1_RX,
+		.addr		= 0xe6e68000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x2e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA0_TX,
+		.addr		= 0xe7c40000 + 0x20,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x21,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA0_RX,
+		.addr		= 0xe7c40000 + 0x24,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x22,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA1_TX,
+		.addr		= 0xe7c50000 + 0x20,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x25,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA1_RX,
+		.addr		= 0xe7c50000 + 0x24,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x26,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA2_TX,
+		.addr		= 0xe7c60000 + 0x20,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x27,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFA2_RX,
+		.addr		= 0xe7c60000 + 0x24,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x28,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB0_TX,
+		.addr		= 0xe7c20000 + 0x40,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB0_RX,
+		.addr		= 0xe7c20000 + 0x60,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB1_TX,
+		.addr		= 0xe7c30000 + 0x40,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x19,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB1_RX,
+		.addr		= 0xe7c30000 + 0x60,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x1a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB2_TX,
+		.addr		= 0xe7ce0000 + 0x40,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x1d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_SCIFB2_RX,
+		.addr		= 0xe7ce0000 + 0x60,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x1e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF0_TX,
+		.addr		= 0xe62c0000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x39,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF0_RX,
+		.addr		= 0xe62c0000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x3a,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF1_TX,
+		.addr		= 0xe62c8000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x4d,
+	}, {
+		.slave_id	= SHDMA_SLAVE_HSCIF1_RX,
+		.addr		= 0xe62c8000 + 0x14,
+		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x4e,
 	},
 };
 
@@ -777,6 +916,99 @@ void __init r8a7791_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,
 	platform_device_register_full(&info);
 }
 
+#ifdef CONFIG_USB_R8A66597
+/* USB2.0 Function */
+#define LPSTS		0x102 /* 16-bit */
+#define UGCTRL		0x180 /* 32-bit */
+#define UGCTRL2		0x184 /* 32-bit */
+#define UGSTS		0x190 /* 32-bit */
+static void __iomem *hsusb;
+
+static void usb_func_start(void)
+{
+	u32 status;
+
+	if (!hsusb)
+		hsusb = ioremap_nocache(0xe6590000, 0x200);
+
+	/*
+	 * TODO: we should give a software reset to the HS-USB module from
+	 * HS-USB operation point of view.  The module reset, however, blows
+	 * away UGCTRL2 register content, that means USB2.0 Ch 0/2 selection
+	 * settings get lost.
+	 */
+	printk(KERN_DEBUG "UGCTRL 0x%08x UGCTRL2 0x%08x UGSTS 0x%08x\n",
+		readl_relaxed(hsusb + UGCTRL), readl_relaxed(hsusb + UGCTRL2),
+		readl_relaxed(hsusb + UGSTS));
+
+	/* PLL reset release */
+	writel_relaxed(0, hsusb + UGCTRL); /* clear PLLRESET */
+
+	/* UTMI normal mode */
+	writew_relaxed(1 << 14, hsusb + LPSTS); /* SUSPM */
+
+	/* check embedded USB PHY lock status */
+	status = readl_relaxed(hsusb + UGSTS);
+	if (status != 0x3) {
+		printk(KERN_DEBUG "Embedded USB PHY PLL Lock status 0x%04x\n",
+			 status);
+		/* FIXME: LOCK[1:0] can never be 0x3, why? */
+	}
+
+	writel_relaxed(1 << 2, hsusb + UGCTRL); /* CONNECT */
+}
+
+static void usb_func_stop(void)
+{
+	writel_relaxed(0, hsusb + UGCTRL); /* PHY receiver halted */
+	writel_relaxed(1 << 0, hsusb + UGCTRL); /* PLL reset assert */
+}
+
+static struct r8a66597_platdata usb_func_platform_data = {
+	.module_start	= usb_func_start,
+	.module_stop	= usb_func_stop,
+	.on_chip	= 1,
+	.buswait	= 9,
+	.max_bufnum	= 0xff,
+	.dmac		= 1,
+};
+
+static struct resource usb_func_resources[] = {
+	DEFINE_RES_MEM(0xe6590000, 0x194),
+	DEFINE_RES_IRQ(gic_spi(107)),
+	DEFINE_RES_MEM_NAMED(0xe65a0000, 0x64, "dmac"),
+	DEFINE_RES_IRQ(gic_spi(109)),
+};
+
+void __init r8a7791_register_usbf(void)
+{
+	struct platform_device_info info = {
+		.parent = &platform_bus,
+		.name = "r8a66597_udc",
+		.id = 0,
+		.data = &usb_func_platform_data,
+		.size_data = sizeof(struct r8a66597_platdata),
+		.dma_mask = DMA_BIT_MASK(32),
+		.res = usb_func_resources,
+		.num_res = ARRAY_SIZE(usb_func_resources),
+	};
+
+	platform_device_register_full(&info);
+}
+
+/* GPIO VBUS sensing */
+static struct gpio_vbus_mach_info gpio_vbus_platform_data = {
+	.gpio_vbus	= RCAR_GP_PIN(7, 24),
+	.gpio_pullup	= -1,
+	.wakeup		= true,
+};
+
+#define r8a7791_register_gpio_vbus()					\
+	platform_device_register_data(&platform_bus, "gpio-vbus", -1,	\
+					&gpio_vbus_platform_data,	\
+					sizeof(struct gpio_vbus_mach_info))
+#endif
+
 /* USB */
 struct usb_ehci_pdata ehci_pdata = {
 	.caps_offset	= 0,
@@ -1035,12 +1267,21 @@ static void __init usbh_pci_int_enable(int ch)
 static int __init usbh_init(void)
 {
 	struct clk *clk_hs, *clk_ehci;
-#if defined(CONFIG_USB_XHCI_HCD)
+#ifdef CONFIG_USB_XHCI_HCD
 	struct clk *clk_xhci;
 #endif /* CONFIG_USB_XHCI_HCD */
 	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
-	unsigned int ch;
+	unsigned int ch = 0;
 	int ret = 0;
+	u32 ugctrl2 = 0x00000011;
+
+#ifdef CONFIG_USB_R8A66597
+	ch++;
+	ugctrl2 |= UGCTRL2_USB0SEL_HSUSB;
+#endif /* CONFIG_USB_R8A66597 */
+#ifdef CONFIG_USB_XHCI_HCD
+	ugctrl2 |= UGCTRL2_USB2SEL_XHCI;
+#endif /* CONFIG_USB_XHCI_HCD */
 
 	if (!hs_usb)
 		return -ENOMEM;
@@ -1060,7 +1301,7 @@ static int __init usbh_init(void)
 	clk_enable(clk_hs);
 	clk_enable(clk_ehci);
 
-#if defined(CONFIG_USB_XHCI_HCD)
+#ifdef CONFIG_USB_XHCI_HCD
 	clk_xhci = clk_get(NULL, "ss_usb");
 	if (IS_ERR(clk_xhci)) {
 		ret = PTR_ERR(clk_xhci);
@@ -1069,14 +1310,11 @@ static int __init usbh_init(void)
 
 	clk_enable(clk_xhci);
 
-	/* Select XHCI for ch2 and EHCI for ch0 */
-	iowrite32(0x80000011, (hs_usb + 0x184));
-#else
-	/* Set EHCI for UGCTRL2 */
-	iowrite32(0x00000011, (hs_usb + 0x184));
 #endif /* CONFIG_USB_XHCI_HCD */
 
-	for (ch = 0; ch < SHUSBH_MAX_CH; ch++) {
+	iowrite32(ugctrl2, hs_usb + 0x184);
+
+	for (; ch < SHUSBH_MAX_CH; ch++) {
 		if (1 != ch) {
 			/* internal pci-bus bridge initialize */
 			usbh_internal_pci_bridge_init(ch);
@@ -1236,6 +1474,8 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_scif(SCIFA2);
 	r8a7791_register_scif(SCIF0);
 	r8a7791_register_scif(SCIF1);
+	r8a7791_register_scif(HSCIF0);
+	r8a7791_register_scif(HSCIF1);
 	r8a7791_register_scif(SCIF2);
 	r8a7791_register_scif(SCIF3);
 	r8a7791_register_scif(SCIF4);
@@ -1243,6 +1483,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_scif(SCIFA3);
 	r8a7791_register_scif(SCIFA4);
 	r8a7791_register_scif(SCIFA5);
+	r8a7791_register_scif(HSCIF2);
 	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
 	r8a7791_register_cmt(00);
@@ -1252,6 +1493,9 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_sysdma(l, SHDMA_DEVID_SYS_LO);
 	r8a7791_register_sysdma(u, SHDMA_DEVID_SYS_UP);
 	r8a7791_register_audmapp(SHDMA_DEVID_AUDIOPP);
+#ifdef CONFIG_USB_R8A66597
+	r8a7791_register_gpio_vbus();
+#endif
 	r8a7791_register_i2c(0);
 	r8a7791_register_i2c(1);
 	r8a7791_register_i2c(2);
@@ -1265,9 +1509,16 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_qspi();
 	r8a7791_register_sata(0);
 	r8a7791_register_sata(1);
+#ifdef CONFIG_USB_R8A66597
+	r8a7791_register_usbf();
+#endif
+#ifndef CONFIG_USB_R8A66597
 	r8a7791_register_usbh_ehci(0);
+#endif
 	r8a7791_register_usbh_ehci(1);
+#ifndef CONFIG_USB_R8A66597
 	r8a7791_register_usbh_ohci(0);
+#endif
 	r8a7791_register_usbh_ohci(1);
 	r8a7791_register_usbh_xhci(0);
 	r8a7791_register_vin(0);

@@ -191,7 +191,8 @@ static struct clk div6_clks[DIV6_NR] = {
 /* MSTP */
 enum {
 	MSTP1107, MSTP1106, MSTP1105, MSTP721, MSTP720, MSTP719, MSTP718,
-	MSTP715, MSTP714, MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
+	MSTP717, MSTP716, MSTP715, MSTP714, MSTP713,
+	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, MSTP1014,
 	MSTP1005, MSTP922,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
@@ -203,6 +204,7 @@ enum {
 	MSTP726, MSTP724, MSTP723,
 	MSTP704, MSTP703, MSTP328,
 	MSTP502, MSTP501, MSTP219, MSTP218,
+	MSTP330,
 	MSTP315, MSTP314, MSTP312, MSTP311,
 	MSTP208, MSTP205, MSTP000,
 	MSTP131, MSTP119, MSTP118, MSTP115, MSTP109, MSTP103, MSTP101,
@@ -249,12 +251,20 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP720] = MSTP(7, 20, &p_clk, 0), /* SCIF1 */
 	[MSTP719] = MSTP(7, 19, &p_clk, 0), /* SCIF2 */
 	[MSTP718] = MSTP(7, 18, &p_clk, 0), /* SCIF3 */
+	[MSTP717] = MSTP(7, 17, &zs_clk, 0), /* HSCIF0 */
+	[MSTP716] = MSTP(7, 16, &zs_clk, 0), /* HSCIF1 */
 	[MSTP715] = MSTP(7, 15, &p_clk, 0), /* SCIF4 */
 	[MSTP714] = MSTP(7, 14, &p_clk, 0), /* SCIF5 */
+	[MSTP713] = MSTP(7, 13, &p_clk, 0), /* HSCIF2 */
+#ifdef CONFIG_USB_R8A66597
+	[MSTP704] = MSTP(7,  4, &hp_clk, 0), /* HSUSB */
+#else
 	[MSTP704] = MSTP(7,  4, &mp_clk, 0), /* HSUSB */
+#endif
 	[MSTP703] = MSTP(7,  3, &mp_clk, 0), /* EHCI */
 	[MSTP502] = MSTP(5,  2, &hp_clk, 0), /* MPDMAC0 */
 	[MSTP501] = MSTP(5,  1, &hp_clk, 0), /* MPDMAC1 */
+	[MSTP330] = MSTP(3, 30, &hp_clk, 0), /* USBDMAC0 */
 	[MSTP328] = MSTP(3, 28, &mp_clk, 0), /* SSUSB */
 	[MSTP315] = MSTP(3, 15, &div6_clks[DIV6_MMC], 0), /* MMCIF */
 	[MSTP314] = MSTP(3, 14, &div4_clks[DIV4_SD0], 0), /* SDHI0 */
@@ -323,6 +333,8 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.5", &mstp_clks[MSTP202]), /* SCIFA2 */
 	CLKDEV_DEV_ID("sh-sci.6", &mstp_clks[MSTP721]), /* SCIF0 */
 	CLKDEV_DEV_ID("sh-sci.7", &mstp_clks[MSTP720]), /* SCIF1 */
+	CLKDEV_DEV_ID("sh-sci.8", &mstp_clks[MSTP717]), /* HSCIF0 */
+	CLKDEV_DEV_ID("sh-sci.9", &mstp_clks[MSTP716]), /* HSCIF1 */
 	CLKDEV_DEV_ID("sh-sci.10", &mstp_clks[MSTP719]), /* SCIF2 */
 	CLKDEV_DEV_ID("sh-sci.11", &mstp_clks[MSTP718]), /* SCIF3 */
 	CLKDEV_DEV_ID("sh-sci.12", &mstp_clks[MSTP715]), /* SCIF4 */
@@ -330,6 +342,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.14", &mstp_clks[MSTP1105]), /* SCIFA3 */
 	CLKDEV_DEV_ID("sh-sci.15", &mstp_clks[MSTP1106]), /* SCIFA4 */
 	CLKDEV_DEV_ID("sh-sci.16", &mstp_clks[MSTP1107]), /* SCIFA5 */
+	CLKDEV_DEV_ID("sh-sci.17", &mstp_clks[MSTP713]), /* HSCIF2 */
 	CLKDEV_DEV_ID("r8a779x-ether", &mstp_clks[MSTP813]),
 	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
 	CLKDEV_DEV_ID("sh_mmcif.0", &mstp_clks[MSTP315]),
@@ -360,7 +373,9 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("vin.1", &mstp_clks[MSTP810]),
 	CLKDEV_DEV_ID("vin.2", &mstp_clks[MSTP809]),
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]), /* HSUSB */
+	CLKDEV_DEV_ID("r8a66597_udc.0", &mstp_clks[MSTP704]),
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]), /* ECHI */
+	CLKDEV_CON_ID("usb0_dmac", &mstp_clks[MSTP330]),
 	CLKDEV_CON_ID("ss_usb", &mstp_clks[MSTP328]), /* SSUSB */
 	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
 	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
