@@ -61,10 +61,10 @@ static int rpf_s_stream(struct v4l2_subdev *subdev, int enable)
 		       (format->width << VI6_RPF_SRC_ESIZE_EHSIZE_SHIFT) |
 		       (format->height << VI6_RPF_SRC_ESIZE_EVSIZE_SHIFT));
 
-	pstride = format->width
+	pstride = format->plane_fmt[0].bytesperline
 		<< VI6_RPF_SRCM_PSTRIDE_Y_SHIFT;
 	if (format->num_planes > 1)
-		pstride |= format->width
+		pstride |= format->plane_fmt[1].bytesperline
 			<< VI6_RPF_SRCM_PSTRIDE_C_SHIFT;
 
 	vsp1_rpf_write(rpf, VI6_RPF_SRCM_PSTRIDE, pstride);
