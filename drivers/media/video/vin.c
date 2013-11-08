@@ -1700,6 +1700,7 @@ static int client_s_crop(struct soc_camera_device *icd, struct v4l2_crop *crop,
 		dev_dbg(dev, "Camera S_CROP successful for %dx%d@%d:%d\n",
 			rect->width, rect->height, rect->left, rect->top);
 		cam->rect = *cam_rect;
+		cam->subrect = *rect;
 		return 0;
 	}
 
@@ -1960,9 +1961,6 @@ static int vin_set_crop(struct soc_camera_device *icd,
 	cam->width	= mf.width;
 	cam->height	= mf.height;
 
-	icd->user_width	 = cam->width;
-	icd->user_height = cam->height;
-
 	if (rect->left < 0)
 		rect->left = 0;
 	if (rect->top < 0)
@@ -1970,8 +1968,6 @@ static int vin_set_crop(struct soc_camera_device *icd,
 
 	cam->vin_left	 = rect->left & ~1;
 	cam->vin_top	 = rect->top & ~1;
-
-	cam->subrect = *rect;
 
 	/* 6. Use VIN cropping to crop to the new window. */
 	ret = vin_set_rect(icd);
