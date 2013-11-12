@@ -76,7 +76,6 @@ struct rcar_du_plane {
 struct rcar_du_planes {
 	struct rcar_du_plane planes[RCAR_DU_NUM_SW_PLANES];
 	unsigned int free;
-	bool need_restart;
 	struct mutex lock;
 
 	struct drm_property *alpha;
