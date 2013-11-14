@@ -309,12 +309,19 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 	 */
 	rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_TVM_MASK, DSYSR_TVM_MASTER);
 
-	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE)
-		rcar_du_crtc_clr_set(rcrtc, DSYSR,
-			 DSYSR_SCM_INT_VIDEO, DSYSR_SCM_INT_VIDEO);
-	else
-		rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_SCM_INT_VIDEO, 0);
-
+	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE) {
+		if (rcrtc->index == 1)
+			rcar_du_crtc_clr_set(rcrtc, DSYSR,
+				DSYSR_SCM_INT_VIDEO, DSYSR_SCM_INT_VIDEO);
+		else
+			rcrtc->group->interlace_grp = true;
+	} else {
+		if (rcrtc->index == 1)
+			rcar_du_crtc_clr_set(rcrtc, DSYSR,
+				DSYSR_SCM_INT_VIDEO, 0);
+		else
+			rcrtc->group->interlace_grp = false;
+	}
 	rcar_du_group_start_stop(rcrtc->group, true);
 
 	rcrtc->started = true;
@@ -337,8 +344,13 @@ static void rcar_du_crtc_stop(struct rcar_du_crtc *rcrtc)
 	 */
 	rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_TVM_MASK, DSYSR_TVM_SWITCH);
 
-	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE)
-		rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_SCM_INT_VIDEO, 0);
+	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE) {
+		if (rcrtc->index == 1)
+			rcar_du_crtc_clr_set(rcrtc,
+				DSYSR, DSYSR_SCM_INT_VIDEO, 0);
+		else
+			rcrtc->group->interlace_grp = false;
+	}
 
 	rcar_du_group_start_stop(rcrtc->group, false);
 
@@ -559,18 +571,10 @@ static irqreturn_t rcar_du_crtc_irq(int irq, void *arg)
 	status = rcar_du_crtc_read(rcrtc, DSSR);
 	rcar_du_crtc_write(rcrtc, DSRCR, status & DSRCR_MASK);
 
-	if (rcar_du_has(rcrtc->group->dev, RCAR_DU_FEATURE_INTERLACE)) {
-		if (status & DSSR_FRM) {
-			drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
-			rcar_du_crtc_finish_page_flip(rcrtc);
-			ret = IRQ_HANDLED;
-		}
-	} else {
-		if (status & DSSR_VBK) {
-			drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
-			rcar_du_crtc_finish_page_flip(rcrtc);
-			ret = IRQ_HANDLED;
-		}
+	if (status & DSSR_FRM) {
+		drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
+		rcar_du_crtc_finish_page_flip(rcrtc);
+		ret = IRQ_HANDLED;
 	}
 
 	return ret;
