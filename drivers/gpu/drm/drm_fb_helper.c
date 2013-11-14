@@ -708,6 +708,8 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	struct drm_framebuffer *fb;
 	unsigned int bytes_per_pixel;
 	unsigned int match_flag;
+	bool mode_change_flag = false;
+	unsigned int pre_pixfmt;
 #endif
 
 #if !defined(CONFIG_DRM_FBDEV_CRTC)
@@ -736,6 +738,14 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	if (disp_set_mode && disp_conn && fb &&
 		 ((info->flags & FBINFO_MISC_USEREVENT)
 			 == FBINFO_MISC_USEREVENT)) {
+
+		pre_pixfmt = drm_mode_legacy_fb_format(var->bits_per_pixel,
+						       fb->depth);
+
+		if ((var->xres != disp_set_mode->hdisplay) ||
+			 (var->yres != disp_set_mode->vdisplay) ||
+			 (fb->pixel_format != pre_pixfmt))
+			mode_change_flag = true;
 
 		match_flag = 0;
 		list_for_each_entry(ref_disp_mode, &disp_conn->modes, head) {
@@ -779,6 +789,9 @@ int drm_fb_helper_set_par(struct fb_info *info)
 		drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
 		drm_fb_helper_fill_var(info, fb_helper,
 					 var->xres, var->yres);
+		if (!mode_change_flag)
+			goto mode_no_change;
+
 		disp_set_mode->private_flags = true;
 		ret = drm_mode_set_config_internal(&fb_helper->
 				crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set);
@@ -787,6 +800,7 @@ int drm_fb_helper_set_par(struct fb_info *info)
 			return ret;
 		}
 	}
+mode_no_change:
 #endif
 	drm_modeset_unlock_all(dev);
 
