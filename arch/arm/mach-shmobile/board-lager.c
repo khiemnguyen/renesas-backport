@@ -155,14 +155,15 @@ static const struct gpio_led_platform_data lager_leds_pdata __initconst = {
 };
 
 /* GPIO KEY */
-#define GPIO_KEY(c, g, d, ...) \
-	{ .code = c, .gpio = g, .desc = d, .active_low = 1 }
+#define GPIO_KEY(c, g, d, w, ...) \
+	{ .code = c, .gpio = g, .desc = d, .wakeup = w, .active_low = 1, \
+ 	  .debounce_interval = 20 }
 
 static struct gpio_keys_button gpio_buttons[] = {
-	GPIO_KEY(KEY_4,		RCAR_GP_PIN(1, 28),	"SW2-pin4"),
-	GPIO_KEY(KEY_3,		RCAR_GP_PIN(1, 26),	"SW2-pin3"),
-	GPIO_KEY(KEY_2,		RCAR_GP_PIN(1, 24),	"SW2-pin2"),
-	GPIO_KEY(KEY_1,		RCAR_GP_PIN(1, 14),	"SW2-pin1"),
+	GPIO_KEY(KEY_4, RCAR_GP_PIN(1, 28), "SW2-pin4", 1),
+	GPIO_KEY(KEY_3, RCAR_GP_PIN(1, 26), "SW2-pin3", 1),
+	GPIO_KEY(KEY_2, RCAR_GP_PIN(1, 24), "SW2-pin2", 1),
+	GPIO_KEY(KEY_1, RCAR_GP_PIN(1, 14), "SW2-pin1", 1),
 };
 
 static const struct gpio_keys_platform_data lager_keys_pdata __initconst = {
