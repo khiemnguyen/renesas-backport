@@ -678,11 +678,16 @@ int rcar_du_planes_register(struct rcar_du_group *rgrp)
 	unsigned int crtcs;
 	unsigned int i;
 	int ret;
-	unsigned int ovl_num_du0;
+	unsigned int ovl_num_du0, plane_num;
+
+	if (rgrp->index == 1)
+		plane_num = RCAR_DU_NUM_KMS_PLANES;
+	else
+		plane_num = RCAR_DU01_OVERLAY_NUM;
 
 	ovl_num_du0 = RCAR_DU01_OVERLAY_NUM - CONFIG_DRM_RCAR_DU1_OVERLAY_NUM;
 
-	for (i = 0; i < RCAR_DU_NUM_KMS_PLANES; ++i) {
+	for (i = 0; i < plane_num; ++i) {
 		struct rcar_du_kms_plane *plane;
 
 		plane = devm_kzalloc(rcdu->dev, sizeof(*plane), GFP_KERNEL);
