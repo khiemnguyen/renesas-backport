@@ -33,6 +33,8 @@
 
 #include "tmio_mmc.h"
 
+#define EXT_ACC           0xe4
+
 struct sh_mobile_sdhi {
 	struct clk *clk;
 	struct tmio_mmc_data mmc_data;
@@ -417,6 +419,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	char clk_name[8];
 	int irq, ret, i = 0;
 	bool multiplexed_isr = true;
+	u16 ver;
 
 	priv = kzalloc(sizeof(struct sh_mobile_sdhi), GFP_KERNEL);
 	if (priv == NULL) {
@@ -497,6 +500,14 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	ret = tmio_mmc_host_probe(&host, pdev, mmc_data);
 	if (ret < 0)
 		goto eprobe;
+
+	/*
+	 * FIXME:
+	 * this Workaround can be more clever method
+	 */
+	ver = sd_ctrl_read16(host, CTL_VERSION);
+	if (ver == 0xCB0D)
+		sd_ctrl_write16(host, EXT_ACC, 1);
 
 	if (host->bus_shift)
 		sd_ctrl_write16(host, 0x192, 0x0004);
