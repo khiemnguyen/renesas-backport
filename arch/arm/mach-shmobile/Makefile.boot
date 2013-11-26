@@ -13,3 +13,4 @@ dtb-$(CONFIG_MACH_KZM9D) += emev2-kzm9d.dtb
 dtb-$(CONFIG_MACH_ARMADILLO800EVA) += r8a7740-armadillo800eva.dtb
 dtb-$(CONFIG_MACH_ARMADILLO800EVA) += r8a7740-armadillo800eva.dtb
 dtb-$(CONFIG_MACH_LAGER) += r8a7790-lager.dtb
+dtb-$(CONFIG_MACH_KOELSCH) += r8a7791-koelsch.dtb
