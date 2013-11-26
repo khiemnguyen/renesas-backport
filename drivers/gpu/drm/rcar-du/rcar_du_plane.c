@@ -120,10 +120,13 @@ static void rcar_du_plane_write(struct rcar_du_group *rgrp,
  * compatible with the DU revision.
  */
 static int rcar_du_plane_find(struct rcar_du_group *rgrp, unsigned int count,
-			      enum rcar_du_plane_source source)
+			      enum rcar_du_plane_source source,
+			      struct drm_crtc *crtc)
 {
 	int fixed = -1;
 	int i;
+	int du_ch = -1;
+	bool next_search = true;
 
 	if (source == RCAR_DU_PLANE_VSPD0) {
 		/* VSPD0 feeds plane 0 on DU0/1. */
@@ -139,9 +142,29 @@ static int rcar_du_plane_find(struct rcar_du_group *rgrp, unsigned int count,
 	if (fixed >= 0)
 		return rgrp->planes.free & (1 << fixed) ? fixed : -EBUSY;
 
+	for (du_ch = 0; du_ch < rgrp->dev->num_crtcs; du_ch++) {
+		if (rgrp->dev->crtcs_connect_id[du_ch] == crtc->base.id)
+			break;
+	}
+
 	for (i = ARRAY_SIZE(rgrp->planes.planes) - 1; i >= 0; --i) {
+		if (i < RCAR_DU01_OVERLAY_NUM) {
+			if ((du_ch == 0) &&
+				 (i < CONFIG_DRM_RCAR_DU1_OVERLAY_NUM))
+				continue;
+
+			if ((du_ch == 1) &&
+				 (i >= CONFIG_DRM_RCAR_DU1_OVERLAY_NUM))
+				continue;
+		}
+
 		if (!(rgrp->planes.free & (1 << i)))
 			continue;
+
+		if ((count == 2) && (next_search)) {
+			next_search = false;
+			continue;
+		}
 
 		if (count == 1 ||
 		    rgrp->planes.free & (1 << ((i + 1) % 8)))
@@ -161,7 +184,7 @@ static int __rcar_du_plane_reserve(struct rcar_du_plane *plane,
 
 	mutex_lock(&rgrp->planes.lock);
 
-	ret = rcar_du_plane_find(rgrp, format->planes, source);
+	ret = rcar_du_plane_find(rgrp, format->planes, source, plane->crtc);
 	if (ret < 0)
 		goto done;
 
@@ -435,6 +458,8 @@ rcar_du_plane_update(struct drm_plane *plane, struct drm_crtc *crtc,
 	/* Reallocate hardware planes if the source or the number of required
 	 * planes has changed.
 	 */
+	rplane->crtc = crtc;
+
 	if (format->planes != nplanes || rplane->source != source) {
 		rcar_du_plane_release(rplane);
 		ret = __rcar_du_plane_reserve(rplane, format, source);
@@ -442,7 +467,6 @@ rcar_du_plane_update(struct drm_plane *plane, struct drm_crtc *crtc,
 			return ret;
 	}
 
-	rplane->crtc = crtc;
 	rplane->format = format;
 	rplane->pitch = fb ? fb->pitches[0] : (src_w >> 16) * format->bpp / 8;
 
@@ -654,8 +678,9 @@ int rcar_du_planes_register(struct rcar_du_group *rgrp)
 	unsigned int crtcs;
 	unsigned int i;
 	int ret;
+	unsigned int ovl_num_du0;
 
-	crtcs = ((1 << rcdu->num_crtcs) - 1) & (3 << (2 * rgrp->index));
+	ovl_num_du0 = RCAR_DU01_OVERLAY_NUM - CONFIG_DRM_RCAR_DU1_OVERLAY_NUM;
 
 	for (i = 0; i < RCAR_DU_NUM_KMS_PLANES; ++i) {
 		struct rcar_du_kms_plane *plane;
@@ -663,6 +688,13 @@ int rcar_du_planes_register(struct rcar_du_group *rgrp)
 		plane = devm_kzalloc(rcdu->dev, sizeof(*plane), GFP_KERNEL);
 		if (plane == NULL)
 			return -ENOMEM;
+
+		if ((i >= ovl_num_du0) && (rgrp->index == 0))
+			crtcs = ((1 << rcdu->num_crtcs) - 1)
+				 & (1 << 1);
+		else
+			crtcs = ((1 << rcdu->num_crtcs) - 1)
+				 & (1 << (2 * rgrp->index));
 
 		plane->hwplane = &planes->planes[i + 2];
 		plane->hwplane->zpos = 1;
