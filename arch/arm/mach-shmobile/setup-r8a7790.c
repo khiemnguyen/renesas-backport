@@ -539,6 +539,16 @@ static const struct sh_dmadesc_slave_config r8a7790_sysdma_slaves[] = {
 		.addr		= 0xe62c8000 + 0x14,
 		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
 		.mid_rid	= 0x4e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MSIOF1_TX,
+		.addr		= 0xe7e10050,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x55,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MSIOF1_RX,
+		.addr		= 0xe7e10060,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x56,
 	},
 };
 
@@ -748,9 +758,28 @@ void __init r8a7790_add_mmc_device(struct sh_mmcif_plat_data *pdata,
 }
 
 /* MSIOF */
-static const struct sh_msiof_spi_info sh_msiof_info __initconst = {
-	.rx_fifo_override	= 256,
-	.num_chipselect		= 1,
+#define MSIOF_COMMON				\
+	.rx_fifo_override	= 256,			\
+	.num_chipselect		= 1,			\
+	.dma_devid_lo		= SHDMA_DEVID_SYS_LO,	\
+	.dma_devid_up		= SHDMA_DEVID_SYS_UP,	\
+	.mode			= SPI_MSIOF_MASTER
+
+static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
+	{
+		MSIOF_COMMON,
+	},
+	{
+		MSIOF_COMMON,
+		.dma_slave_tx		= SHDMA_SLAVE_MSIOF1_TX,
+		.dma_slave_rx		= SHDMA_SLAVE_MSIOF1_RX,
+	},
+	{
+		MSIOF_COMMON,
+	},
+	{
+		MSIOF_COMMON,
+	},
 };
 
 static const struct resource sh_msiof0_resources[] __initconst = {
@@ -777,7 +806,7 @@ static const struct resource sh_msiof3_resources[] __initconst = {
 	platform_device_register_resndata(&platform_bus, "spi_sh_msiof", \
 				  (idx+1), sh_msiof##idx##_resources,	\
 				  ARRAY_SIZE(sh_msiof##idx##_resources), \
-				  &sh_msiof_info,		\
+				  &sh_msiof_info[idx],		\
 				  sizeof(struct sh_msiof_spi_info))
 
 /* POWERVR */
