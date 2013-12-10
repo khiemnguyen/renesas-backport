@@ -182,7 +182,11 @@ static void sh_msiof_spi_set_pin_regs(struct sh_msiof_spi_priv *p,
 	 *    1    1         11     11    1    1
 	 */
 	sh_msiof_write(p, FCTR, 0);
-	sh_msiof_write(p, TMDR1, 0xe2000005 | (lsb_first << 24));
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		sh_msiof_write(p, TMDR1, 0xe2000005 | (lsb_first << 24));
+	else
+		sh_msiof_write(p, TMDR1, 0x62000005 | (lsb_first << 24));
+
 	sh_msiof_write(p, RMDR1, 0x22000005 | (lsb_first << 24));
 
 	tmp = 0xa0000000;
@@ -460,14 +464,17 @@ static int sh_msiof_spi_txrx_once(struct sh_msiof_spi_priv *p,
 		tx_fifo(p, tx_buf, words, fifo_shift);
 
 	/* setup clock and rx/tx signals */
-	ret = sh_msiof_modify_ctr_wait(p, 0, CTR_TSCKE);
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = sh_msiof_modify_ctr_wait(p, 0, CTR_TSCKE);
 	if (rx_buf)
 		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_RXE);
 	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TXE);
 
 	/* start by setting frame bit */
 	INIT_COMPLETION(p->done);
-	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TFSE);
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TFSE);
+
 	if (ret) {
 		dev_err(&p->pdev->dev, "failed to start hardware\n");
 		goto err;
@@ -484,11 +491,16 @@ static int sh_msiof_spi_txrx_once(struct sh_msiof_spi_priv *p,
 	sh_msiof_reset_str(p);
 
 	/* shut down frame, tx/tx and clock signals */
-	ret = sh_msiof_modify_ctr_wait(p, CTR_TFSE, 0);
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = sh_msiof_modify_ctr_wait(p, CTR_TFSE, 0);
+
 	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TXE, 0);
 	if (rx_buf)
 		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_RXE, 0);
-	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TSCKE, 0);
+
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TSCKE, 0);
+
 	if (ret) {
 		dev_err(&p->pdev->dev, "failed to shut down hardware\n");
 		goto err;
@@ -562,9 +574,10 @@ static int sh_msiof_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 			rx_fifo = sh_msiof_spi_read_fifo_32;
 	}
 
-	/* setup clocks (clock already enabled in chipselect()) */
-	sh_msiof_spi_set_clk_regs(p, clk_get_rate(p->clk),
-				  sh_msiof_spi_hz(spi, t));
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		/* setup clocks (clock already enabled in chipselect()) */
+		sh_msiof_spi_set_clk_regs(p, clk_get_rate(p->clk),
+					  sh_msiof_spi_hz(spi, t));
 
 	/* transfer in fifo sized chunks */
 	words = t->len / bytes_per_word;
@@ -735,7 +748,7 @@ static struct platform_driver sh_msiof_spi_drv = {
 };
 module_platform_driver(sh_msiof_spi_drv);
 
-MODULE_DESCRIPTION("SuperH MSIOF SPI Master Interface Driver");
+MODULE_DESCRIPTION("SuperH MSIOF SPI Master/Slave Interface Driver");
 MODULE_AUTHOR("Magnus Damm");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:spi_sh_msiof");
