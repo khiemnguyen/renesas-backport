@@ -765,9 +765,31 @@ void __init r8a7791_add_mmc_device(struct sh_mmcif_plat_data *pdata)
 }
 
 /* MSIOF */
-static const struct sh_msiof_spi_info sh_msiof_info __initconst = {
-	.rx_fifo_override	= 256,
-	.num_chipselect		= 1,
+#define MSIOF_COMMON				\
+	.rx_fifo_override	= 256,			\
+	.num_chipselect		= 1
+
+static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
+	{
+		MSIOF_COMMON,
+#ifndef CONFIG_SPI_SH_MSIOF_CH0_SLAVE
+		.mode			= SPI_MSIOF_MASTER,
+#else
+		.mode			= SPI_MSIOF_SLAVE,
+#endif
+	},
+	{
+		MSIOF_COMMON,
+#ifndef CONFIG_SPI_SH_MSIOF_CH1_SLAVE
+		.mode			= SPI_MSIOF_MASTER,
+#else
+		.mode			= SPI_MSIOF_SLAVE,
+#endif
+	},
+	{
+		MSIOF_COMMON,
+		.mode			= SPI_MSIOF_MASTER,
+	},
 };
 
 static const struct resource sh_msiof0_resources[] __initconst = {
@@ -789,7 +811,7 @@ static const struct resource sh_msiof2_resources[] __initconst = {
 	platform_device_register_resndata(&platform_bus, "spi_sh_msiof", \
 				  (idx+1), sh_msiof##idx##_resources,	\
 				  ARRAY_SIZE(sh_msiof##idx##_resources), \
-				  &sh_msiof_info,		\
+				  &sh_msiof_info[idx],		\
 				  sizeof(struct sh_msiof_spi_info))
 
 /* POWERVR */
