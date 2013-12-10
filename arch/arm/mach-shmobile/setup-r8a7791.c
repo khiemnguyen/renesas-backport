@@ -546,6 +546,26 @@ static const struct sh_dmadesc_slave_config r8a7791_sysdma_slaves[] = {
 		.addr		= 0xe62c8000 + 0x14,
 		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
 		.mid_rid	= 0x4e,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MSIOF0_TX,
+		.addr		= 0xe7e20050,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x51,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MSIOF0_RX,
+		.addr		= 0xe7e20060,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x52,
+	},  {
+		.slave_id	= SHDMA_SLAVE_MSIOF1_TX,
+		.addr		= 0xe7e10050,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x55,
+	}, {
+		.slave_id	= SHDMA_SLAVE_MSIOF1_RX,
+		.addr		= 0xe7e10060,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x56,
 	},
 };
 
@@ -767,11 +787,15 @@ void __init r8a7791_add_mmc_device(struct sh_mmcif_plat_data *pdata)
 /* MSIOF */
 #define MSIOF_COMMON				\
 	.rx_fifo_override	= 256,			\
-	.num_chipselect		= 1
+	.num_chipselect		= 1,			\
+	.dma_devid_lo		= SHDMA_DEVID_SYS_LO,	\
+	.dma_devid_up		= SHDMA_DEVID_SYS_UP
 
 static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
 	{
 		MSIOF_COMMON,
+		.dma_slave_tx		= SHDMA_SLAVE_MSIOF0_TX,
+		.dma_slave_rx		= SHDMA_SLAVE_MSIOF0_RX,
 #ifndef CONFIG_SPI_SH_MSIOF_CH0_SLAVE
 		.mode			= SPI_MSIOF_MASTER,
 #else
@@ -780,6 +804,8 @@ static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
 	},
 	{
 		MSIOF_COMMON,
+		.dma_slave_tx		= SHDMA_SLAVE_MSIOF1_TX,
+		.dma_slave_rx		= SHDMA_SLAVE_MSIOF1_RX,
 #ifndef CONFIG_SPI_SH_MSIOF_CH1_SLAVE
 		.mode			= SPI_MSIOF_MASTER,
 #else
