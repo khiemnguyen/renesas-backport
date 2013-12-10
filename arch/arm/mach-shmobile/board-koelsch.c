@@ -319,6 +319,13 @@ static const struct spi_board_info spi_bus[] __initconst = {
 		.bus_num	= 1,
 		.chip_select	= 0,
 	},
+	{
+		.modalias	= "spidev",
+		.max_speed_hz	= 6000000,
+		.mode		= SPI_MODE_3,
+		.bus_num	= 2,
+		.chip_select	= 0,
+	},
 };
 
 #define koelsch_add_msiof_device spi_register_board_info
@@ -733,6 +740,15 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "msiof0_rx", "msiof0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
 				  "msiof0_tx", "msiof0"),
+	/* MSIOF1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_clk_c", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_sync_c", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_rx_c", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_tx_c", "msiof1"),
 	/* SDHI0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7791",
 				  "sdhi0_data4", "sdhi0"),
