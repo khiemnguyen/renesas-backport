@@ -37,7 +37,6 @@
 #include <linux/videodev2.h>
 #include <linux/pm_runtime.h>
 #include <linux/sched.h>
-#include <linux/clk.h>
 
 #include <media/v4l2-common.h>
 #include <media/v4l2-dev.h>
@@ -2404,9 +2403,6 @@ static int __devinit vin_probe(struct platform_device *pdev)
 		goto exit_kfree;
 	}
 
-	pcdev->vinclk = clk_get(&pdev->dev, "vin_clk");
-	clk_enable(pcdev->vinclk);
-
 	pcdev->irq = irq;
 	pcdev->base = base;
 	pcdev->video_limit = 0; /* only enabled if second resource exists */
@@ -2475,7 +2471,6 @@ static int __devexit vin_remove(struct platform_device *pdev)
 	struct vin_dev *pcdev = container_of(soc_host,
 					struct vin_dev, ici);
 
-	clk_disable(pcdev->vinclk);
 	soc_camera_host_unregister(soc_host);
 #ifdef CONFIG_PM
 	pm_runtime_disable(&pdev->dev);
