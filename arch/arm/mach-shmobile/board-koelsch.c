@@ -105,6 +105,23 @@ static void __init koelsch_add_du_device(void)
 	platform_device_register_full(&info);
 }
 
+/* GPIO KEY */
+#define GPIO_KEY(c, g, d, w, ...) \
+	{ .code = c, .gpio = g, .desc = d, .wakeup = w, .active_low = 1, \
+ 	  .debounce_interval = 20 }
+
+static struct gpio_keys_button gpio_buttons[] = {
+	GPIO_KEY(KEY_4, RCAR_GP_PIN(5, 3), "SW2-pin4", 1),
+	GPIO_KEY(KEY_3, RCAR_GP_PIN(5, 2), "SW2-pin3", 1),
+	GPIO_KEY(KEY_2, RCAR_GP_PIN(5, 1), "SW2-pin2", 1),
+	GPIO_KEY(KEY_1, RCAR_GP_PIN(5, 0), "SW2-pin1", 1),
+};
+
+static const struct gpio_keys_platform_data koelsch_keys_pdata __initconst = {
+	.buttons	= gpio_buttons,
+	.nbuttons	= ARRAY_SIZE(gpio_buttons),
+};
+
 /* Ether */
 static const struct sh_eth_plat_data ether_pdata __initconst = {
 	.phy			= 0x1,
@@ -816,6 +833,10 @@ static void __init koelsch_add_standard_devices(void)
 	r8a7791_pinmux_init();
 
 	r8a7791_add_standard_devices();
+
+	platform_device_register_data(&platform_bus, "gpio-keys", -1,
+				      &koelsch_keys_pdata,
+				      sizeof(koelsch_keys_pdata));
 
 	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
