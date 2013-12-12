@@ -520,7 +520,7 @@ static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 };
 
 /* VIN camera */
-static struct i2c_board_info lager_i2c_camera[] = {
+static struct i2c_board_info koelsch_i2c_camera[] = {
 	{ I2C_BOARD_INFO("adv7612", 0x4c), },
 	{ I2C_BOARD_INFO("adv7180", 0x20), },
 };
@@ -558,7 +558,7 @@ static int adv7180_power(struct device *dev, int mode)
 static const struct soc_camera_link adv7612_ch0_link __initconst = {
 	.bus_id = 0,
 	.power  = adv7612_power,
-	.board_info = &lager_i2c_camera[0],
+	.board_info = &koelsch_i2c_camera[0],
 	.i2c_adapter_id = 2,
 	.module_name = "adv7612",
 };
@@ -566,7 +566,7 @@ static const struct soc_camera_link adv7612_ch0_link __initconst = {
 static const struct soc_camera_link adv7180_ch1_link __initconst = {
 	.bus_id = 1,
 	.power  = adv7180_power,
-	.board_info = &lager_i2c_camera[1],
+	.board_info = &koelsch_i2c_camera[1],
 	.i2c_adapter_id = 2,
 	.module_name = "adv7180",
 };
