@@ -776,6 +776,9 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "sdhi2_cd", "sdhi2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
 				  "sdhi2_wp", "sdhi2"),
+	/* SSP */
+	PIN_MAP_MUX_GROUP_DEFAULT("ssp_dev", "pfc-r8a7791",
+				  "ssp", "ssp"),
 	/* USB0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7791",
 				  "usb0_pwen", "usb0"),
