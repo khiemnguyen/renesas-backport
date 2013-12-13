@@ -214,36 +214,31 @@ power_cycle:
 static void sh_mobile_sdhi_init_tuning(struct tmio_mmc_host *host,
 							unsigned long *num)
 {
-	unsigned short div;
-
 	/* Initialize SCC */
 	sd_ctrl_write32(host, CTL_STATUS, 0x00000000);
-	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, ~0x0100 &
-		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
-
-	/* Save SDCLK div */
-	div = sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL);
-	/* Set SDCLK div 1/2 */
-	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0000);
 
 	writel(SH_MOBILE_SDHI_SCC_DTCNTL_TAPEN |
 		readl(host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL),
 		host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL);
-	writel(SH_MOBILE_SDHI_SCC_CKSEL_DTSEL,
+
+	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, ~0x0100 &
+		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+	writel(SH_MOBILE_SDHI_SCC_CKSEL_DTSEL |
+		readl(host->ctl + SH_MOBILE_SDHI_SCC_CKSEL),
 		host->ctl + SH_MOBILE_SDHI_SCC_CKSEL);
-	writel(~SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN |
+
+	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0100 |
+		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+	writel(~SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN &
 		readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL),
 		host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL);
 
 	/* Read TAPNUM */
 	*num = (readl(host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL) >> 16) & 0xf;
 
-	/* Restore SDCLK div */
-	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, div & 0x00ff);
-
-	sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0100 |
-		sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
-
+	return;
 }
 
 static int sh_mobile_sdhi_prepare_tuning(struct tmio_mmc_host *host,
@@ -306,8 +301,10 @@ static int sh_mobile_sdhi_select_tuning(struct tmio_mmc_host *host,
 static bool sh_mobile_sdhi_retuning(struct tmio_mmc_host *host)
 {
 	/* Check SCC error */
-	if (readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSREQ) &
-			SH_MOBILE_SDHI_SCC_RVSREQ_RVSERR) {
+	if (readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL) &
+	    SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN &&
+	    readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSREQ) &
+	    SH_MOBILE_SDHI_SCC_RVSREQ_RVSERR) {
 		/* Clear SCC error */
 		writel(0x00000000,
 			host->ctl + SH_MOBILE_SDHI_SCC_RVSREQ);
