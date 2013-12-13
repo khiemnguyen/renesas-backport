@@ -389,6 +389,9 @@ static void sdhi_set_pwr(struct platform_device *pdev, int state)
 	case 0:
 		gpio_set_value(RCAR_GP_PIN(7, 17), state);
 		break;
+	case 1:
+		gpio_set_value(RCAR_GP_PIN(7, 18), state);
+		break;
 	case 2:
 		gpio_set_value(RCAR_GP_PIN(7, 19), state);
 		break;
@@ -433,6 +436,14 @@ static int sdhi_set_vlt(struct platform_device *pdev, int state)
 		if (!state)
 			sdhi_set_ioctrl(pdev->id, state);
 		break;
+	case 1:
+		/* SDHI1 */
+		if (state)
+			sdhi_set_ioctrl(pdev->id, state);
+		gpio_set_value(RCAR_GP_PIN(2, 13), state);
+		if (!state)
+			sdhi_set_ioctrl(pdev->id, state);
+		break;
 	case 2:
 		/* SDHI2 */
 		if (state)
@@ -456,6 +467,10 @@ static int sdhi_get_vlt(struct platform_device *pdev)
 	case 0:
 		/* SDHI0 */
 		ret = gpio_get_value(RCAR_GP_PIN(2, 12));
+		break;
+	case 1:
+		/* SDHI1 */
+		ret = gpio_get_value(RCAR_GP_PIN(2, 13));
 		break;
 	case 2:
 		/* SDHI2 */
@@ -522,14 +537,19 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
-	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
+				MMC_CAP_UHS_SDR50,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC |
+				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
 				TMIO_MMC_SDIO_STATUS_QUIRK,
+	.set_pwr	= sdhi_set_pwr,
+	.set_vlt	= sdhi_set_vlt,
+	.get_vlt	= sdhi_get_vlt,
 	.init		= sdhi_init,
 };
 
