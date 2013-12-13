@@ -1,5 +1,5 @@
 /*
- * vsp_video1.h  --  R-Car VSP1 Video Node
+ * vsp1_video.h  --  R-Car VSP1 Video Node
  *
  * Copyright (C) 2013 Renesas Corporation
  *

@@ -323,6 +323,36 @@ config SPI_SH_MSIOF
 	help
 	  SPI driver for SuperH and SH Mobile MSIOF blocks.
 
+config SPI_SH_MSIOF_DMA
+	bool "DMA support for MSIOF"
+	depends on SPI_SH_MSIOF && (ARCH_R8A7790 || ARCH_R8A7791)
+	default n
+	help
+	  This option enables DMA transfer for MSIOF.
+	  This option is used for Renesas R-Car H2 and Renesas R-Car M2 platform.
+	  If you would like to use DMA transfer,
+	  you may enable this option.
+
+config SPI_SH_MSIOF_CH0_SLAVE
+	bool "Set MSIOF0 as Slave Mode"
+	depends on SPI_SH_MSIOF && ARCH_R8A7791
+	default n
+	help
+	  This option sets MSIOF channel number 0 as Slave Mode.
+	  This option is used for Renesas R-Car M2 platform.
+	  If you would like to set MSIOF channel number 0 as Slave Mode,
+	  you may enable this option.
+
+config SPI_SH_MSIOF_CH1_SLAVE
+	bool "Set MSIOF1 as Slave Mode"
+	depends on SPI_SH_MSIOF && ARCH_R8A7791
+	default n
+	help
+	  This option sets MSIOF channel number 1 as Slave Mode.
+	  This option is used for Renesas R-Car M2 platform.
+	  If you would like to set MSIOF channel number 1 as Slave Mode,
+	  you may enable this option.
+
 config SPI_SH
 	tristate "SuperH SPI controller"
 	depends on SUPERH

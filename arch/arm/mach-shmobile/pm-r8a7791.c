@@ -18,6 +18,7 @@
 #include <linux/delay.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
+#include <linux/irqchip/arm-gic.h>
 #include <linux/console.h>
 #include <asm/io.h>
 #include <mach/common.h>
@@ -238,10 +239,38 @@ struct r8a7791_pm_domain r8a7791_sgx = {
 
 #endif /* CONFIG_PM */
 
+#if defined(CONFIG_SUSPEND)
+static int r8a7791_enter_suspend(suspend_state_t state)
+{
+	/*
+	 * The GICv2 architecture supports wakeup events in implementations
+	 * that require power management.  Such wakeup signals are available
+	 * even when both interrupt signaling by the GIC, and interrupt
+	 * bypass, are disabled.
+	 *
+	 * Disable the CPU interface when a CPU core is entering CoreStandby
+	 * (shutdown) mode, that will help us to prevent spurious CPU wakeup
+	 * to happen upon WFI execution.
+	 */
+	gic_cpu_if_down();
+
+	return shmobile_smp_apmu_enter_core_standby();
+}
+
+static void r8a7791_suspend_init(void)
+{
+	shmobile_suspend_ops.enter = r8a7791_enter_suspend;
+}
+#else
+static void r8a7791_suspend_init(void) {}
+#endif /* CONFIG_SUSPEND */
+
 void __init r8a7791_pm_init(void)
 {
 	static int once;
 
 	if (!once++)
 		r8a7791_sysc_init();
+
+	r8a7791_suspend_init();
 }

@@ -318,19 +318,21 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 		/* start dma */
 		scu_audma_start(audma_slave_id, ss);
 
+		adg_init();
+
 		/* start ssi */
 		if (callback.init_ssi)
 			callback.init_ssi(pcminfo->pdata->ssi_master,
 				pcminfo->pdata->ssi_slave,
 				ssi_mode, ssi_depend, dir);
 
-		/* start dvc */
-		if (callback.init_dvc)
-			callback.init_dvc(dvc_ch);
-
 		/* start src */
 		if (callback.init_src)
 			callback.init_src(src_ch, ss->runtime->rate, src_mode);
+
+		/* start dvc */
+		if (callback.init_dvc)
+			callback.init_dvc(dvc_ch);
 	}
 
 	FNC_EXIT
@@ -343,7 +345,6 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
 	int route = 0;
 	int audma_slave_id = 0;
-	int ssi_ch = 0;
 	int ssi_depend = 0;
 	int ssi_mode = 0;
 	int src_ch = 0;
@@ -361,8 +362,6 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 
 	audma_slave_id = scu_find_data(route, pcminfo->pdata->audma_slave,
 					pcminfo->pdata->audma_slave_num);
-	ssi_ch = scu_find_data(route, pcminfo->pdata->ssi_ch,
-					pcminfo->pdata->ssi_ch_num);
 	ssi_depend = scu_find_data(route, pcminfo->pdata->ssi_depend,
 					pcminfo->pdata->ssi_depend_num);
 	ssi_mode = scu_find_data(route, pcminfo->pdata->ssi_mode,
@@ -372,17 +371,21 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
 					pcminfo->pdata->dvc_ch_num);
 
-	/* stop src */
-	if (callback.deinit_src)
-		callback.deinit_src(src_ch);
-
 	/* stop dvc */
 	if (callback.deinit_dvc)
 		callback.deinit_dvc(dvc_ch);
 
+	/* stop src */
+	if (callback.deinit_src)
+		callback.deinit_src(src_ch);
+
 	/* stop ssi */
 	if (callback.deinit_ssi)
-		callback.deinit_ssi(ssi_ch, ssi_mode, ssi_depend, dir);
+		callback.deinit_ssi(pcminfo->pdata->ssi_master,
+				pcminfo->pdata->ssi_slave,
+				ssi_mode, ssi_depend, dir);
+
+	adg_deinit();
 
 	/* stop dma */
 	scu_audma_stop(audma_slave_id, ss);

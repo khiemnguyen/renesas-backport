@@ -2,6 +2,8 @@
  * Koelsch board support
  *
  * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013  Renesas Solutions Corp.
+ * Copyright (C) 2013  Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,8 +48,84 @@
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 
+/* DU */
+static struct rcar_du_encoder_data koelsch_du_encoders[] = {
+	{
+		.type = RCAR_DU_ENCODER_NONE,
+		.output = RCAR_DU_OUTPUT_LVDS0,
+		.connector.lvds.panel = {
+			.width_mm = 210,
+			.height_mm = 158,
+			.mode = {
+				.clock = 65000,
+				.hdisplay = 1024,
+				.hsync_start = 1048,
+				.hsync_end = 1184,
+				.htotal = 1344,
+				.vdisplay = 768,
+				.vsync_start = 771,
+				.vsync_end = 777,
+				.vtotal = 806,
+				.flags = 0,
+			},
+		},
+		.exclk = 148500000,
+	},
+#if defined(CONFIG_DRM_ADV7511)
+	{
+		.type = RCAR_DU_ENCODER_HDMI,
+		.output = RCAR_DU_OUTPUT_DPAD0,
+		.exclk = 74250000,
+	},
+#endif
+};
+
+static const struct rcar_du_platform_data koelsch_du_pdata __initconst = {
+	.encoders = koelsch_du_encoders,
+	.num_encoders = ARRAY_SIZE(koelsch_du_encoders),
+};
+
+static const struct resource du_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfeb00000, 0x40000),
+	DEFINE_RES_MEM_NAMED(0xfeb90000, 0x1c, "lvds.0"),
+	DEFINE_RES_IRQ(gic_spi(256)),
+	DEFINE_RES_IRQ(gic_spi(268)),
+};
+
+static void __init koelsch_add_du_device(void)
+{
+	struct platform_device_info info = {
+		.name = "rcar-du-r8a7791",
+		.id = -1,
+		.res = du_resources,
+		.num_res = ARRAY_SIZE(du_resources),
+		.data = &koelsch_du_pdata,
+		.size_data = sizeof(koelsch_du_pdata),
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	platform_device_register_full(&info);
+}
+
+/* GPIO KEY */
+#define GPIO_KEY(c, g, d, w, ...) \
+	{ .code = c, .gpio = g, .desc = d, .wakeup = w, .active_low = 1, \
+ 	  .debounce_interval = 20 }
+
+static struct gpio_keys_button gpio_buttons[] = {
+	GPIO_KEY(KEY_4, RCAR_GP_PIN(5, 3), "SW2-pin4", 1),
+	GPIO_KEY(KEY_3, RCAR_GP_PIN(5, 2), "SW2-pin3", 1),
+	GPIO_KEY(KEY_2, RCAR_GP_PIN(5, 1), "SW2-pin2", 1),
+	GPIO_KEY(KEY_1, RCAR_GP_PIN(5, 0), "SW2-pin1", 1),
+};
+
+static const struct gpio_keys_platform_data koelsch_keys_pdata __initconst = {
+	.buttons	= gpio_buttons,
+	.nbuttons	= ARRAY_SIZE(gpio_buttons),
+};
+
 /* Ether */
-static struct sh_eth_plat_data ether_pdata __initdata = {
+static const struct sh_eth_plat_data ether_pdata __initconst = {
 	.phy			= 0x1,
 	.edmac_endian		= EDMAC_LITTLE_ENDIAN,
 	.register_type		= SH_ETH_REG_FAST_RCAR,
@@ -55,7 +133,7 @@ static struct sh_eth_plat_data ether_pdata __initdata = {
 	.ether_link_active_low	= 1,
 };
 
-static struct resource ether_resources[] __initdata = {
+static const struct resource ether_resources[] __initconst = {
 	DEFINE_RES_MEM(0xee700000, 0x400),
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
@@ -206,40 +284,6 @@ static struct i2c_board_info alsa_i2c[] = {
 
 #define koelsch_add_alsa_device i2c_register_board_info
 
-static struct rcar_du_encoder_data koelsch_du_encoders[] = {
-	{
-		.type = RCAR_DU_ENCODER_NONE,
-		.output = RCAR_DU_OUTPUT_LVDS0,
-		.connector.lvds.panel = {
-			.width_mm = 210,
-			.height_mm = 158,
-			.mode = {
-				.clock = 65000,
-				.hdisplay = 1024,
-				.hsync_start = 1048,
-				.hsync_end = 1184,
-				.htotal = 1344,
-				.vdisplay = 768,
-				.vsync_start = 771,
-				.vsync_end = 777,
-				.vtotal = 806,
-				.flags = 0,
-			},
-		},
-	},
-#if defined(CONFIG_DRM_ADV7511)
-	{
-		.type = RCAR_DU_ENCODER_HDMI,
-		.output = RCAR_DU_OUTPUT_DPAD0,
-	},
-#endif
-};
-
-static struct rcar_du_platform_data koelsch_du_pdata = {
-	.encoders = koelsch_du_encoders,
-	.num_encoders = ARRAY_SIZE(koelsch_du_encoders),
-};
-
 /* MMC */
 static void shmmcif_set_pwr(struct platform_device *pdev, int state)
 {
@@ -275,6 +319,13 @@ static const struct spi_board_info spi_bus[] __initconst = {
 		.max_speed_hz	= 6000000,
 		.mode		= SPI_MODE_3,
 		.bus_num	= 1,
+		.chip_select	= 0,
+	},
+	{
+		.modalias	= "spidev",
+		.max_speed_hz	= 6000000,
+		.mode		= SPI_MODE_3,
+		.bus_num	= 2,
 		.chip_select	= 0,
 	},
 };
@@ -338,6 +389,9 @@ static void sdhi_set_pwr(struct platform_device *pdev, int state)
 	case 0:
 		gpio_set_value(RCAR_GP_PIN(7, 17), state);
 		break;
+	case 1:
+		gpio_set_value(RCAR_GP_PIN(7, 18), state);
+		break;
 	case 2:
 		gpio_set_value(RCAR_GP_PIN(7, 19), state);
 		break;
@@ -382,6 +436,14 @@ static int sdhi_set_vlt(struct platform_device *pdev, int state)
 		if (!state)
 			sdhi_set_ioctrl(pdev->id, state);
 		break;
+	case 1:
+		/* SDHI1 */
+		if (state)
+			sdhi_set_ioctrl(pdev->id, state);
+		gpio_set_value(RCAR_GP_PIN(2, 13), state);
+		if (!state)
+			sdhi_set_ioctrl(pdev->id, state);
+		break;
 	case 2:
 		/* SDHI2 */
 		if (state)
@@ -406,6 +468,10 @@ static int sdhi_get_vlt(struct platform_device *pdev)
 		/* SDHI0 */
 		ret = gpio_get_value(RCAR_GP_PIN(2, 12));
 		break;
+	case 1:
+		/* SDHI1 */
+		ret = gpio_get_value(RCAR_GP_PIN(2, 13));
+		break;
 	case 2:
 		/* SDHI2 */
 		ret = gpio_get_value(RCAR_GP_PIN(2, 26));
@@ -414,6 +480,37 @@ static int sdhi_get_vlt(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	return ret ? 1 : 0;
+}
+
+static int sdhi_init(struct platform_device *pdev,
+		const struct sh_mobile_sdhi_ops *ops)
+{
+	switch (pdev->id) {
+	case 0:
+		/* SDHI0 */
+		gpio_request(RCAR_GP_PIN(7, 17), "SDHI0_vdd");
+		gpio_request(RCAR_GP_PIN(2, 12), "SDHI0_vol");
+		gpio_direction_output(RCAR_GP_PIN(7, 17), 1);
+		gpio_direction_output(RCAR_GP_PIN(2, 12), 1);
+		break;
+	case 1:
+		/* SDHI1 */
+		gpio_request(RCAR_GP_PIN(7, 18), "SDHI1_vdd");
+		gpio_request(RCAR_GP_PIN(2, 13), "SDHI1_vol");
+		gpio_direction_output(RCAR_GP_PIN(7, 18), 1);
+		gpio_direction_output(RCAR_GP_PIN(2, 13), 1);
+		break;
+	case 2:
+		/* SDHI2 */
+		gpio_request(RCAR_GP_PIN(7, 19), "SDHI2_vdd");
+		gpio_request(RCAR_GP_PIN(2, 26), "SDHI2_vol");
+		gpio_direction_output(RCAR_GP_PIN(7, 19), 1);
+		gpio_direction_output(RCAR_GP_PIN(2, 26), 1);
+		break;
+	default:
+		break;
+	}
+	return 0;
 }
 
 static struct sh_mobile_sdhi_info sdhi0_platform_data = {
@@ -434,19 +531,26 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
-	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ,
+	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
+				MMC_CAP_UHS_SDR50,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_CHECK_ILL_FUNC |
+				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
 				TMIO_MMC_SDIO_STATUS_QUIRK,
+	.set_pwr	= sdhi_set_pwr,
+	.set_vlt	= sdhi_set_vlt,
+	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi2_platform_data = {
@@ -466,10 +570,11 @@ static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 /* VIN camera */
-static struct i2c_board_info lager_i2c_camera[] = {
+static struct i2c_board_info koelsch_i2c_camera[] = {
 	{ I2C_BOARD_INFO("adv7612", 0x4c), },
 	{ I2C_BOARD_INFO("adv7180", 0x20), },
 };
@@ -507,7 +612,7 @@ static int adv7180_power(struct device *dev, int mode)
 static const struct soc_camera_link adv7612_ch0_link __initconst = {
 	.bus_id = 0,
 	.power  = adv7612_power,
-	.board_info = &lager_i2c_camera[0],
+	.board_info = &koelsch_i2c_camera[0],
 	.i2c_adapter_id = 2,
 	.module_name = "adv7612",
 };
@@ -515,7 +620,7 @@ static const struct soc_camera_link adv7612_ch0_link __initconst = {
 static const struct soc_camera_link adv7180_ch1_link __initconst = {
 	.bus_id = 1,
 	.power  = adv7180_power,
-	.board_info = &lager_i2c_camera[1],
+	.board_info = &koelsch_i2c_camera[1],
 	.i2c_adapter_id = 2,
 	.module_name = "adv7180",
 };
@@ -526,33 +631,87 @@ static const struct soc_camera_link adv7180_ch1_link __initconst = {
 				      sizeof(struct soc_camera_link));
 
 /* VSP1 */
-static struct vsp1_platform_data koelsch_vspr_pdata = {
+static const struct vsp1_platform_data koelsch_vspr_pdata __initconst = {
 	.features = 0,
 	.rpf_count = 5,
 	.uds_count = 1,
 	.wpf_count = 4,
 };
 
-static struct vsp1_platform_data koelsch_vsps_pdata = {
+static const struct vsp1_platform_data koelsch_vsps_pdata __initconst = {
 	.features = 0,
 	.rpf_count = 5,
 	.uds_count = 3,
 	.wpf_count = 4,
 };
 
-static struct vsp1_platform_data koelsch_vspd0_pdata = {
+static const struct vsp1_platform_data koelsch_vspd0_pdata __initconst = {
 	.features = VSP1_HAS_LIF,
 	.rpf_count = 4,
 	.uds_count = 1,
 	.wpf_count = 4,
 };
 
-static struct vsp1_platform_data koelsch_vspd1_pdata = {
+static const struct vsp1_platform_data koelsch_vspd1_pdata __initconst = {
 	.features = VSP1_HAS_LIF,
 	.rpf_count = 4,
 	.uds_count = 1,
 	.wpf_count = 4,
 };
+
+static const struct vsp1_platform_data * const koelsch_vsp1_pdata[4] __initconst
+									= {
+	&koelsch_vspr_pdata,
+	&koelsch_vsps_pdata,
+	&koelsch_vspd0_pdata,
+	&koelsch_vspd1_pdata,
+};
+
+static const struct resource vsp1_0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe920000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(266)),
+};
+
+static const struct resource vsp1_1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe928000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(267)),
+};
+
+static const struct resource vsp1_2_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe930000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(246)),
+};
+
+static const struct resource vsp1_3_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe938000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(247)),
+};
+
+static const struct resource * const vsp1_resources[4] __initconst = {
+	vsp1_0_resources,
+	vsp1_1_resources,
+	vsp1_2_resources,
+	vsp1_3_resources,
+};
+
+static void __init koelsch_add_vsp1_devices(void)
+{
+	struct platform_device_info info = {
+		.name = "vsp1",
+		.size_data = sizeof(*koelsch_vsp1_pdata[0]),
+		.num_res = 2,
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+	unsigned int i;
+
+	for (i = 2; i < ARRAY_SIZE(vsp1_resources); ++i) {
+		info.id = i;
+		info.data = koelsch_vsp1_pdata[i];
+		info.res = vsp1_resources[i];
+
+		platform_device_register_full(&info);
+	}
+}
 
 static const struct pinctrl_map koelsch_pinctrl_map[] = {
 	/* DU (CN11: HDMI, CN13: LVDS) */
@@ -637,6 +796,15 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "msiof0_rx", "msiof0"),
 	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
 				  "msiof0_tx", "msiof0"),
+	/* MSIOF1 */
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_clk_c", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_sync_c", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_rx_c", "msiof1"),
+	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.1", "pfc-r8a7791",
+				  "msiof1_tx_c", "msiof1"),
 	/* SDHI0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.0", "pfc-r8a7791",
 				  "sdhi0_data4", "sdhi0"),
@@ -664,6 +832,9 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "sdhi2_cd", "sdhi2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7791",
 				  "sdhi2_wp", "sdhi2"),
+	/* SSP */
+	PIN_MAP_MUX_GROUP_DEFAULT("ssp_dev", "pfc-r8a7791",
+				  "ssp", "ssp"),
 	/* USB0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7791",
 				  "usb0_pwen", "usb0"),
@@ -736,23 +907,16 @@ static void __init koelsch_add_standard_devices(void)
 				  ARRAY_SIZE(koelsch_pinctrl_map));
 	r8a7791_pinmux_init();
 
-	r8a7791_add_du_device(&koelsch_du_pdata);
-
 	r8a7791_add_standard_devices();
+
+	platform_device_register_data(&platform_bus, "gpio-keys", -1,
+				      &koelsch_keys_pdata,
+				      sizeof(koelsch_keys_pdata));
 
 	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
-
-	gpio_request(RCAR_GP_PIN(7, 17), "SDHI0_vdd");
-	gpio_request(RCAR_GP_PIN(7, 19), "SDHI2_vdd");
-	gpio_request(RCAR_GP_PIN(2, 12), "SDHI0_vol");
-	gpio_request(RCAR_GP_PIN(2, 26), "SDHI2_vol");
-	gpio_direction_output(RCAR_GP_PIN(7, 17), 0);
-	gpio_direction_output(RCAR_GP_PIN(7, 19), 0);
-	gpio_direction_output(RCAR_GP_PIN(2, 12), 0);
-	gpio_direction_output(RCAR_GP_PIN(2, 26), 0);
 
 	r8a7791_add_mmc_device(&sh_mmcif_plat);
 	r8a7791_add_scu_device(&scu_pdata);
@@ -764,8 +928,9 @@ static void __init koelsch_add_standard_devices(void)
 	koelsch_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 	koelsch_add_vin_device(0, adv7612_ch0_link);
 	koelsch_add_vin_device(1, adv7180_ch1_link);
-	r8a7791_add_vsp1_device(&koelsch_vspd0_pdata, 2);
-	r8a7791_add_vsp1_device(&koelsch_vspd1_pdata, 3);
+
+	koelsch_add_du_device();
+	koelsch_add_vsp1_devices();
 }
 
 static const char *koelsch_boards_compat_dt[] __initdata = {
@@ -776,8 +941,9 @@ static const char *koelsch_boards_compat_dt[] __initdata = {
 DT_MACHINE_START(KOELSCH_DT, "koelsch")
 	.smp		= smp_ops(r8a7791_smp_ops),
 	.init_early	= r8a7791_init_early,
-	.timer		= &r8a7791_timer,
+	.timer		= &rcar_gen2_timer,
 	.init_machine	= koelsch_add_standard_devices,
+	.init_late	= shmobile_init_late,
 	.restart	= koelsch_restart,
 	.dt_compat	= koelsch_boards_compat_dt,
 MACHINE_END

@@ -34,6 +34,7 @@
 #define DSYSR_SCM_INT_NONE	(0 << 4)
 #define DSYSR_SCM_INT_SYNC	(2 << 4)
 #define DSYSR_SCM_INT_VIDEO	(3 << 4)
+#define DSYSR_SCM_MASK		(3 << 4)
 
 #define DSMR			0x00004
 #define DSMR_VSPM		(1 << 28)
@@ -491,6 +492,7 @@
 #define DPTSR			0x11004
 #define DPTSR_PnDK(n)		(1 << ((n) + 16))
 #define DPTSR_PnTS(n)		(1 << (n))
+#define DPTSR_MASK		0x00FF00FF
 
 #define DAPTSR			0x11008
 #define DAPTSR_APnDK(n)		(1 << ((n) + 16))

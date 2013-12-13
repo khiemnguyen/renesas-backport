@@ -1,5 +1,5 @@
 /*
- * vsp1_lif.c  --  R-Car VSP1 Up and Down Scaler
+ * vsp1_lif.c  --  R-Car VSP1 LCD Controller Interface
  *
  * Copyright (C) 2013 Renesas Corporation
  *
@@ -81,7 +81,6 @@ static int lif_enum_mbus_code(struct v4l2_subdev *subdev,
 		V4L2_MBUS_FMT_ARGB8888_1X32,
 		V4L2_MBUS_FMT_AYUV8_1X32,
 	};
-	struct v4l2_mbus_framefmt *format;
 
 	if (code->pad == LIF_PAD_SINK) {
 		if (code->index >= ARRAY_SIZE(codes))
@@ -89,6 +88,8 @@ static int lif_enum_mbus_code(struct v4l2_subdev *subdev,
 
 		code->code = codes[code->index];
 	} else {
+		struct v4l2_mbus_framefmt *format;
+
 		/* The LIF can't perform format conversion, the sink format is
 		 * always identical to the source format.
 		 */

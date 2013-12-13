@@ -34,7 +34,6 @@ struct rcar_du_lvdsenc;
 #define RCAR_DU_FEATURE_LVDCHCR_WORKAROUND	(1 << 4)
 #define RCAR_DU_FEATURE_NO_LVDS_INTERFACE	(1 << 5)
 #define RCAR_DU_FEATURE_EXTERAL_CLOCK	(1 << 6)
-#define RCAR_DU_FEATURE_INTERLACE	(1 << 7)
 
 /*
  * struct rcar_du_output_routing - Output routing specification

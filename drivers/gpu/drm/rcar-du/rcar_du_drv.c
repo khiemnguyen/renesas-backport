@@ -28,6 +28,7 @@
 #include "rcar_du_drv.h"
 #include "rcar_du_kms.h"
 #include "rcar_du_regs.h"
+#include "rcar_du_lvdsenc.h"
 
 /* -----------------------------------------------------------------------------
  * DRM operations
@@ -188,9 +189,21 @@ static struct drm_driver rcar_du_driver = {
 static int rcar_du_pm_suspend(struct device *dev)
 {
 	struct rcar_du_device *rcdu = dev_get_drvdata(dev);
+	int i;
 
 	drm_kms_helper_poll_disable(rcdu->ddev);
-	/* TODO Suspend the CRTC */
+
+	for (i = 0; i < rcdu->pdata->num_encoders; ++i) {
+#if defined(CONFIG_DRM_RCAR_LVDS)
+		struct rcar_du_encoder_data *pdata =
+					&rcdu->pdata->encoders[i];
+		if (pdata->output == RCAR_DU_OUTPUT_LVDS0)
+			rcar_du_lvdsenc_stop(rcdu->lvds[0]);
+		if (pdata->output == RCAR_DU_OUTPUT_LVDS1)
+			rcar_du_lvdsenc_stop(rcdu->lvds[1]);
+#endif
+		rcar_du_crtc_suspend(&rcdu->crtcs[i]);
+	}
 
 	return 0;
 }
@@ -198,10 +211,21 @@ static int rcar_du_pm_suspend(struct device *dev)
 static int rcar_du_pm_resume(struct device *dev)
 {
 	struct rcar_du_device *rcdu = dev_get_drvdata(dev);
+	int i;
 
-	/* TODO Resume the CRTC */
-
+	for (i = 0; i < rcdu->pdata->num_encoders; ++i) {
+#if defined(CONFIG_DRM_RCAR_LVDS)
+		struct rcar_du_encoder_data *pdata =
+					&rcdu->pdata->encoders[i];
+		if (pdata->output == RCAR_DU_OUTPUT_LVDS0)
+			rcar_du_lvdsenc_start(rcdu->lvds[0], &rcdu->crtcs[i]);
+		if (pdata->output == RCAR_DU_OUTPUT_LVDS1)
+			rcar_du_lvdsenc_start(rcdu->lvds[1], &rcdu->crtcs[i]);
+#endif
+		rcar_du_crtc_resume(&rcdu->crtcs[i]);
+	}
 	drm_kms_helper_poll_enable(rcdu->ddev);
+
 	return 0;
 }
 #endif
@@ -282,8 +306,7 @@ static const struct rcar_du_device_info rcar_du_r8a7790_info = {
 static const struct rcar_du_device_info rcar_du_r8a7791_info = {
 	.features = RCAR_DU_FEATURE_CRTC_IRQ_CLOCK | RCAR_DU_FEATURE_DEFR8
 		  | RCAR_DU_FEATURE_NO_LVDS_INTERFACE |
-		  RCAR_DU_FEATURE_VSP1_SOURCE |
-		  RCAR_DU_FEATURE_INTERLACE,
+		  RCAR_DU_FEATURE_VSP1_SOURCE,
 	.num_crtcs = 2,
 	.routes = {
 		/* R8A7791 has one LVDS output, one HDMI outputs and one

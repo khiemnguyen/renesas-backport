@@ -2,6 +2,8 @@
  * r8a7791 clock framework support
  *
  * Copyright (C) 2013  Renesas Electronics Corporation
+ * Copyright (C) 2013  Renesas Solutions Corp.
+ * Copyright (C) 2013  Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +26,7 @@
 #include <linux/delay.h>
 #include <mach/clock.h>
 #include <mach/common.h>
+#include <mach/r8a7791.h>
 
 /*
  *   MD		EXTAL		PLL0	PLL1	PLL3
@@ -41,8 +44,6 @@
  * *1 :	Table 7.6 indicates VCO ouput (PLLx = VCO/2)
  *	see "p1 / 2" on R8A7791_CLOCK_ROOT() below
  */
-
-#define MD(nr)	(1 << nr)
 
 static void __iomem *r8a7791_cpg_base;
 
@@ -77,7 +78,7 @@ static void __iomem *r8a7791_cpg_base;
 #define MODEMR		0xe6160060
 #define SDCKCR		0xe6150074
 #define SD1CKCR		0xe6150078
-#define SD2CKCR		0xe615007c
+#define SD2CKCR		0xe615026c
 #define MMC0CKCR	0xe6150240
 #define SSPCKCR		0xe6150248
 #define SSPRSCKCR	0xe615024c
@@ -119,7 +120,6 @@ SH_FIXED_RATIO_CLK_SET(zs_clk,			pll1_clk,	1, 6);
 SH_FIXED_RATIO_CLK_SET(hp_clk,			pll1_clk,	1, 12);
 SH_FIXED_RATIO_CLK_SET(p_clk,			pll1_clk,	1, 24);
 SH_FIXED_RATIO_CLK_SET(rclk_clk,		pll1_clk,	1, (48 * 1024));
-
 SH_FIXED_RATIO_CLK_SET(mp_clk,			pll1_div2_clk,	1, 15);
 SH_FIXED_RATIO_CLK_SET(zx_clk,			pll1_clk,	1, 3);
 
@@ -178,6 +178,7 @@ static struct clk div4_clks[DIV4_NR] = {
 enum {
 	DIV6_MMC,
 	DIV6_SD1, DIV6_SD2,
+	DIV6_SSP,
 	DIV6_NR
 };
 
@@ -185,6 +186,7 @@ static struct clk div6_clks[DIV6_NR] = {
 	[DIV6_MMC]	= SH_CLK_DIV6(&pll1_div2_clk, MMC0CKCR, 0),
 	[DIV6_SD1]	= SH_CLK_DIV6(&pll1_div2_clk, SD1CKCR, 0),
 	[DIV6_SD2]	= SH_CLK_DIV6(&pll1_div2_clk, SD2CKCR, 0),
+	[DIV6_SSP]	= SH_CLK_DIV6(&pll1_div2_clk, SSPCKCR, 0),
 };
 
 
@@ -320,6 +322,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("mmc.0", &div6_clks[DIV6_MMC]),
 	CLKDEV_CON_ID("sdhi1", &div6_clks[DIV6_SD1]),
 	CLKDEV_CON_ID("sdhi2", &div6_clks[DIV6_SD2]),
+	CLKDEV_CON_ID("ssp", &div6_clks[DIV6_SSP]),
 
 	/* MSTP */
 	CLKDEV_ICK_ID("lvds.0", "rcar-du-r8a7791", &mstp_clks[MSTP726]),
@@ -349,6 +352,9 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh_mobile_sdhi.0", &mstp_clks[MSTP314]),
 	CLKDEV_DEV_ID("sh_mobile_sdhi.1", &mstp_clks[MSTP312]),
 	CLKDEV_DEV_ID("sh_mobile_sdhi.2", &mstp_clks[MSTP311]),
+	CLKDEV_CON_ID("vsps", &mstp_clks[MSTP131]),
+	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
+	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
 	CLKDEV_DEV_ID("sh_cmt.0", &mstp_clks[MSTP124]),
 	CLKDEV_CON_ID("src0", &mstp_clks[MSTP1031]),
 	CLKDEV_CON_ID("src1", &mstp_clks[MSTP1030]),
@@ -384,9 +390,6 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("spi_sh_msiof.2", &mstp_clks[MSTP208]),
 	CLKDEV_DEV_ID("spi_sh_msiof.3", &mstp_clks[MSTP205]),
 	CLKDEV_DEV_ID("spi_sh_msiof.1", &mstp_clks[MSTP000]),
-	CLKDEV_CON_ID("vsps", &mstp_clks[MSTP131]),
-	CLKDEV_DEV_ID("vsp1.2", &mstp_clks[MSTP128]),
-	CLKDEV_DEV_ID("vsp1.3", &mstp_clks[MSTP127]),
 	CLKDEV_CON_ID("fdp0", &mstp_clks[MSTP119]),
 	CLKDEV_CON_ID("fdp1", &mstp_clks[MSTP118]),
 	CLKDEV_CON_ID("tddmac", &mstp_clks[MSTP115]),
@@ -476,13 +479,8 @@ mmc0_out:
 
 void __init r8a7791_clock_init(void)
 {
-	void __iomem *modemr = ioremap_nocache(MODEMR, PAGE_SIZE);
-	u32 mode;
+	u32 mode = rcar_gen2_read_mode_pins();
 	int k, ret = 0;
-
-	BUG_ON(!modemr);
-	mode = ioread32(modemr);
-	iounmap(modemr);
 
 	r8a7791_cpg_base = ioremap(CPG_BASE, CPG_LEN);
 

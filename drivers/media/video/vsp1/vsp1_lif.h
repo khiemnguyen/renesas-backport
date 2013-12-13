@@ -1,5 +1,5 @@
 /*
- * vsp1_lif.c  --  R-Car VSP1 LCDC Interface
+ * vsp1_lif.h  --  R-Car VSP1 LCD Controller Interface
  *
  * Copyright (C) 2013 Renesas Corporation
  *
@@ -33,6 +33,5 @@ static inline struct vsp1_lif *to_lif(struct v4l2_subdev *subdev)
 }
 
 struct vsp1_lif *vsp1_lif_create(struct vsp1_device *vsp1);
-void vsp1_lif_destroy(struct vsp1_lif *lif);
 
 #endif /* __VSP1_LIF_H__ */

@@ -105,6 +105,9 @@ enum v4l2_mbus_pixelcode {
 
 	/* JPEG compressed formats - next is 0x4002 */
 	V4L2_MBUS_FMT_JPEG_1X8 = 0x4001,
+
+	/* HSV - next is 0x6002 */
+	V4L2_MBUS_FMT_AHSV8888_1X32 = 0x6001,
 };
 
 /**

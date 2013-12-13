@@ -53,6 +53,7 @@ static struct rcar_du_encoder_data lager_du_encoders[] = {
 	{
 		.type = RCAR_DU_ENCODER_HDMI,
 		.output = RCAR_DU_OUTPUT_LVDS0,
+		.exclk = 148500000,
 	}, {
 		.type = RCAR_DU_ENCODER_NONE,
 		.output = RCAR_DU_OUTPUT_LVDS1,
@@ -72,14 +73,17 @@ static struct rcar_du_encoder_data lager_du_encoders[] = {
 				.flags = 0,
 			},
 		},
+		.exclk = 148500000,
 	}, {
 		.type = RCAR_DU_ENCODER_VGA,
 		.output = RCAR_DU_OUTPUT_DPAD0,
+		.exclk = 0,
 	},
 #else
 	{
 		.type = RCAR_DU_ENCODER_VGA,
 		.output = RCAR_DU_OUTPUT_DPAD0,
+		.exclk = 148500000,
 	}, {
 		.type = RCAR_DU_ENCODER_NONE,
 		.output = RCAR_DU_OUTPUT_LVDS1,
@@ -99,14 +103,39 @@ static struct rcar_du_encoder_data lager_du_encoders[] = {
 				.flags = 0,
 			},
 		},
+		.exclk = 148500000,
 	},
 #endif
 };
 
-static struct rcar_du_platform_data lager_du_pdata = {
+static const struct rcar_du_platform_data lager_du_pdata __initconst = {
 	.encoders = lager_du_encoders,
 	.num_encoders = ARRAY_SIZE(lager_du_encoders),
 };
+
+static const struct resource du_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfeb00000, 0x70000),
+	DEFINE_RES_MEM_NAMED(0xfeb90000, 0x1c, "lvds.0"),
+	DEFINE_RES_MEM_NAMED(0xfeb94000, 0x1c, "lvds.1"),
+	DEFINE_RES_IRQ(gic_spi(256)),
+	DEFINE_RES_IRQ(gic_spi(268)),
+	DEFINE_RES_IRQ(gic_spi(269)),
+};
+
+static void __init lager_add_du_device(void)
+{
+	struct platform_device_info info = {
+		.name = "rcar-du-r8a7790",
+		.id = -1,
+		.res = du_resources,
+		.num_res = ARRAY_SIZE(du_resources),
+		.data = &lager_du_pdata,
+		.size_data = sizeof(lager_du_pdata),
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+
+	platform_device_register_full(&info);
+}
 
 /* LEDS */
 static struct gpio_led lager_leds[] = {
@@ -125,58 +154,30 @@ static struct gpio_led lager_leds[] = {
 	},
 };
 
-static __initdata struct gpio_led_platform_data lager_leds_pdata = {
+static const struct gpio_led_platform_data lager_leds_pdata __initconst = {
 	.leds		= lager_leds,
 	.num_leds	= ARRAY_SIZE(lager_leds),
 };
 
 /* GPIO KEY */
-#define GPIO_KEY(c, g, d, ...) \
-	{ .code = c, .gpio = g, .desc = d, .active_low = 1 }
+#define GPIO_KEY(c, g, d, w, ...) \
+	{ .code = c, .gpio = g, .desc = d, .wakeup = w, .active_low = 1, \
+ 	  .debounce_interval = 20 }
 
-static __initdata struct gpio_keys_button gpio_buttons[] = {
-	GPIO_KEY(KEY_4,		RCAR_GP_PIN(1, 28),	"SW2-pin4"),
-	GPIO_KEY(KEY_3,		RCAR_GP_PIN(1, 26),	"SW2-pin3"),
-	GPIO_KEY(KEY_2,		RCAR_GP_PIN(1, 24),	"SW2-pin2"),
-	GPIO_KEY(KEY_1,		RCAR_GP_PIN(1, 14),	"SW2-pin1"),
+static struct gpio_keys_button gpio_buttons[] = {
+	GPIO_KEY(KEY_4, RCAR_GP_PIN(1, 28), "SW2-pin4", 1),
+	GPIO_KEY(KEY_3, RCAR_GP_PIN(1, 26), "SW2-pin3", 1),
+	GPIO_KEY(KEY_2, RCAR_GP_PIN(1, 24), "SW2-pin2", 1),
+	GPIO_KEY(KEY_1, RCAR_GP_PIN(1, 14), "SW2-pin1", 1),
 };
 
-static __initdata struct gpio_keys_platform_data lager_keys_pdata = {
+static const struct gpio_keys_platform_data lager_keys_pdata __initconst = {
 	.buttons	= gpio_buttons,
 	.nbuttons	= ARRAY_SIZE(gpio_buttons),
 };
 
-/* VSP1 */
-static struct vsp1_platform_data lager_vspr_pdata = {
-	.features = 0,
-	.rpf_count = 5,
-	.uds_count = 1,
-	.wpf_count = 4,
-};
-
-static struct vsp1_platform_data lager_vsps_pdata = {
-	.features = 0,
-	.rpf_count = 5,
-	.uds_count = 3,
-	.wpf_count = 4,
-};
-
-static struct vsp1_platform_data lager_vspd0_pdata = {
-	.features = VSP1_HAS_LIF,
-	.rpf_count = 4,
-	.uds_count = 1,
-	.wpf_count = 4,
-};
-
-static struct vsp1_platform_data lager_vspd1_pdata = {
-	.features = VSP1_HAS_LIF,
-	.rpf_count = 4,
-	.uds_count = 1,
-	.wpf_count = 4,
-};
-
 /* Ether */
-static struct sh_eth_plat_data ether_pdata __initdata = {
+static const struct sh_eth_plat_data ether_pdata __initconst = {
 	.phy			= 0x1,
 	.edmac_endian		= EDMAC_LITTLE_ENDIAN,
 	.register_type		= SH_ETH_REG_FAST_RCAR,
@@ -184,7 +185,7 @@ static struct sh_eth_plat_data ether_pdata __initdata = {
 	.ether_link_active_low	= 1,
 };
 
-static struct resource ether_resources[] __initdata = {
+static const struct resource ether_resources[] __initconst = {
 	DEFINE_RES_MEM(0xee700000, 0x400),
 	DEFINE_RES_IRQ(gic_spi(162)), /* IRQ0 */
 };
@@ -526,6 +527,30 @@ static int sdhi_get_vlt(struct platform_device *pdev)
 	return ret ? 1 : 0;
 }
 
+static int sdhi_init(struct platform_device *pdev,
+		const struct sh_mobile_sdhi_ops *ops)
+{
+	switch (pdev->id) {
+	case 0:
+		/* SDHI0 */
+		gpio_request(RCAR_GP_PIN(5, 24), "SDHI0_vdd");
+		gpio_request(RCAR_GP_PIN(5, 29), "SDHI0_vol");
+		gpio_direction_output(RCAR_GP_PIN(5, 24), 1);
+		gpio_direction_output(RCAR_GP_PIN(5, 29), 1);
+		break;
+	case 2:
+		/* SDHI2 */
+		gpio_request(RCAR_GP_PIN(5, 25), "SDHI2_vdd");
+		gpio_request(RCAR_GP_PIN(5, 30), "SDHI2_vol");
+		gpio_direction_output(RCAR_GP_PIN(5, 25), 1);
+		gpio_direction_output(RCAR_GP_PIN(5, 30), 1);
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
 static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
@@ -545,6 +570,7 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
@@ -566,6 +592,7 @@ static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi2_platform_data = {
@@ -585,6 +612,7 @@ static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi3_platform_data = {
@@ -604,6 +632,7 @@ static struct sh_mobile_sdhi_info sdhi3_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 /* VIN camera */
@@ -663,7 +692,90 @@ static const struct soc_camera_link adv7180_ch1_link __initconst = {
 				      idx , &link,			\
 				      sizeof(struct soc_camera_link));
 
+/* VSP1 */
+static const struct vsp1_platform_data lager_vspr_pdata __initconst = {
+	.features = VSP1_HAS_LUT | VSP1_HAS_SRU,
+	.rpf_count = 5,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static const struct vsp1_platform_data lager_vsps_pdata __initconst = {
+	.features = VSP1_HAS_SRU,
+	.rpf_count = 5,
+	.uds_count = 3,
+	.wpf_count = 4,
+};
+
+static const struct vsp1_platform_data lager_vspd0_pdata __initconst = {
+	.features = VSP1_HAS_LIF | VSP1_HAS_LUT,
+	.rpf_count = 4,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static const struct vsp1_platform_data lager_vspd1_pdata __initconst = {
+	.features = VSP1_HAS_LIF | VSP1_HAS_LUT,
+	.rpf_count = 4,
+	.uds_count = 1,
+	.wpf_count = 4,
+};
+
+static const struct vsp1_platform_data * const lager_vsp1_pdata[4] __initconst = {
+	&lager_vspr_pdata,
+	&lager_vsps_pdata,
+	&lager_vspd0_pdata,
+	&lager_vspd1_pdata,
+};
+
+static const struct resource vspr_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe920000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(266)),
+};
+
+static const struct resource vsps_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe928000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(267)),
+};
+
+static const struct resource vspd0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe930000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(246)),
+};
+
+static const struct resource vspd1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xfe938000, 0x8000),
+	DEFINE_RES_IRQ(gic_spi(247)),
+};
+
+static const struct resource * const vsp1_resources[4] __initconst = {
+	vspr_resources,
+	vsps_resources,
+	vspd0_resources,
+	vspd1_resources,
+};
+
+static void __init lager_add_vsp1_devices(void)
+{
+	struct platform_device_info info = {
+		.name = "vsp1",
+		.size_data = sizeof(*lager_vsp1_pdata[0]),
+		.num_res = 2,
+		.dma_mask = DMA_BIT_MASK(32),
+	};
+	unsigned int i;
+
+	for (i = 2; i < ARRAY_SIZE(vsp1_resources); ++i) {
+		info.id = i;
+		info.data = lager_vsp1_pdata[i];
+		info.res = vsp1_resources[i];
+
+		platform_device_register_full(&info);
+	}
+}
+
 static const struct pinctrl_map lager_pinctrl_map[] = {
+#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIF0)
 	/* DU (CN10: ARGB0, CN13: LVDS) */
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
 				  "du_rgb666", "du"),
@@ -671,8 +783,6 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "du_sync_1", "du"),
 	PIN_MAP_MUX_GROUP_DEFAULT("rcar-du-r8a7790", "pfc-r8a7790",
 				  "du_clk_out_0", "du"),
-
-#if defined(CONFIG_SERIAL_SH_SCI_USE_SCIF0)
 	/* SCIF0 (CN19: DEBUG SERIAL0) */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.6", "pfc-r8a7790",
 				  "scif0_data", "scif0"),
@@ -757,6 +867,9 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "sdhi2_cd", "sdhi2"),
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mobile_sdhi.2", "pfc-r8a7790",
 				  "sdhi2_wp", "sdhi2"),
+	/* SSP */
+	PIN_MAP_MUX_GROUP_DEFAULT("ssp_dev", "pfc-r8a7790",
+				  "ssp", "ssp"),
 	/* USB0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("ehci-platform.0", "pfc-r8a7790",
 				  "usb0_pwen", "usb0"),
@@ -835,7 +948,6 @@ static void __init lager_add_standard_devices(void)
 	r8a7790_pinmux_init();
 
 	r8a7790_add_standard_devices();
-	r8a7790_add_du_device(&lager_du_pdata);
 
 	platform_device_register_data(&platform_bus, "leds-gpio", -1,
 				      &lager_leds_pdata,
@@ -844,21 +956,10 @@ static void __init lager_add_standard_devices(void)
 				      &lager_keys_pdata,
 				      sizeof(lager_keys_pdata));
 
-	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 2);
-	r8a7790_add_vsp1_device(&lager_vspd0_pdata, 3);
 	platform_device_register_resndata(&platform_bus, "r8a779x-ether", -1,
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
-
-	gpio_request(RCAR_GP_PIN(5, 24), "SDHI0_vdd");
-	gpio_request(RCAR_GP_PIN(5, 25), "SDHI2_vdd");
-	gpio_request(RCAR_GP_PIN(5, 29), "SDHI0_vol");
-	gpio_request(RCAR_GP_PIN(5, 30), "SDHI2_vol");
-	gpio_direction_output(RCAR_GP_PIN(5, 24), 0);
-	gpio_direction_output(RCAR_GP_PIN(5, 25), 0);
-	gpio_direction_output(RCAR_GP_PIN(5, 29), 0);
-	gpio_direction_output(RCAR_GP_PIN(5, 30), 0);
 
 	r8a7790_add_mmc_device(&sh_mmcif0_plat, 0);
 	r8a7790_add_mmc_device(&sh_mmcif1_plat, 1);
@@ -872,9 +973,12 @@ static void __init lager_add_standard_devices(void)
 	lager_add_qspi_device(spi_info, ARRAY_SIZE(spi_info));
 	lager_add_vin_device(0, adv7612_ch0_link);
 	lager_add_vin_device(1, adv7180_ch1_link);
+
+	lager_add_du_device();
+	lager_add_vsp1_devices();
 }
 
-static const char *lager_boards_compat_dt[] __initdata = {
+static const char * const lager_boards_compat_dt[] __initconst = {
 	"renesas,lager",
 	NULL,
 };
@@ -882,8 +986,9 @@ static const char *lager_boards_compat_dt[] __initdata = {
 DT_MACHINE_START(LAGER_DT, "lager")
 	.smp		= smp_ops(r8a7790_smp_ops),
 	.init_early	= r8a7790_init_early,
-	.timer		= &r8a7790_timer,
+	.timer		= &rcar_gen2_timer,
 	.init_machine	= lager_add_standard_devices,
+	.init_late	= shmobile_init_late,
 	.restart	= lager_restart,
 	.dt_compat	= lager_boards_compat_dt,
 MACHINE_END

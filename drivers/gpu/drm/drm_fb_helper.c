@@ -305,6 +305,24 @@ void drm_fb_helper_restore(void)
 }
 EXPORT_SYMBOL(drm_fb_helper_restore);
 
+static bool drm_fb_helper_is_bound(struct drm_fb_helper *fb_helper)
+{
+	struct drm_device *dev = fb_helper->dev;
+	struct drm_crtc *crtc;
+	int bound = 0, crtcs_bound = 0;
+
+	list_for_each_entry(crtc, &dev->mode_config.crtc_list, head) {
+		if (crtc->fb)
+			crtcs_bound++;
+		if (crtc->fb == fb_helper->fb)
+			bound++;
+	}
+
+	if (bound < crtcs_bound)
+		return false;
+	return true;
+}
+
 #ifdef CONFIG_MAGIC_SYSRQ
 static void drm_fb_helper_restore_work_fn(struct work_struct *ignored)
 {
@@ -338,6 +356,13 @@ static void drm_fb_helper_dpms(struct fb_info *info, int dpms_mode)
 	 * For each CRTC in this fb, turn the connectors on/off.
 	 */
 	drm_modeset_lock_all(dev);
+#if !defined(CONFIG_DRM_FBDEV_CRTC)
+	if (!drm_fb_helper_is_bound(fb_helper)) {
+		drm_modeset_unlock_all(dev);
+		return;
+	}
+#endif
+
 	for (i = 0; i < fb_helper->crtc_count; i++) {
 		crtc = fb_helper->crtc_info[i].mode_set.crtc;
 
@@ -596,7 +621,7 @@ int drm_fb_helper_check_var(struct fb_var_screeninfo *var,
 
 	switch (var->bits_per_pixel) {
 	case 16:
-		depth = (var->green.length == 6) ? 16 : 15;
+		depth = (var->green.length == 5) ? 15 : 16;
 		break;
 	case 32:
 		depth = (var->transp.length > 0) ? 32 : 24;
@@ -683,6 +708,8 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	struct drm_framebuffer *fb;
 	unsigned int bytes_per_pixel;
 	unsigned int match_flag;
+	bool mode_change_flag = false;
+	unsigned int pre_pixfmt;
 #endif
 
 #if !defined(CONFIG_DRM_FBDEV_CRTC)
@@ -711,6 +738,14 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	if (disp_set_mode && disp_conn && fb &&
 		 ((info->flags & FBINFO_MISC_USEREVENT)
 			 == FBINFO_MISC_USEREVENT)) {
+
+		pre_pixfmt = drm_mode_legacy_fb_format(var->bits_per_pixel,
+						       fb->depth);
+
+		if ((var->xres != disp_set_mode->hdisplay) ||
+			 (var->yres != disp_set_mode->vdisplay) ||
+			 (fb->pixel_format != pre_pixfmt))
+			mode_change_flag = true;
 
 		match_flag = 0;
 		list_for_each_entry(ref_disp_mode, &disp_conn->modes, head) {
@@ -754,6 +789,9 @@ int drm_fb_helper_set_par(struct fb_info *info)
 		drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
 		drm_fb_helper_fill_var(info, fb_helper,
 					 var->xres, var->yres);
+		if (!mode_change_flag)
+			goto mode_no_change;
+
 		disp_set_mode->private_flags = true;
 		ret = drm_mode_set_config_internal(&fb_helper->
 				crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set);
@@ -762,6 +800,7 @@ int drm_fb_helper_set_par(struct fb_info *info)
 			return ret;
 		}
 	}
+mode_no_change:
 #endif
 	drm_modeset_unlock_all(dev);
 
@@ -784,6 +823,13 @@ int drm_fb_helper_pan_display(struct fb_var_screeninfo *var,
 	int i;
 
 	drm_modeset_lock_all(dev);
+#if !defined(CONFIG_DRM_FBDEV_CRTC)
+	if (!drm_fb_helper_is_bound(fb_helper)) {
+		drm_modeset_unlock_all(dev);
+		return -EBUSY;
+	}
+#endif
+
 	for (i = 0; i < fb_helper->crtc_count; i++) {
 		crtc = fb_helper->crtc_info[i].mode_set.crtc;
 
@@ -942,9 +988,19 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 
 #if defined(CONFIG_DRM_RCAR_DU)
 	if (crtc_count == 0) {
+#if defined(CONFIG_DRM_ADV7511)
 		sizes.fb_width = sizes.surface_width = 1920;
 		sizes.fb_height = sizes.surface_height = 1080;
 		crtc_count++;
+#else
+#if defined(CONFIG_DRM_FBDEV_CRTC)
+		if (CONFIG_DRM_FBDEV_CRTC_NUM >= (fb_helper->crtc_count - 1)) {
+			pr_err("Error! set FBDev CRTC number < (%d)\n",
+				CONFIG_DRM_FBDEV_CRTC_NUM);
+			return -EINVAL;
+		}
+#endif
+#endif
 	}
 #endif
 	if (crtc_count == 0 || sizes.fb_width == -1 || sizes.fb_height == -1) {
@@ -1146,7 +1202,17 @@ static int drm_fb_helper_probe_connector_modes(struct drm_fb_helper *fb_helper,
 	for (i = 0; i < fb_helper->connector_count; i++) {
 		connector = fb_helper->connector_info[i]->connector;
 		cmdline_mode = &fb_helper->connector_info[i]->cmdline_mode;
+#if defined(CONFIG_DRM_RCAR_DU)
+		if (cmdline_mode->specified) {
+			connector->cmd_xres = cmdline_mode->xres;
+			connector->cmd_yres = cmdline_mode->yres;
+		} else {
+			connector->cmd_xres = 0;
+			connector->cmd_yres = 0;
+		}
+#endif
 		count += connector->funcs->fill_modes(connector, maxX, maxY);
+
 		if (cmdline_mode->specified) {
 			list_for_each_entry(cur_mode, &connector->modes, head) {
 				if ((cur_mode->hdisplay != cmdline_mode->xres)
@@ -1598,21 +1664,12 @@ int drm_fb_helper_hotplug_event(struct drm_fb_helper *fb_helper)
 	struct drm_device *dev = fb_helper->dev;
 	int count = 0;
 	u32 max_width, max_height, bpp_sel;
-	int bound = 0, crtcs_bound = 0;
-	struct drm_crtc *crtc;
 
 	if (!fb_helper->fb)
 		return 0;
 
 	drm_modeset_lock_all(dev);
-	list_for_each_entry(crtc, &dev->mode_config.crtc_list, head) {
-		if (crtc->fb)
-			crtcs_bound++;
-		if (crtc->fb == fb_helper->fb)
-			bound++;
-	}
-
-	if (bound < crtcs_bound) {
+	if (!drm_fb_helper_is_bound(fb_helper)) {
 		fb_helper->delayed_hotplug = true;
 		drm_modeset_unlock_all(dev);
 		return 0;

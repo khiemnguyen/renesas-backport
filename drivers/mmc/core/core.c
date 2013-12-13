@@ -1073,6 +1073,7 @@ int mmc_set_signal_voltage(struct mmc_host *host, int signal_voltage, bool cmd11
 	int err = 0;
 
 	BUG_ON(!host);
+	mmc_host_clk_hold(host);
 
 	/*
 	 * Send CMD11 only if the request is to switch the card to
@@ -1085,20 +1086,21 @@ int mmc_set_signal_voltage(struct mmc_host *host, int signal_voltage, bool cmd11
 
 		err = mmc_wait_for_cmd(host, &cmd, 0);
 		if (err)
-			return err;
+			goto eout;
 
-		if (!mmc_host_is_spi(host) && (cmd.resp[0] & R1_ERROR))
-			return -EIO;
+		if (!mmc_host_is_spi(host) && (cmd.resp[0] & R1_ERROR)) {
+			err = -EIO;
+			goto eout;
+		}
 	}
 
 	host->ios.signal_voltage = signal_voltage;
 
-	if (host->ops->start_signal_voltage_switch) {
-		mmc_host_clk_hold(host);
+	if (host->ops->start_signal_voltage_switch)
 		err = host->ops->start_signal_voltage_switch(host, &host->ios);
-		mmc_host_clk_release(host);
-	}
 
+eout:
+	mmc_host_clk_release(host);
 	return err;
 }
 

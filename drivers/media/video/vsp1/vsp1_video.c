@@ -176,6 +176,96 @@ static int vsp1_video_verify_format(struct vsp1_video *video)
 	return 0;
 }
 
+static int __vsp1_video_try_format(struct vsp1_video *video,
+				   struct v4l2_pix_format_mplane *pix,
+				   const struct vsp1_format_info **fmtinfo)
+{
+	const struct vsp1_format_info *info;
+	unsigned int width = pix->width;
+	unsigned int height = pix->height;
+	unsigned int i;
+
+	/* Retrieve format information and select the default format if the
+	 * requested format isn't supported.
+	 */
+	info = vsp1_get_format_info(pix->pixelformat);
+	if (info == NULL)
+		info = vsp1_get_format_info(VSP1_VIDEO_DEF_FORMAT);
+
+	pix->pixelformat = info->fourcc;
+	pix->colorspace = V4L2_COLORSPACE_SRGB;
+	pix->field = V4L2_FIELD_NONE;
+	memset(pix->reserved, 0, sizeof(pix->reserved));
+
+	/* Align the width and height for YUV 4:2:2 and 4:2:0 formats. */
+	width = round_down(width, info->hsub);
+	height = round_down(height, info->vsub);
+
+	/* Clamp the width and height. */
+	pix->width = clamp(width, VSP1_VIDEO_MIN_WIDTH, VSP1_VIDEO_MAX_WIDTH);
+	pix->height = clamp(height, VSP1_VIDEO_MIN_HEIGHT,
+			    VSP1_VIDEO_MAX_HEIGHT);
+
+	/* Compute and clamp the stride and image size. While not documented in
+	 * the datasheet, strides not aligned to a multiple of 128 bytes result
+	 * in image corruption.
+	 */
+	for (i = 0; i < max(info->planes, 2U); ++i) {
+		unsigned int hsub = i > 0 ? info->hsub : 1;
+		unsigned int vsub = i > 0 ? info->vsub : 1;
+		unsigned int bpl;
+
+		bpl = clamp_t(unsigned int, pix->plane_fmt[i].bytesperline,
+			      pix->width / hsub * info->bpp[i] / 8, 65535U);
+
+		pix->plane_fmt[i].bytesperline = bpl;
+		pix->plane_fmt[i].sizeimage = pix->plane_fmt[i].bytesperline
+					    * pix->height / vsub;
+	}
+
+	if (info->planes == 3) {
+		/* The second and third planes must have the same stride. */
+		pix->plane_fmt[2].bytesperline = pix->plane_fmt[1].bytesperline;
+		pix->plane_fmt[2].sizeimage = pix->plane_fmt[1].sizeimage;
+	}
+
+	pix->num_planes = info->planes;
+
+	if (fmtinfo)
+		*fmtinfo = info;
+
+	return 0;
+}
+
+static bool
+vsp1_video_format_adjust(struct vsp1_video *video,
+			 const struct v4l2_pix_format_mplane *format,
+			 struct v4l2_pix_format_mplane *adjust)
+{
+	unsigned int i;
+
+	*adjust = *format;
+	__vsp1_video_try_format(video, adjust, NULL);
+
+	if (format->width != adjust->width ||
+	    format->height != adjust->height ||
+	    format->pixelformat != adjust->pixelformat ||
+	    format->num_planes != adjust->num_planes)
+		return false;
+
+	for (i = 0; i < format->num_planes; ++i) {
+		if (format->plane_fmt[i].bytesperline !=
+		    adjust->plane_fmt[i].bytesperline)
+			return false;
+
+		adjust->plane_fmt[i].sizeimage =
+			max(adjust->plane_fmt[i].sizeimage,
+			    format->plane_fmt[i].sizeimage);
+	}
+
+	return true;
+}
+
 /* -----------------------------------------------------------------------------
  * Pipeline Management
  */
@@ -396,11 +486,17 @@ static bool vsp1_pipeline_ready(struct vsp1_pipeline *pipe)
  * This function completes the current buffer by filling its sequence number,
  * time stamp and payload size, and hands it back to the videobuf core.
  *
+ * When operating in DU output mode (deep pipeline to the DU through the LIF),
+ * the VSP1 needs to constantly supply frames to the display. In that case, if
+ * no other buffer is queued, reuse the one that has just been processed instead
+ * of handing it back to the videobuf core.
+ *
  * Return the next queued buffer or NULL if the queue is empty.
  */
 static struct vsp1_video_buffer *
 vsp1_video_complete_buffer(struct vsp1_video *video)
 {
+	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&video->video.entity);
 	struct vsp1_video_buffer *next = NULL;
 	struct vsp1_video_buffer *done;
 	unsigned long flags;
@@ -415,6 +511,13 @@ vsp1_video_complete_buffer(struct vsp1_video *video)
 
 	done = list_first_entry(&video->irqqueue,
 				struct vsp1_video_buffer, queue);
+
+	/* In DU output mode reuse the buffer if the list is singular. */
+	if (pipe->lif && list_is_singular(&video->irqqueue)) {
+		spin_unlock_irqrestore(&video->irqlock, flags);
+		return done;
+	}
+
 	list_del(&done->queue);
 
 	if (!list_empty(&video->irqqueue))
@@ -494,8 +597,21 @@ vsp1_video_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 		     unsigned int sizes[], void *alloc_ctxs[])
 {
 	struct vsp1_video *video = vb2_get_drv_priv(vq);
-	struct v4l2_pix_format_mplane *format = &video->format;
+	const struct v4l2_pix_format_mplane *format;
+	struct v4l2_pix_format_mplane pix_mp;
 	unsigned int i;
+
+	if (fmt) {
+		/* Make sure the format is valid and adjust the sizeimage field
+		 * if needed.
+		 */
+		if (!vsp1_video_format_adjust(video, &fmt->fmt.pix_mp, &pix_mp))
+			return -EINVAL;
+
+		format = &pix_mp;
+	} else {
+		format = &video->format;
+	}
 
 	*nplanes = format->num_planes;
 
@@ -511,13 +627,20 @@ static int vsp1_video_buffer_prepare(struct vb2_buffer *vb)
 {
 	struct vsp1_video *video = vb2_get_drv_priv(vb->vb2_queue);
 	struct vsp1_video_buffer *buf = to_vsp1_video_buffer(vb);
+	const struct v4l2_pix_format_mplane *format = &video->format;
 	unsigned int i;
+
+	if (vb->num_planes < format->num_planes)
+		return -EINVAL;
 
 	buf->video = video;
 
 	for (i = 0; i < vb->num_planes; ++i) {
 		buf->addr[i] = vb2_dma_contig_plane_dma_addr(vb, i);
 		buf->length[i] = vb2_plane_size(vb, i);
+
+		if (buf->length[i] < format->plane_fmt[i].sizeimage)
+			return -EINVAL;
 	}
 
 	return 0;
@@ -536,32 +659,19 @@ static void vsp1_video_buffer_queue(struct vb2_buffer *vb)
 	list_add_tail(&buf->queue, &video->irqqueue);
 	spin_unlock_irqrestore(&video->irqlock, flags);
 
-	if (empty) {
-		spin_lock_irqsave(&pipe->irqlock, flags);
+	if (!empty)
+		return;
 
-		video->ops->queue(video, buf);
-		pipe->buffers_ready |= 1 << video->pipe_index;
+	spin_lock_irqsave(&pipe->irqlock, flags);
 
-		if (vb2_is_streaming(&video->queue) &&
-		    vsp1_pipeline_ready(pipe))
-			vsp1_pipeline_run(pipe);
+	video->ops->queue(video, buf);
+	pipe->buffers_ready |= 1 << video->pipe_index;
 
-		spin_unlock_irqrestore(&pipe->irqlock, flags);
-	}
-}
+	if (vb2_is_streaming(&video->queue) &&
+	    vsp1_pipeline_ready(pipe))
+		vsp1_pipeline_run(pipe);
 
-static void vsp1_video_wait_prepare(struct vb2_queue *vq)
-{
-	struct vsp1_video *video = vb2_get_drv_priv(vq);
-
-	mutex_unlock(&video->lock);
-}
-
-static void vsp1_video_wait_finish(struct vb2_queue *vq)
-{
-	struct vsp1_video *video = vb2_get_drv_priv(vq);
-
-	mutex_lock(&video->lock);
+	spin_unlock_irqrestore(&pipe->irqlock, flags);
 }
 
 static void vsp1_entity_route_setup(struct vsp1_entity *source)
@@ -639,8 +749,8 @@ static struct vb2_ops vsp1_video_queue_qops = {
 	.queue_setup = vsp1_video_queue_setup,
 	.buf_prepare = vsp1_video_buffer_prepare,
 	.buf_queue = vsp1_video_buffer_queue,
-	.wait_prepare = vsp1_video_wait_prepare,
-	.wait_finish = vsp1_video_wait_finish,
+	.wait_prepare = vb2_ops_wait_prepare,
+	.wait_finish = vb2_ops_wait_finish,
 	.start_streaming = vsp1_video_start_streaming,
 	.stop_streaming = vsp1_video_stop_streaming,
 };
@@ -655,16 +765,21 @@ vsp1_video_querycap(struct file *file, void *fh, struct v4l2_capability *cap)
 	struct v4l2_fh *vfh = file->private_data;
 	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
 
+	cap->capabilities = V4L2_CAP_DEVICE_CAPS | V4L2_CAP_STREAMING
+			  | V4L2_CAP_VIDEO_CAPTURE_MPLANE
+			  | V4L2_CAP_VIDEO_OUTPUT_MPLANE;
+
 	if (video->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)
-		cap->capabilities = V4L2_CAP_VIDEO_CAPTURE_MPLANE
-				  | V4L2_CAP_STREAMING;
+		cap->device_caps = V4L2_CAP_VIDEO_CAPTURE_MPLANE
+				 | V4L2_CAP_STREAMING;
 	else
-		cap->capabilities = V4L2_CAP_VIDEO_OUTPUT_MPLANE
-				  | V4L2_CAP_STREAMING;
+		cap->device_caps = V4L2_CAP_VIDEO_OUTPUT_MPLANE
+				 | V4L2_CAP_STREAMING;
 
 	strlcpy(cap->driver, "vsp1", sizeof(cap->driver));
 	strlcpy(cap->card, video->video.name, sizeof(cap->card));
-	strlcpy(cap->bus_info, "media", sizeof(cap->bus_info));
+	snprintf(cap->bus_info, sizeof(cap->bus_info), "platform:%s",
+		 dev_name(video->vsp1->dev));
 
 	return 0;
 }
@@ -681,63 +796,6 @@ vsp1_video_get_format(struct file *file, void *fh, struct v4l2_format *format)
 	mutex_lock(&video->lock);
 	format->fmt.pix_mp = video->format;
 	mutex_unlock(&video->lock);
-
-	return 0;
-}
-
-static int __vsp1_video_try_format(struct vsp1_video *video,
-				   struct v4l2_pix_format_mplane *pix,
-				   const struct vsp1_format_info **fmtinfo)
-{
-	const struct vsp1_format_info *info;
-	unsigned int width = pix->width;
-	unsigned int height = pix->height;
-	unsigned int i;
-
-	/* Retrieve format information and select the default format if the
-	 * requested format isn't supported.
-	 */
-	info = vsp1_get_format_info(pix->pixelformat);
-	if (info == NULL)
-		info = vsp1_get_format_info(VSP1_VIDEO_DEF_FORMAT);
-
-	pix->pixelformat = info->fourcc;
-	pix->colorspace = V4L2_COLORSPACE_SRGB;
-	pix->field = V4L2_FIELD_NONE;
-
-	/* Align the width and height for YUV 4:2:2 and 4:2:0 formats. */
-	width = round_down(width, info->hsub);
-	height = round_down(height, info->vsub);
-
-	/* Clamp the width and height. */
-	pix->width = clamp(width, VSP1_VIDEO_MIN_WIDTH, VSP1_VIDEO_MAX_WIDTH);
-	pix->height = clamp(height, VSP1_VIDEO_MIN_HEIGHT,
-			    VSP1_VIDEO_MAX_HEIGHT);
-
-	/* Compute and clamp the stride and image size. */
-	for (i = 0; i < max(info->planes, 2U); ++i) {
-		unsigned int hsub = i > 0 ? info->hsub : 1;
-		unsigned int vsub = i > 0 ? info->vsub : 1;
-		unsigned int bpl;
-
-		bpl = clamp_t(unsigned int, pix->plane_fmt[i].bytesperline,
-			      pix->width / hsub * info->bpp[i] / 8,
-			      round_down(65535U, 128));
-
-		pix->plane_fmt[i].bytesperline = round_up(bpl, 128);
-		pix->plane_fmt[i].sizeimage = bpl * pix->height / vsub;
-	}
-
-	if (info->planes == 3) {
-		/* The second and third planes must have the same stride. */
-		pix->plane_fmt[2].bytesperline = pix->plane_fmt[1].bytesperline;
-		pix->plane_fmt[2].sizeimage = pix->plane_fmt[1].sizeimage;
-	}
-
-	pix->num_planes = info->planes;
-
-	if (fmtinfo)
-		*fmtinfo = info;
 
 	return 0;
 }
@@ -771,94 +829,13 @@ vsp1_video_set_format(struct file *file, void *fh, struct v4l2_format *format)
 
 	mutex_lock(&video->lock);
 
-	if (vb2_is_streaming(&video->queue)) {
+	if (vb2_is_busy(&video->queue)) {
 		ret = -EBUSY;
 		goto done;
 	}
 
 	video->format = format->fmt.pix_mp;
 	video->fmtinfo = info;
-
-done:
-	mutex_unlock(&video->lock);
-	return ret;
-}
-
-static int
-vsp1_video_reqbufs(struct file *file, void *fh, struct v4l2_requestbuffers *rb)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-
-	if (video->queue.owner && video->queue.owner != vfh) {
-		ret = -EBUSY;
-		goto done;
-	}
-
-	ret = vb2_reqbufs(&video->queue, rb);
-	if (ret < 0)
-		goto done;
-
-	video->queue.owner = vfh;
-
-done:
-	mutex_unlock(&video->lock);
-	return ret ? ret : rb->count;
-}
-
-static int
-vsp1_video_querybuf(struct file *file, void *fh, struct v4l2_buffer *buf)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-	ret = vb2_querybuf(&video->queue, buf);
-	mutex_unlock(&video->lock);
-
-	return ret;
-}
-
-static int
-vsp1_video_qbuf(struct file *file, void *fh, struct v4l2_buffer *buf)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-
-	if (video->queue.owner && video->queue.owner != vfh) {
-		ret = -EBUSY;
-		goto done;
-	}
-
-	ret = vb2_qbuf(&video->queue, buf);
-
-done:
-	mutex_unlock(&video->lock);
-	return ret;
-}
-
-static int
-vsp1_video_dqbuf(struct file *file, void *fh, struct v4l2_buffer *buf)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-
-	if (video->queue.owner && video->queue.owner != vfh) {
-		ret = -EBUSY;
-		goto done;
-	}
-
-	ret = vb2_dqbuf(&video->queue, buf, file->f_flags & O_NONBLOCK);
 
 done:
 	mutex_unlock(&video->lock);
@@ -873,12 +850,8 @@ vsp1_video_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 	struct vsp1_pipeline *pipe;
 	int ret;
 
-	mutex_lock(&video->lock);
-
-	if (video->queue.owner && video->queue.owner != vfh) {
-		ret = -EBUSY;
-		goto err_unlock;
-	}
+	if (video->queue.owner && video->queue.owner != file->private_data)
+		return -EBUSY;
 
 	video->sequence = 0;
 
@@ -893,7 +866,7 @@ vsp1_video_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 
 	ret = media_entity_pipeline_start(&video->video.entity, &pipe->pipe);
 	if (ret < 0)
-		goto err_unlock;
+		return ret;
 
 	/* Verify that the configured format matches the output of the connected
 	 * subdev.
@@ -911,37 +884,12 @@ vsp1_video_streamon(struct file *file, void *fh, enum v4l2_buf_type type)
 	if (ret < 0)
 		goto err_cleanup;
 
-	mutex_unlock(&video->lock);
 	return 0;
 
 err_cleanup:
 	vsp1_pipeline_cleanup(pipe);
 err_stop:
 	media_entity_pipeline_stop(&video->video.entity);
-err_unlock:
-	mutex_unlock(&video->lock);
-	return ret;
-
-}
-
-static int
-vsp1_video_streamoff(struct file *file, void *fh, enum v4l2_buf_type type)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-
-	if (video->queue.owner && video->queue.owner != vfh) {
-		ret = -EBUSY;
-		goto done;
-	}
-
-	ret = vb2_streamoff(&video->queue, type);
-
-done:
-	mutex_unlock(&video->lock);
 	return ret;
 }
 
@@ -953,12 +901,14 @@ static const struct v4l2_ioctl_ops vsp1_video_ioctl_ops = {
 	.vidioc_g_fmt_vid_out_mplane	= vsp1_video_get_format,
 	.vidioc_s_fmt_vid_out_mplane	= vsp1_video_set_format,
 	.vidioc_try_fmt_vid_out_mplane	= vsp1_video_try_format,
-	.vidioc_reqbufs			= vsp1_video_reqbufs,
-	.vidioc_querybuf		= vsp1_video_querybuf,
-	.vidioc_qbuf			= vsp1_video_qbuf,
-	.vidioc_dqbuf			= vsp1_video_dqbuf,
+	.vidioc_reqbufs			= vb2_ioctl_reqbufs,
+	.vidioc_querybuf		= vb2_ioctl_querybuf,
+	.vidioc_qbuf			= vb2_ioctl_qbuf,
+	.vidioc_dqbuf			= vb2_ioctl_dqbuf,
+	.vidioc_create_bufs		= vb2_ioctl_create_bufs,
+	.vidioc_prepare_buf		= vb2_ioctl_prepare_buf,
 	.vidioc_streamon		= vsp1_video_streamon,
-	.vidioc_streamoff		= vsp1_video_streamoff,
+	.vidioc_streamoff		= vb2_ioctl_streamoff,
 };
 
 /* -----------------------------------------------------------------------------
@@ -1010,39 +960,13 @@ static int vsp1_video_release(struct file *file)
 	return 0;
 }
 
-static unsigned int vsp1_video_poll(struct file *file, poll_table *wait)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-	ret = vb2_poll(&video->queue, file, wait);
-	mutex_unlock(&video->lock);
-
-	return ret;
-}
-
-static int vsp1_video_mmap(struct file *file, struct vm_area_struct *vma)
-{
-	struct v4l2_fh *vfh = file->private_data;
-	struct vsp1_video *video = to_vsp1_video(vfh->vdev);
-	int ret;
-
-	mutex_lock(&video->lock);
-	ret = vb2_mmap(&video->queue, vma);
-	mutex_unlock(&video->lock);
-
-	return ret;
-}
-
 static struct v4l2_file_operations vsp1_video_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = video_ioctl2,
 	.open = vsp1_video_open,
 	.release = vsp1_video_release,
-	.poll = vsp1_video_poll,
-	.mmap = vsp1_video_mmap,
+	.poll = vb2_fop_poll,
+	.mmap = vb2_fop_mmap,
 };
 
 /* -----------------------------------------------------------------------------
@@ -1118,6 +1042,7 @@ int vsp1_video_init(struct vsp1_video *video, struct vsp1_entity *rwpf)
 
 	video->queue.type = video->type;
 	video->queue.io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
+	video->queue.lock = &video->lock;
 	video->queue.drv_priv = video;
 	video->queue.buf_struct_size = sizeof(struct vsp1_video_buffer);
 	video->queue.ops = &vsp1_video_queue_qops;
@@ -1130,6 +1055,7 @@ int vsp1_video_init(struct vsp1_video *video, struct vsp1_entity *rwpf)
 	}
 
 	/* ... and register the video device. */
+	video->video.queue = &video->queue;
 	ret = video_register_device(&video->video, VFL_TYPE_GRABBER, -1);
 	if (ret < 0) {
 		dev_err(video->vsp1->dev, "failed to register video device\n");

@@ -336,8 +336,21 @@
  */
 
 #define VI6_SRU_CTRL0			0x2200
+#define VI6_SRU_CTRL0_PARAM0_SHIFT	16
+#define VI6_SRU_CTRL0_PARAM1_SHIFT	8
+#define VI6_SRU_CTRL0_MODE_UPSCALE	(4 << 4)
+#define VI6_SRU_CTRL0_PARAM2		(1 << 3)
+#define VI6_SRU_CTRL0_PARAM3		(1 << 2)
+#define VI6_SRU_CTRL0_PARAM4		(1 << 1)
+#define VI6_SRU_CTRL0_EN		(1 << 0)
+
 #define VI6_SRU_CTRL1			0x2204
+#define VI6_SRU_CTRL1_PARAM5		0x7ff
+
 #define VI6_SRU_CTRL2			0x2208
+#define VI6_SRU_CTRL2_PARAM6_SHIFT	16
+#define VI6_SRU_CTRL2_PARAM7_SHIFT	8
+#define VI6_SRU_CTRL2_PARAM8_SHIFT	0
 
 /* -----------------------------------------------------------------------------
  * UDS Control Registers
@@ -412,6 +425,7 @@
  */
 
 #define VI6_LUT_CTRL			0x2800
+#define VI6_LUT_CTRL_EN			(1 << 0)
 
 /* -----------------------------------------------------------------------------
  * CLU Control Registers
@@ -420,16 +434,18 @@
 #define VI6_CLU_CTRL			0x2900
 
 /* -----------------------------------------------------------------------------
- * HSB Control Registers
+ * HST Control Registers
  */
 
-#define VI6_HSB_CTRL			0x2a00
+#define VI6_HST_CTRL			0x2a00
+#define VI6_HST_CTRL_EN			(1 << 0)
 
 /* -----------------------------------------------------------------------------
  * HSI Control Registers
  */
 
 #define VI6_HSI_CTRL			0x2b00
+#define VI6_HSI_CTRL_EN			(1 << 0)
 
 /* -----------------------------------------------------------------------------
  * BRU Control Registers
@@ -451,8 +467,8 @@
 #define VI6_HGO_SIZE			0x3004
 #define VI6_HGO_MODE			0x3008
 #define VI6_HGO_LB_TH			0x300c
-#define VI6_HGO_LBn_H			(0x3010 + (n) * 8)
-#define VI6_HGO_LBn_V			(0x3014 + (n) * 8)
+#define VI6_HGO_LBn_H(n)		(0x3010 + (n) * 8)
+#define VI6_HGO_LBn_V(n)		(0x3014 + (n) * 8)
 #define VI6_HGO_R_HISTO			0x3030
 #define VI6_HGO_R_MAXMIN		0x3130
 #define VI6_HGO_R_SUM			0x3134
@@ -476,8 +492,8 @@
 #define VI6_HGT_MODE			0x3408
 #define VI6_HGT_HUE_AREA(n)		(0x340c + (n) * 4)
 #define VI6_HGT_LB_TH			0x3424
-#define VI6_HGT_LBn_H			(0x3438 + (n) * 8)
-#define VI6_HGT_LBn_V			(0x342c + (n) * 8)
+#define VI6_HGT_LBn_H(n)		(0x3438 + (n) * 8)
+#define VI6_HGT_LBn_V(n)		(0x342c + (n) * 8)
 #define VI6_HGT_HISTO(m, n)		(0x3450 + (m) * 128 + (n) * 4)
 #define VI6_HGT_MAXMIN			0x3750
 #define VI6_HGT_SUM			0x3754

@@ -165,7 +165,6 @@ static int uds_enum_mbus_code(struct v4l2_subdev *subdev,
 		V4L2_MBUS_FMT_ARGB8888_1X32,
 		V4L2_MBUS_FMT_AYUV8_1X32,
 	};
-	struct v4l2_mbus_framefmt *format;
 
 	if (code->pad == UDS_PAD_SINK) {
 		if (code->index >= ARRAY_SIZE(codes))
@@ -173,6 +172,8 @@ static int uds_enum_mbus_code(struct v4l2_subdev *subdev,
 
 		code->code = codes[code->index];
 	} else {
+		struct v4l2_mbus_framefmt *format;
+
 		/* The UDS can't perform format conversion, the sink format is
 		 * always identical to the source format.
 		 */
@@ -277,8 +278,7 @@ static int uds_set_format(struct v4l2_subdev *subdev, struct v4l2_subdev_fh *fh,
 						    UDS_PAD_SOURCE, fmt->which);
 		*format = fmt->format;
 
-		uds_try_format(uds, fh, UDS_PAD_SOURCE, &fmt->format,
-			       fmt->which);
+		uds_try_format(uds, fh, UDS_PAD_SOURCE, format, fmt->which);
 	}
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_ACTIVE)

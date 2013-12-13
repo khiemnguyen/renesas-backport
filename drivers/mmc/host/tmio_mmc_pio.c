@@ -318,6 +318,7 @@ static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 
 	struct mmc_request mrq = {NULL};
 	struct mmc_command cmd = {0};
+	struct mmc_command cmd12 = {0};
 	struct mmc_data data = {0};
 	struct scatterlist sg;
 	u8 *data_buf;
@@ -376,8 +377,6 @@ static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 
 		mmc_wait_for_req(mmc, &mrq);
 
-		host->done_tuning = true;
-
 		/* Check CRC error */
 		if (cmd.error && cmd.error != -EILSEQ) {
 			ret = cmd.error;
@@ -389,8 +388,17 @@ static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		}
 
 		tap[val] = (cmd.error | data.error);
-		val++;
 
+		if (cmd.error) {
+			mdelay(1);
+			cmd12.opcode = MMC_STOP_TRANSMISSION;
+			cmd12.arg = 1;
+			cmd12.flags = MMC_RSP_SPI_R1B |	MMC_RSP_R1B |
+					MMC_CMD_AC;
+			mmc_wait_for_cmd(mmc, &cmd12, 0);
+		}
+
+		val++;
 		tuning_loop_counter--;
 		timeout--;
 		mdelay(1);
@@ -401,8 +409,12 @@ static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	 * so use fixed sampling frequency.
 	 */
 	if (tuning_loop_counter || timeout) {
-		if (pdata->select_tuning)
+		if (pdata->select_tuning) {
 			ret = pdata->select_tuning(host, tap);
+			if (ret < 0)
+				goto out;
+		}
+		host->done_tuning = true;
 	} else {
 		dev_warn(&host->pdev->dev, ": Tuning procedure failed\n");
 		ret = -EIO;
@@ -680,8 +692,13 @@ static void tmio_mmc_cmd_irq(struct tmio_mmc_host *host,
 
 	if (stat & TMIO_STAT_CMDTIMEOUT)
 		cmd->error = -ETIMEDOUT;
-	else if (stat & TMIO_STAT_CRCFAIL && cmd->flags & MMC_RSP_CRC)
+	else if ((stat & TMIO_STAT_CRCFAIL && cmd->flags & MMC_RSP_CRC) ||
+			stat & TMIO_STAT_STOPBIT_ERR ||
+			stat & TMIO_STAT_CMD_IDX_ERR) {
 		cmd->error = -EILSEQ;
+		if (stat & TMIO_STAT_DATAEND)
+			tmio_mmc_ack_mmc_irqs(host, TMIO_STAT_DATAEND);
+	}
 
 	/* Check Retuning */
 	if (host->mmc->ios.timing == MMC_TIMING_UHS_SDR104) {

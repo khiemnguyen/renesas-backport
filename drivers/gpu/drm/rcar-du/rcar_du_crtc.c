@@ -89,32 +89,43 @@ static void rcar_du_crtc_put(struct rcar_du_crtc *rcrtc)
 static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 {
 	const struct drm_display_mode *mode = &rcrtc->crtc.mode;
-	unsigned long clk;
+	unsigned long clk_in = 0, clk_ex = 0;
 	u32 value;
-	u32 div;
+	u32 div = 0, div_in = 0, div_ex = 0;
+	u32 abs_in = 0, abs_ex = 0;
+	u32 dclksel_bit = 0, dclkoinv_bit = 0;
+	const struct rcar_du_encoder_data *pdata =
+			&rcrtc->group->dev->pdata->encoders[rcrtc->index];
 
-	/* Dot clock */
-	clk = clk_get_rate(rcrtc->clock);
-	div = DIV_ROUND_CLOSEST(clk, mode->clock * 1000);
+	/* Internal dot clock */
+	clk_in = clk_get_rate(rcrtc->clock);
+	div_in = DIV_ROUND_CLOSEST(clk_in, mode->clock * 1000);
+
+	if (pdata->exclk != 0) {
+		/* External dot clock */
+		clk_ex = pdata->exclk;
+		div_ex = DIV_ROUND_CLOSEST(clk_ex, mode->clock * 1000);
+		/* Select recommand dot clock */
+		abs_ex = abs((mode->clock * 1000) - (clk_ex / div_ex));
+		abs_in = abs((mode->clock * 1000) - (clk_in / div_in));
+		if (abs_ex < abs_in) {
+			div = div_ex;
+			dclksel_bit = ESCR_DCLKSEL_DCLKIN;
+		} else {
+			div = div_in;
+			dclksel_bit = ESCR_DCLKSEL_CLKS;
+		}
+	} else {
+		div = div_in;
+		dclksel_bit = ESCR_DCLKSEL_CLKS;
+	}
+	if (mode->flags & DRM_MODE_FLAG_INTERLACE)
+		dclkoinv_bit = ESCR_DCLKOINV;
+
 	div = clamp(div, 1U, 64U) - 1;
 
-	if ((strcmp(mode->name, "1920x1080i") == 0) &&
-		rcar_du_has(rcrtc->group->dev, RCAR_DU_FEATURE_INTERLACE))
-			rcar_du_group_write(rcrtc->group,
-				rcrtc->index % 2 ? ESCR2 : ESCR, ESCR_DCLKOINV);
-	else if ((strcmp(mode->name, "1920x1080") == 0) &&
-		 (rcrtc->outputs != (1 << RCAR_DU_OUTPUT_DPAD0)) &&
-		 (rcrtc->outputs != (1 << RCAR_DU_OUTPUT_LVDS1))) {
-		if (rcar_du_has(rcrtc->group->dev,
-				 RCAR_DU_FEATURE_EXTERAL_CLOCK))
-			rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ?
-				ESCR2 : ESCR, 0);
-		else
-			rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ?
-				ESCR2 : ESCR, ESCR_DCLKSEL_CLKS | div);
-	} else
-		rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ?
-			ESCR2 : ESCR, ESCR_DCLKSEL_CLKS | div);
+	rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ?
+				ESCR2 : ESCR, dclksel_bit | dclkoinv_bit | div);
 	rcar_du_group_write(rcrtc->group, rcrtc->index % 2 ? OTAR2 : OTAR, 0);
 
 	/* Signal polarities */
@@ -230,8 +241,10 @@ void rcar_du_crtc_update_planes(struct drm_crtc *crtc)
 		 * split, or through a module parameter). Flicker would then
 		 * occur only if we need to break the pre-association.
 		 */
-		if (value != dptsr) {
-			rcar_du_group_write(rcrtc->group, DPTSR, dptsr);
+		if ((value & dptsr) != dptsr) {
+			rcar_du_group_write(rcrtc->group, DPTSR, DPTSR_MASK
+			 & (rcar_du_group_read(rcrtc->group, DPTSR) | dptsr));
+
 			if (rcrtc->group->used_crtcs)
 				rcar_du_group_restart(rcrtc->group);
 		}
@@ -245,6 +258,7 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 {
 	struct drm_crtc *crtc = &rcrtc->crtc;
 	unsigned int i;
+	unsigned int value = 0;
 
 	if (rcrtc->started)
 		return;
@@ -255,6 +269,16 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 	/* Set display off and background to black */
 	rcar_du_crtc_write(rcrtc, DOOR, DOOR_RGB(0, 0, 0));
 	rcar_du_crtc_write(rcrtc, BPOR, BPOR_RGB(0, 0, 0));
+
+	/* Initialized DPTSR register */
+	if (rcrtc->index == 0) {
+		for (i = 0; i < ARRAY_SIZE(rcrtc->group->planes.planes); ++i) {
+			if (i < CONFIG_DRM_RCAR_DU1_OVERLAY_NUM)
+				value |= (DPTSR_PnDK(i) | DPTSR_PnTS(i));
+		}
+		rcar_du_group_write(rcrtc->group, DPTSR, DPTSR_MASK
+		     & (rcar_du_group_read(rcrtc->group, DPTSR) | value));
+	}
 
 	/* Configure display timings and output routing */
 	rcar_du_crtc_set_display_timing(rcrtc);
@@ -285,12 +309,19 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 	 */
 	rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_TVM_MASK, DSYSR_TVM_MASTER);
 
-	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE)
-		rcar_du_crtc_clr_set(rcrtc, DSYSR,
-			 DSYSR_SCM_INT_VIDEO, DSYSR_SCM_INT_VIDEO);
-	else
-		rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_SCM_INT_VIDEO, 0);
-
+	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE) {
+		if (rcrtc->index == 1)
+			rcar_du_crtc_clr_set(rcrtc, DSYSR,
+				DSYSR_SCM_INT_VIDEO, DSYSR_SCM_INT_VIDEO);
+		else
+			rcrtc->group->interlace_grp = true;
+	} else {
+		if (rcrtc->index == 1)
+			rcar_du_crtc_clr_set(rcrtc, DSYSR,
+				DSYSR_SCM_INT_VIDEO, 0);
+		else
+			rcrtc->group->interlace_grp = false;
+	}
 	rcar_du_group_start_stop(rcrtc->group, true);
 
 	rcrtc->started = true;
@@ -313,8 +344,13 @@ static void rcar_du_crtc_stop(struct rcar_du_crtc *rcrtc)
 	 */
 	rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_TVM_MASK, DSYSR_TVM_SWITCH);
 
-	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE)
-		rcar_du_crtc_clr_set(rcrtc, DSYSR, DSYSR_SCM_INT_VIDEO, 0);
+	if (rcrtc->crtc.mode.flags & DRM_MODE_FLAG_INTERLACE) {
+		if (rcrtc->index == 1)
+			rcar_du_crtc_clr_set(rcrtc,
+				DSYSR, DSYSR_SCM_INT_VIDEO, 0);
+		else
+			rcrtc->group->interlace_grp = false;
+	}
 
 	rcar_du_group_start_stop(rcrtc->group, false);
 
@@ -535,18 +571,10 @@ static irqreturn_t rcar_du_crtc_irq(int irq, void *arg)
 	status = rcar_du_crtc_read(rcrtc, DSSR);
 	rcar_du_crtc_write(rcrtc, DSRCR, status & DSRCR_MASK);
 
-	if (rcar_du_has(rcrtc->group->dev, RCAR_DU_FEATURE_INTERLACE)) {
-		if (status & DSSR_FRM) {
-			drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
-			rcar_du_crtc_finish_page_flip(rcrtc);
-			ret = IRQ_HANDLED;
-		}
-	} else {
-		if (status & DSSR_VBK) {
-			drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
-			rcar_du_crtc_finish_page_flip(rcrtc);
-			ret = IRQ_HANDLED;
-		}
+	if (status & DSSR_FRM) {
+		drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
+		rcar_du_crtc_finish_page_flip(rcrtc);
+		ret = IRQ_HANDLED;
 	}
 
 	return ret;

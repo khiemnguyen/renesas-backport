@@ -30,6 +30,11 @@
 
 #include <asm/unaligned.h>
 
+#if defined(CONFIG_SPI_SH_MSIOF_DMA)
+#include <linux/sh_dma.h>
+#include <linux/dma-mapping.h>
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
+
 struct sh_msiof_spi_priv {
 	struct spi_bitbang bitbang; /* must be first for spi_bitbang.c */
 	void __iomem *mapbase;
@@ -40,6 +45,18 @@ struct sh_msiof_spi_priv {
 	unsigned long flags;
 	int tx_fifo_size;
 	int rx_fifo_size;
+#if defined(CONFIG_SPI_SH_MSIOF_DMA)
+	bool (*dma_filter)(struct dma_chan *chan, void *filter_param);
+	struct sh_dmae_slave dma_rx_param;
+	struct sh_dmae_slave dma_tx_param;
+	struct dma_chan *dma_rx_channel;
+	struct dma_chan *dma_tx_channel;
+	struct sg_table sgt_rx;
+	struct sg_table sgt_tx;
+	struct completion dma_tx_wait;
+	struct completion dma_rx_wait;
+	int bytes_per_word;
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
 };
 
 #define TMDR1	0x00
@@ -68,6 +85,16 @@ struct sh_msiof_spi_priv {
 
 #define STR_TEOF  (1 << 23)
 #define STR_REOF  (1 << 7)
+
+#if defined(CONFIG_SPI_SH_MSIOF_DMA)
+#define IER_TDMAE  (1 << 31)
+#define IER_TDREQE (1 << 28)
+#define IER_RDMAE  (1 << 15)
+#define IER_RDREQE (1 << 12)
+
+static int dma_devid_lo;
+static int dma_devid_up;
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
 
 static u32 sh_msiof_read(struct sh_msiof_spi_priv *p, int reg_offs)
 {
@@ -120,8 +147,17 @@ static irqreturn_t sh_msiof_spi_irq(int irq, void *data)
 {
 	struct sh_msiof_spi_priv *p = data;
 
+#if !defined(CONFIG_SPI_SH_MSIOF_DMA)
 	/* just disable the interrupt and wake up */
 	sh_msiof_write(p, IER, 0);
+#else
+	if (p->bytes_per_word == 4)
+		/* disable transnmit DMA transnmit request */
+		sh_msiof_write(p, IER, IER_RDREQE | IER_RDMAE);
+	else
+		/* just disable the interrupt and wake up */
+		sh_msiof_write(p, IER, 0);
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
 	complete(&p->done);
 
 	return IRQ_HANDLED;
@@ -181,8 +217,19 @@ static void sh_msiof_spi_set_pin_regs(struct sh_msiof_spi_priv *p,
 	 *    1    0         11     11    0    0
 	 *    1    1         11     11    1    1
 	 */
+#if !defined(CONFIG_SPI_SH_MSIOF_DMA)
 	sh_msiof_write(p, FCTR, 0);
-	sh_msiof_write(p, TMDR1, 0xe2000005 | (lsb_first << 24));
+#else
+	/* issue a transfer request
+	    when 1 or more stages of transmit FIFO are empty */
+	sh_msiof_write(p, FCTR, 0xe0000000);
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
+
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		sh_msiof_write(p, TMDR1, 0xe2000005 | (lsb_first << 24));
+	else
+		sh_msiof_write(p, TMDR1, 0x62000005 | (lsb_first << 24));
+
 	sh_msiof_write(p, RMDR1, 0x22000005 | (lsb_first << 24));
 
 	tmp = 0xa0000000;
@@ -211,7 +258,16 @@ static void sh_msiof_spi_set_mode_regs(struct sh_msiof_spi_priv *p,
 	if (rx_buf)
 		sh_msiof_write(p, RMDR2, dr2);
 
+#if !defined(CONFIG_SPI_SH_MSIOF_DMA)
 	sh_msiof_write(p, IER, STR_TEOF | STR_REOF);
+#else
+	if (p->bytes_per_word == 4)
+		/* enable DMA transfer request */
+		sh_msiof_write(p, IER, STR_TEOF | STR_REOF
+			| IER_TDREQE | IER_RDREQE | IER_TDMAE | IER_RDMAE);
+	else
+		sh_msiof_write(p, IER, STR_TEOF | STR_REOF);
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
 }
 
 static void sh_msiof_reset_str(struct sh_msiof_spi_priv *p)
@@ -359,6 +415,340 @@ static void sh_msiof_spi_read_fifo_s32u(struct sh_msiof_spi_priv *p,
 		put_unaligned(swab32(sh_msiof_read(p, RFDR) >> fs), &buf_32[k]);
 }
 
+#if defined(CONFIG_SPI_SH_MSIOF_DMA)
+static void sh_msiof_spi_dma_tx_callback(void *data)
+{
+	struct sh_msiof_spi_priv *priv = data;
+
+	dma_unmap_sg(priv->dma_tx_channel->device->dev, priv->sgt_tx.sgl,
+			priv->sgt_tx.nents, DMA_TO_DEVICE);
+	sg_free_table(&priv->sgt_tx);
+
+	complete(&priv->dma_tx_wait);
+}
+
+static void sh_msiof_spi_dma_rx_callback(void *data)
+{
+	struct sh_msiof_spi_priv *priv = data;
+
+	dma_unmap_sg(priv->dma_rx_channel->device->dev, priv->sgt_rx.sgl,
+			priv->sgt_rx.nents, DMA_FROM_DEVICE);
+	sg_free_table(&priv->sgt_rx);
+	sh_msiof_write(priv, IER, 0);
+
+	complete(&priv->dma_rx_wait);
+}
+
+static void sh_msiof_spi_setup_dma_scatter(struct sh_msiof_spi_priv *priv,
+				  void *buffer,
+				  unsigned int length,
+				  struct sg_table *sgtab)
+{
+	struct scatterlist *sg;
+	int bytesleft = length;
+	void *bufp = buffer;
+	int mapbytes;
+	int i;
+
+	for_each_sg(sgtab->sgl, sg, sgtab->nents, i) {
+		if (bytesleft < (PAGE_SIZE - offset_in_page(bufp)))
+			mapbytes = bytesleft;
+		else
+			mapbytes = PAGE_SIZE - offset_in_page(bufp);
+		sg_set_page(sg, virt_to_page(bufp),
+			   mapbytes, offset_in_page(bufp));
+		bufp += mapbytes;
+		bytesleft -= mapbytes;
+		dev_dbg(&priv->pdev->dev,
+			   "set RX/TX target page @ %p, %d bytes, %d left\n",
+			   bufp, mapbytes, bytesleft);
+	}
+}
+
+static void sh_msiof_spi_dma_tx(struct sh_msiof_spi_priv *priv,
+			  const void *txbuf, int words, int bytes_per_word)
+{
+	int ret = 0;
+	unsigned int count;
+	unsigned int pages;
+	int tx_sglen;
+	struct dma_chan *txchan = priv->dma_tx_channel;
+	struct dma_async_tx_descriptor *txdesc;
+
+	/* check that the channel are available */
+	if (!txchan)
+		return;
+
+	count = bytes_per_word * words;
+
+	dev_dbg(&priv->pdev->dev, "%s count=%d, txbuf=%lx\n",
+		__func__, count, (ulong)txbuf);
+
+	/* create and fill in scatterlists for the transfers */
+	pages = DIV_ROUND_UP(count, PAGE_SIZE);
+
+	ret = sg_alloc_table(&priv->sgt_tx, pages, GFP_ATOMIC);
+	if (ret) {
+		dev_err(&priv->pdev->dev, "failed to allocate scatterlist\n");
+		return;
+	}
+
+	sh_msiof_spi_setup_dma_scatter(priv, (void *)txbuf,
+					count, &priv->sgt_tx);
+
+	/* map DMA buffers */
+	tx_sglen = dma_map_sg(txchan->device->dev, priv->sgt_tx.sgl,
+			priv->sgt_tx.nents, DMA_TO_DEVICE);
+	if (!tx_sglen) {
+		ret = -ENOMEM;
+		goto err_tx_sgmap;
+	}
+
+	txdesc = dmaengine_prep_slave_sg(txchan,
+					priv->sgt_tx.sgl,
+					tx_sglen,
+					DMA_TO_DEVICE,
+					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+	if (!txdesc) {
+		ret = -ENOMEM;
+		goto err_txdesc;
+	}
+	txdesc->callback = sh_msiof_spi_dma_tx_callback;
+	txdesc->callback_param = priv;
+
+	/* request transfer */
+	dmaengine_submit(txdesc);
+	dma_async_issue_pending(txchan);
+
+	return;
+
+ err_txdesc:
+	dmaengine_terminate_all(txchan);
+	dma_unmap_sg(txchan->device->dev, priv->sgt_tx.sgl,
+			priv->sgt_tx.nents, DMA_TO_DEVICE);
+ err_tx_sgmap:
+	sg_free_table(&priv->sgt_tx);
+
+	return;
+}
+
+static void sh_msiof_spi_dma_rx(struct sh_msiof_spi_priv *priv,
+			  void *rxbuf, int words, int bytes_per_word)
+{
+	int ret = 0;
+	unsigned int count;
+	unsigned int pages;
+	int rx_sglen;
+	struct dma_chan *rxchan = priv->dma_rx_channel;
+	struct dma_async_tx_descriptor *rxdesc;
+
+	/* check that the channel are available */
+	if (!rxchan)
+		return;
+
+	count = bytes_per_word * words;
+
+	dev_dbg(&priv->pdev->dev, "%s count=%d, rxbuf=%lx\n",
+		__func__, count, (ulong)rxbuf);
+
+	/* create and fill in scatterlists for the transfers */
+	pages = DIV_ROUND_UP(count, PAGE_SIZE);
+
+	ret = sg_alloc_table(&priv->sgt_rx, pages, GFP_ATOMIC);
+	if (ret) {
+		dev_err(&priv->pdev->dev, "failed to allocate scatterlist\n");
+		return;
+	}
+
+	sh_msiof_spi_setup_dma_scatter(priv, rxbuf, count, &priv->sgt_rx);
+
+	/* map DMA buffers */
+	rx_sglen = dma_map_sg(rxchan->device->dev, priv->sgt_rx.sgl,
+			priv->sgt_rx.nents, DMA_FROM_DEVICE);
+	if (!rx_sglen) {
+		ret = -ENOMEM;
+		goto err_rx_sgmap;
+	}
+
+	rxdesc = dmaengine_prep_slave_sg(rxchan,
+					priv->sgt_rx.sgl,
+					rx_sglen,
+					DMA_FROM_DEVICE,
+					DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+	if (!rxdesc) {
+		ret = -ENOMEM;
+		goto err_rxdesc;
+	}
+	rxdesc->callback = sh_msiof_spi_dma_rx_callback;
+	rxdesc->callback_param = priv;
+
+	/* request transfer */
+	dmaengine_submit(rxdesc);
+	dma_async_issue_pending(rxchan);
+
+	/* Wait complete */
+	wait_for_completion(&priv->dma_rx_wait);
+
+	return;
+
+ err_rxdesc:
+	dmaengine_terminate_all(rxchan);
+	dma_unmap_sg(rxchan->device->dev, priv->sgt_rx.sgl,
+			priv->sgt_rx.nents, DMA_FROM_DEVICE);
+ err_rx_sgmap:
+	sg_free_table(&priv->sgt_rx);
+
+	return;
+}
+
+static int sh_msiof_spi_txrx_dma(struct sh_msiof_spi_priv *p,
+				  const void *tx_buf, void *rx_buf,
+				  int words, int bits, int bytes_per_word)
+{
+	int ret;
+
+	/* store bytes_per_word */
+	p->bytes_per_word = bytes_per_word;
+
+	/* limit maximum word transfer to rx/tx fifo size */
+	if (tx_buf)
+		words = min_t(int, words, p->tx_fifo_size);
+	if (rx_buf)
+		words = min_t(int, words, p->rx_fifo_size);
+
+	/* setup msiof transfer mode registers */
+	sh_msiof_spi_set_mode_regs(p, tx_buf, rx_buf, bits, words);
+
+	/* request DMA transfer */
+	if (tx_buf)
+		sh_msiof_spi_dma_tx(p, tx_buf, words, bytes_per_word);
+
+	/* setup clock and rx/tx signals */
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = sh_msiof_modify_ctr_wait(p, 0, CTR_TSCKE);
+
+	if (rx_buf)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_RXE);
+	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TXE);
+
+	/* Wait complete */
+	wait_for_completion(&p->dma_tx_wait);
+
+	/* start by setting frame bit */
+	INIT_COMPLETION(p->done);
+
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TFSE);
+
+	if (ret) {
+		dev_err(&p->pdev->dev, "failed to start hardware\n");
+		goto err;
+	}
+
+	/* wait for tx fifo to be emptied / rx fifo to be filled */
+	wait_for_completion(&p->done);
+
+	/* wait completion of DMA transfer */
+	if (rx_buf)
+		sh_msiof_spi_dma_rx(p, rx_buf, words, bytes_per_word);
+
+	/* clear status bits */
+	sh_msiof_reset_str(p);
+
+	/* reset bytes_per_word */
+	p->bytes_per_word = 0;
+
+	/* shut down frame, tx/tx and clock signals */
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = sh_msiof_modify_ctr_wait(p, CTR_TFSE, 0);
+
+	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TXE, 0);
+	if (rx_buf)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_RXE, 0);
+
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TSCKE, 0);
+
+	if (ret) {
+		dev_err(&p->pdev->dev, "failed to shut down hardware\n");
+		goto err;
+	}
+
+	return words;
+
+ err:
+	sh_msiof_write(p, IER, 0);
+	return ret;
+}
+
+static bool sh_msiof_spi_dma_filter(struct dma_chan *chan, void *arg)
+{
+	struct platform_device *pdev = to_platform_device(chan->device->dev);
+	if ((pdev->id != dma_devid_lo)
+		&& (pdev->id != dma_devid_up))
+		return false;
+	chan->private = arg;
+	return true;
+}
+
+static int sh_msiof_spi_setup_dma(struct sh_msiof_spi_priv *priv)
+{
+	struct  slave;
+	dma_cap_mask_t mask;
+	int ret = 0;
+
+	if ((priv->info->dma_slave_tx == 0) || (priv->info->dma_slave_rx == 0))
+		return ret;
+
+	priv->bytes_per_word = 0;
+
+	dma_cap_zero(mask);
+	dma_cap_set(DMA_SLAVE, mask);
+
+	/* get DMA TX channel */
+	priv->dma_tx_param.shdma_slave.slave_id = priv->info->dma_slave_tx;
+	priv->dma_tx_channel = dma_request_channel(mask,
+					   priv->dma_filter,
+					   &priv->dma_tx_param);
+	if (!priv->dma_tx_channel) {
+		ret = -ENODEV;
+		dev_err(&priv->pdev->dev, "failed to get TX channel\n");
+		return ret;
+	}
+
+	/* get DMA RX channel */
+	priv->dma_rx_param.shdma_slave.slave_id = priv->info->dma_slave_rx;
+	priv->dma_rx_channel = dma_request_channel(mask,
+					   priv->dma_filter,
+					   &priv->dma_rx_param);
+	if (!priv->dma_rx_channel) {
+		ret = -ENODEV;
+		dev_err(&priv->pdev->dev, "failed to get RX channel\n");
+		dma_release_channel(priv->dma_tx_channel);
+		priv->dma_tx_channel = NULL;
+	}
+
+	return ret;
+}
+
+static void sh_msiof_spi_release_dma(struct sh_msiof_spi_priv *priv)
+{
+	if (priv->dma_rx_channel) {
+		dma_release_channel(priv->dma_rx_channel);
+		priv->dma_rx_channel = NULL;
+		sg_free_table(&priv->sgt_rx);
+	}
+
+	if (priv->dma_tx_channel) {
+		dma_release_channel(priv->dma_tx_channel);
+		priv->dma_tx_channel = NULL;
+		sg_free_table(&priv->sgt_tx);
+	}
+
+	return;
+}
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
+
 static int sh_msiof_spi_bits(struct spi_device *spi, struct spi_transfer *t)
 {
 	int bits;
@@ -391,6 +781,8 @@ static int sh_msiof_spi_setup_transfer(struct spi_device *spi,
 	if (bits < 8)
 		return -EINVAL;
 	if (bits > 32)
+		return -EINVAL;
+	if (bits % 8)
 		return -EINVAL;
 
 	return spi_bitbang_setup_transfer(spi, t);
@@ -460,14 +852,17 @@ static int sh_msiof_spi_txrx_once(struct sh_msiof_spi_priv *p,
 		tx_fifo(p, tx_buf, words, fifo_shift);
 
 	/* setup clock and rx/tx signals */
-	ret = sh_msiof_modify_ctr_wait(p, 0, CTR_TSCKE);
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = sh_msiof_modify_ctr_wait(p, 0, CTR_TSCKE);
 	if (rx_buf)
 		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_RXE);
 	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TXE);
 
 	/* start by setting frame bit */
 	INIT_COMPLETION(p->done);
-	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TFSE);
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, 0, CTR_TFSE);
+
 	if (ret) {
 		dev_err(&p->pdev->dev, "failed to start hardware\n");
 		goto err;
@@ -484,11 +879,16 @@ static int sh_msiof_spi_txrx_once(struct sh_msiof_spi_priv *p,
 	sh_msiof_reset_str(p);
 
 	/* shut down frame, tx/tx and clock signals */
-	ret = sh_msiof_modify_ctr_wait(p, CTR_TFSE, 0);
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = sh_msiof_modify_ctr_wait(p, CTR_TFSE, 0);
+
 	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TXE, 0);
 	if (rx_buf)
 		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_RXE, 0);
-	ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TSCKE, 0);
+
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		ret = ret ? ret : sh_msiof_modify_ctr_wait(p, CTR_TSCKE, 0);
+
 	if (ret) {
 		dev_err(&p->pdev->dev, "failed to shut down hardware\n");
 		goto err;
@@ -562,9 +962,10 @@ static int sh_msiof_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 			rx_fifo = sh_msiof_spi_read_fifo_32;
 	}
 
-	/* setup clocks (clock already enabled in chipselect()) */
-	sh_msiof_spi_set_clk_regs(p, clk_get_rate(p->clk),
-				  sh_msiof_spi_hz(spi, t));
+	if (p->info->mode == SPI_MSIOF_MASTER)
+		/* setup clocks (clock already enabled in chipselect()) */
+		sh_msiof_spi_set_clk_regs(p, clk_get_rate(p->clk),
+					  sh_msiof_spi_hz(spi, t));
 
 	/* transfer in fifo sized chunks */
 	words = t->len / bytes_per_word;
@@ -573,10 +974,23 @@ static int sh_msiof_spi_txrx(struct spi_device *spi, struct spi_transfer *t)
 	while (bytes_done < t->len) {
 		void *rx_buf = t->rx_buf ? t->rx_buf + bytes_done : NULL;
 		const void *tx_buf = t->tx_buf ? t->tx_buf + bytes_done : NULL;
+
+#if !defined(CONFIG_SPI_SH_MSIOF_DMA)
 		n = sh_msiof_spi_txrx_once(p, tx_fifo, rx_fifo,
 					   tx_buf,
 					   rx_buf,
 					   words, bits);
+#else
+		if (bytes_per_word == 4 && !swab)
+			n = sh_msiof_spi_txrx_dma(p, tx_buf, rx_buf,
+						   words, bits, bytes_per_word);
+		else
+			n = sh_msiof_spi_txrx_once(p, tx_fifo, rx_fifo,
+						   tx_buf,
+						   rx_buf,
+						   words, bits);
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
+
 		if (n < 0)
 			break;
 
@@ -648,6 +1062,22 @@ static int sh_msiof_spi_probe(struct platform_device *pdev)
 	p->pdev = pdev;
 	pm_runtime_enable(&pdev->dev);
 
+#if defined(CONFIG_SPI_SH_MSIOF_DMA)
+	init_completion(&p->dma_tx_wait);
+	init_completion(&p->dma_rx_wait);
+
+	p->dma_filter = sh_msiof_spi_dma_filter;
+	dma_devid_lo = p->info->dma_devid_lo;
+	dma_devid_up = p->info->dma_devid_up;
+
+	ret = sh_msiof_spi_setup_dma(p);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "failed to setup dma\n");
+		pm_runtime_disable(&pdev->dev);
+		goto err3;
+	}
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
+
 	/* The standard version of MSIOF use 64 word FIFOs */
 	p->tx_fifo_size = 64;
 	p->rx_fifo_size = 64;
@@ -696,6 +1126,10 @@ static int sh_msiof_spi_remove(struct platform_device *pdev)
 	struct sh_msiof_spi_priv *p = platform_get_drvdata(pdev);
 	int ret;
 
+#if defined(CONFIG_SPI_SH_MSIOF_DMA)
+	sh_msiof_spi_release_dma(p);
+#endif /* CONFIG_SPI_SH_MSIOF_DMA */
+
 	ret = spi_bitbang_stop(&p->bitbang);
 	if (!ret) {
 		pm_runtime_disable(&pdev->dev);
@@ -735,7 +1169,7 @@ static struct platform_driver sh_msiof_spi_drv = {
 };
 module_platform_driver(sh_msiof_spi_drv);
 
-MODULE_DESCRIPTION("SuperH MSIOF SPI Master Interface Driver");
+MODULE_DESCRIPTION("SuperH MSIOF SPI Master/Slave Interface Driver");
 MODULE_AUTHOR("Magnus Damm");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:spi_sh_msiof");

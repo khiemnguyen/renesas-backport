@@ -308,7 +308,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP118] = MSTP(1, 18, &zs_clk, 0), /* FDP1 */
 	[MSTP117] = MSTP(1, 17, &zs_clk, 0), /* FDP2 */
 	[MSTP115] = MSTP(1, 15, &zs_clk, 0), /* 2DDMAC */
-	[MSTP112] = MSTP(1, 12, &zs_clk, 0), /* 3DG */
+	[MSTP112] = MSTP(1, 12, &zg_clk, 0), /* 3DG */
 	[MSTP109] = MSTP(1, 9, &zs_clk, 0),  /* SSP */
 	[MSTP103] = MSTP(1, 3, &zs_clk, 0),  /* VPC0 */
 	[MSTP102] = MSTP(1, 2, &zs_clk, 0),  /* VPC1 */
@@ -542,7 +542,7 @@ mmc1_out:
 
 void __init r8a7790_clock_init(void)
 {
-	u32 mode = r8a7790_read_mode_pins();
+	u32 mode = rcar_gen2_read_mode_pins();
 	int k, ret = 0;
 
 	r8a7790_cpg_base = ioremap(CPG_BASE, CPG_LEN);

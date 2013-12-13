@@ -33,13 +33,11 @@ static void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
 	unsigned int k;
 	u32 bar;
 
+	/* MERAM for jump stub, because BAR requires 256KB aligned address */
+	shmobile_boot_p = ioremap_nocache(MERAM, SZ_256K);
+
 	/* let APMU code install data related to shmobile_boot_vector */
 	shmobile_smp_apmu_prepare_cpus(max_cpus);
-
-	/* MERAM for jump stub, because BAR requires 256KB aligned address */
-	p = ioremap_nocache(MERAM, shmobile_boot_size);
-	memcpy_toio(p, shmobile_boot_vector, shmobile_boot_size);
-	iounmap(p);
 
 	/* setup reset vectors */
 	p = r8a779x_rst_base = ioremap_nocache(RST, 0x64);

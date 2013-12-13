@@ -17,7 +17,7 @@
 	compatible = "renesas,lager", "renesas,r8a7790";
 
 	chosen {
-		bootargs = "console=ttySC6,38400 mem=1024M ip=dhcp root=/dev/nfs ignore_loglevel";
+		bootargs = "console=ttySC6,38400 mem=1024M ip=dhcp root=/dev/nfs";
 	};
 
 	memory@40000000 {

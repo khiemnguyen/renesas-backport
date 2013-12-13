@@ -9,12 +9,14 @@ extern void shmobile_setup_delay(unsigned int max_cpu_core_mhz,
 struct twd_local_timer;
 extern void shmobile_setup_console(void);
 extern void shmobile_boot_vector(void);
+extern void __iomem *shmobile_boot_p;
 extern unsigned long shmobile_boot_fn;
 extern unsigned long shmobile_boot_arg;
 extern void shmobile_secondary_vector_scu(void);
 extern unsigned long shmobile_boot_size;
 extern void shmobile_smp_boot(void);
 extern void shmobile_smp_sleep(void);
+extern void shmobile_boot_hook(unsigned long fn, unsigned long arg);
 extern void shmobile_smp_hook(unsigned int cpu, unsigned long fn,
 			      unsigned long arg);
 extern int shmobile_smp_cpu_disable(unsigned int cpu);
@@ -30,6 +32,7 @@ extern int shmobile_smp_apmu_boot_secondary(unsigned int cpu,
 					    struct task_struct *idle);
 extern void shmobile_smp_apmu_cpu_die(unsigned int cpu);
 extern int shmobile_smp_apmu_cpu_kill(unsigned int cpu);
+extern int shmobile_smp_apmu_enter_core_standby(void);
 extern void shmobile_invalidate_start(void);
 struct clk;
 extern int shmobile_clk_init(void);
@@ -116,5 +119,8 @@ static inline void shmobile_init_late(void)
 	shmobile_suspend_init();
 	shmobile_cpuidle_init();
 }
+
+extern unsigned long shmobile_cpu_resume;
+extern void shmobile_resume_core_standby(void);
 
 #endif /* __ARCH_MACH_COMMON_H */

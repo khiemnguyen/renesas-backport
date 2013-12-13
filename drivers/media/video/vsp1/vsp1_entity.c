@@ -15,6 +15,7 @@
 #include <linux/gfp.h>
 
 #include <media/media-entity.h>
+#include <media/v4l2-ctrls.h>
 #include <media/v4l2-subdev.h>
 
 #include "vsp1.h"
@@ -122,12 +123,16 @@ int vsp1_entity_init(struct vsp1_device *vsp1, struct vsp1_entity *entity,
 		unsigned int id;
 		unsigned int reg;
 	} routes[] = {
+		{ VI6_DPR_NODE_HSI, VI6_DPR_HSI_ROUTE },
+		{ VI6_DPR_NODE_HST, VI6_DPR_HST_ROUTE },
 		{ VI6_DPR_NODE_LIF, 0 },
+		{ VI6_DPR_NODE_LUT, VI6_DPR_LUT_ROUTE },
 		{ VI6_DPR_NODE_RPF(0), VI6_DPR_RPF_ROUTE(0) },
 		{ VI6_DPR_NODE_RPF(1), VI6_DPR_RPF_ROUTE(1) },
 		{ VI6_DPR_NODE_RPF(2), VI6_DPR_RPF_ROUTE(2) },
 		{ VI6_DPR_NODE_RPF(3), VI6_DPR_RPF_ROUTE(3) },
 		{ VI6_DPR_NODE_RPF(4), VI6_DPR_RPF_ROUTE(4) },
+		{ VI6_DPR_NODE_SRU, VI6_DPR_SRU_ROUTE },
 		{ VI6_DPR_NODE_UDS(0), VI6_DPR_UDS_ROUTE(0) },
 		{ VI6_DPR_NODE_UDS(1), VI6_DPR_UDS_ROUTE(1) },
 		{ VI6_DPR_NODE_UDS(2), VI6_DPR_UDS_ROUTE(2) },
@@ -138,7 +143,6 @@ int vsp1_entity_init(struct vsp1_device *vsp1, struct vsp1_entity *entity,
 	};
 
 	unsigned int i;
-	int ret;
 
 	for (i = 0; i < ARRAY_SIZE(routes); ++i) {
 		if (routes[i].id == entity->id) {
@@ -172,15 +176,13 @@ int vsp1_entity_init(struct vsp1_device *vsp1, struct vsp1_entity *entity,
 	entity->pads[num_pads - 1].flags = MEDIA_PAD_FL_SOURCE;
 
 	/* Initialize the media entity. */
-	ret = media_entity_init(&entity->subdev.entity, num_pads,
-				entity->pads, 0);
-	if (ret < 0)
-		return ret;
-
-	return 0;
+	return media_entity_init(&entity->subdev.entity, num_pads,
+				 entity->pads, 0);
 }
 
 void vsp1_entity_destroy(struct vsp1_entity *entity)
 {
+	if (entity->subdev.ctrl_handler)
+		v4l2_ctrl_handler_free(entity->subdev.ctrl_handler);
 	media_entity_cleanup(&entity->subdev.entity);
 }

@@ -32,7 +32,6 @@
 			reg = <1>;
 			clock-frequency = <1300000000>;
 		};
-
 	};
 
 	gic: interrupt-controller@f1001000 {
@@ -45,12 +44,6 @@
 			<0 0xf1004000 0 0x2000>,
 			<0 0xf1006000 0 0x2000>;
 		interrupts = <1 9 0xf04>;
-
-		gic-cpuif@4 {
-			compatible = "arm,gic-cpuif";
-			cpuif-id = <4>;
-			cpu = <&cpu0>;
-		};
 	};
 
 	timer {
@@ -67,6 +60,15 @@
 		interrupt-controller;
 		reg = <0 0xe61c0000 0 0x200>;
 		interrupt-parent = <&gic>;
-		interrupts = <0 0 4>, <0 1 4>, <0 2 4>,	<0 3 4>;
+		interrupts = <0 0 4>,
+			      <0 1 4>,
+			      <0 2 4>,
+			      <0 3 4>,
+			      <0 12 4>,
+			      <0 13 4>,
+			      <0 14 4>,
+			      <0 15 4>,
+			      <0 16 4>,
+			      <0 17 4>;
 	};
 };
