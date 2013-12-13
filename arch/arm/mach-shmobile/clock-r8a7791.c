@@ -178,6 +178,7 @@ static struct clk div4_clks[DIV4_NR] = {
 enum {
 	DIV6_MMC,
 	DIV6_SD1, DIV6_SD2,
+	DIV6_SSP,
 	DIV6_NR
 };
 
@@ -185,6 +186,7 @@ static struct clk div6_clks[DIV6_NR] = {
 	[DIV6_MMC]	= SH_CLK_DIV6(&pll1_div2_clk, MMC0CKCR, 0),
 	[DIV6_SD1]	= SH_CLK_DIV6(&pll1_div2_clk, SD1CKCR, 0),
 	[DIV6_SD2]	= SH_CLK_DIV6(&pll1_div2_clk, SD2CKCR, 0),
+	[DIV6_SSP]	= SH_CLK_DIV6(&pll1_div2_clk, SSPCKCR, 0),
 };
 
 
@@ -320,6 +322,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("mmc.0", &div6_clks[DIV6_MMC]),
 	CLKDEV_CON_ID("sdhi1", &div6_clks[DIV6_SD1]),
 	CLKDEV_CON_ID("sdhi2", &div6_clks[DIV6_SD2]),
+	CLKDEV_CON_ID("ssp", &div6_clks[DIV6_SSP]),
 
 	/* MSTP */
 	CLKDEV_ICK_ID("lvds.0", "rcar-du-r8a7791", &mstp_clks[MSTP726]),
