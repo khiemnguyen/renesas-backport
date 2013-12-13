@@ -986,15 +986,15 @@ static void sh_mmcif_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		}
 		sh_mmcif_set_power(host, ios);
 	} else if (ios->power_mode == MMC_POWER_OFF || !ios->clock) {
-		/* clock stop */
-		sh_mmcif_clock_control(host, 0);
-		if (ios->power_mode == MMC_POWER_OFF) {
-			if (host->card_present) {
-				sh_mmcif_release_dma(host);
-				host->card_present = false;
-			}
-		}
 		if (host->power) {
+			/* clock stop */
+			sh_mmcif_clock_control(host, 0);
+			if (ios->power_mode == MMC_POWER_OFF) {
+				if (host->card_present) {
+					sh_mmcif_release_dma(host);
+					host->card_present = false;
+				}
+			}
 			pm_runtime_put(&host->pd->dev);
 			clk_disable(host->hclk);
 			host->power = false;
@@ -1495,8 +1495,11 @@ static int sh_mmcif_suspend(struct device *dev)
 	struct sh_mmcif_host *host = dev_get_drvdata(dev);
 	int ret = mmc_suspend_host(host->mmc);
 
-	if (!ret)
+	if (!ret) {
+		pm_runtime_get_sync(dev);
 		sh_mmcif_writel(host->addr, MMCIF_CE_INT_MASK, MASK_ALL);
+		pm_runtime_put_sync(dev);
+	}
 
 	return ret;
 }
