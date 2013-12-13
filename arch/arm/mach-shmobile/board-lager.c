@@ -527,6 +527,30 @@ static int sdhi_get_vlt(struct platform_device *pdev)
 	return ret ? 1 : 0;
 }
 
+static int sdhi_init(struct platform_device *pdev,
+		const struct sh_mobile_sdhi_ops *ops)
+{
+	switch (pdev->id) {
+	case 0:
+		/* SDHI0 */
+		gpio_request(RCAR_GP_PIN(5, 24), "SDHI0_vdd");
+		gpio_request(RCAR_GP_PIN(5, 29), "SDHI0_vol");
+		gpio_direction_output(RCAR_GP_PIN(5, 24), 1);
+		gpio_direction_output(RCAR_GP_PIN(5, 29), 1);
+		break;
+	case 2:
+		/* SDHI2 */
+		gpio_request(RCAR_GP_PIN(5, 25), "SDHI2_vdd");
+		gpio_request(RCAR_GP_PIN(5, 30), "SDHI2_vol");
+		gpio_direction_output(RCAR_GP_PIN(5, 25), 1);
+		gpio_direction_output(RCAR_GP_PIN(5, 30), 1);
+		break;
+	default:
+		break;
+	}
+	return 0;
+}
+
 static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
@@ -546,6 +570,7 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
@@ -567,6 +592,7 @@ static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi2_platform_data = {
@@ -586,6 +612,7 @@ static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 static struct sh_mobile_sdhi_info sdhi3_platform_data = {
@@ -605,6 +632,7 @@ static struct sh_mobile_sdhi_info sdhi3_platform_data = {
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
+	.init		= sdhi_init,
 };
 
 /* VIN camera */
@@ -932,15 +960,6 @@ static void __init lager_add_standard_devices(void)
 					  ether_resources,
 					  ARRAY_SIZE(ether_resources),
 					  &ether_pdata, sizeof(ether_pdata));
-
-	gpio_request(RCAR_GP_PIN(5, 24), "SDHI0_vdd");
-	gpio_request(RCAR_GP_PIN(5, 25), "SDHI2_vdd");
-	gpio_request(RCAR_GP_PIN(5, 29), "SDHI0_vol");
-	gpio_request(RCAR_GP_PIN(5, 30), "SDHI2_vol");
-	gpio_direction_output(RCAR_GP_PIN(5, 24), 0);
-	gpio_direction_output(RCAR_GP_PIN(5, 25), 0);
-	gpio_direction_output(RCAR_GP_PIN(5, 29), 0);
-	gpio_direction_output(RCAR_GP_PIN(5, 30), 0);
 
 	r8a7790_add_mmc_device(&sh_mmcif0_plat, 0);
 	r8a7790_add_mmc_device(&sh_mmcif1_plat, 1);
