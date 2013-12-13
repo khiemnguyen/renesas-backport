@@ -946,6 +946,16 @@ void __init r8a7791_add_sdhi_device(struct sh_mobile_sdhi_info *pdata,
 	platform_device_register_full(&info);
 }
 
+/* SSP */
+void __init r8a7791_register_ssp(void)
+{
+	struct platform_device_info info = {
+		.name = "ssp_dev",
+		.id = -1,
+	};
+	platform_device_register_full(&info);
+}
+
 #ifdef CONFIG_USB_R8A66597
 /* USB2.0 Function */
 #define LPSTS		0x102 /* 16-bit */
@@ -1495,6 +1505,7 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_qspi();
 	r8a7791_register_sata(0);
 	r8a7791_register_sata(1);
+	r8a7791_register_ssp();
 #ifdef CONFIG_USB_R8A66597
 	r8a7791_register_usbf();
 #endif
