@@ -61,6 +61,7 @@
 /* IP channel */
 #define	MAXCH_SRC	10
 #define	MAXCH_CTU	8
+#define MAXCH_DVC	2
 #define	MAXCH_CMD	2
 #define	MAXCH_SSI	10
 #define	MAXCH_SSIDATA	22	/* SSI0,1,2,9=4ch, SSI3-8=1ch */
@@ -2117,7 +2118,7 @@ struct scu_pcm_callback {
 	void (*init_ssi)(int, int, int, int, int);
 	void (*init_src)(int, unsigned int, unsigned int);
 	void (*init_dvc)(int);
-	void (*deinit_ssi)(int, int, int, int);
+	void (*deinit_ssi)(int, int, int, int, int);
 	void (*deinit_src)(int);
 	void (*deinit_dvc)(int);
 };
@@ -2140,13 +2141,10 @@ struct scu_route_info {
 struct scu_clock_info {
 	struct clk *adg_clk;
 	struct clk *scu_clk;
-	struct clk *src0_clk;
-	struct clk *src1_clk;
-	struct clk *dvc0_clk;
-	struct clk *dvc1_clk;
+	struct clk *src_clk[MAXCH_SRC];
+	struct clk *dvc_clk[MAXCH_DVC];
 	struct clk *ssiu_clk;
-	struct clk *ssi0_clk;
-	struct clk *ssi1_clk;
+	struct clk *ssi_clk[MAXCH_SSI];
 };
 
 struct scu_audio_info {
@@ -2240,10 +2238,12 @@ extern struct scu_platform_data *scu_get_platform_data(void);
 extern void scu_init_ssi(int, int, int, int, int);
 extern void scu_init_src(int, unsigned int, unsigned int);
 extern void scu_init_dvc(int);
+extern void adg_init(void);
 
-extern void scu_deinit_ssi(int, int, int, int);
+extern void scu_deinit_ssi(int, int, int, int, int);
 extern void scu_deinit_src(int);
 extern void scu_deinit_dvc(int);
+extern void adg_deinit(void);
 
 extern int scu_check_route(int dir, struct scu_route_info *routeinfo);
 extern int scu_dai_add_control(struct snd_card *card);

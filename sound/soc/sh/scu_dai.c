@@ -97,9 +97,11 @@ static void scu_and_writel(u32 data, u32 *reg)
 	peripheral function
 
 ************************************************************************/
-static void adg_init(void)
+void adg_init(void)
 {
 	FNC_ENTRY
+
+	clk_enable(ainfo->clockinfo.adg_clk);
 
 	/* clock select */
 	scu_or_writel(0x23550000,
@@ -133,13 +135,19 @@ static void adg_init(void)
 	FNC_EXIT
 	return;
 }
+EXPORT_SYMBOL(adg_init);
 
-static void scu_ssiu_init(void)
+void adg_deinit(void)
 {
 	FNC_ENTRY
+
+	/* omit other initialization */
+	clk_disable(ainfo->clockinfo.adg_clk);
+
 	FNC_EXIT
 	return;
 }
+EXPORT_SYMBOL(adg_deinit);
 
 static void scu_ssi_control(int master_ch, int slave_ch, int mode)
 {
@@ -530,6 +538,11 @@ void scu_init_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 		return;
 	}
 
+	clk_enable(ainfo->clockinfo.ssiu_clk);
+	clk_enable(ainfo->clockinfo.ssi_clk[master_ch]);
+	if (mode == SSI_SLAVE)
+		clk_enable(ainfo->clockinfo.ssi_clk[slave_ch]);
+
 	/* SSI_BUSIF_ADINR */
 	scu_or_writel((SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
 		(u32 *)(rinfo->ssiureg + offset));
@@ -551,8 +564,9 @@ void scu_init_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 }
 EXPORT_SYMBOL(scu_init_ssi);
 
-void scu_deinit_ssi(int ch, int mode, int ind, int dir)
+void scu_deinit_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 {
+	int ch = ((mode == SSI_MASTER) ? master_ch : slave_ch);
 	int offset = scu_find_data(ch, pdata->ssiu_busif_adinr,
 					pdata->ssiu_busif_adinr_num);
 	int mode1 = scu_find_data(ch, pdata->ssiu_mode1,
@@ -583,11 +597,19 @@ void scu_deinit_ssi(int ch, int mode, int ind, int dir)
 	/* SSI_BUSIF_ADINR */
 	scu_and_writel(~(SSI_ADINR_OTBL_16BIT | SSI_ADINR_CHNUM_2CH),
 		(u32 *)(rinfo->ssiureg + offset));
+
+	if (mode == SSI_SLAVE)
+		clk_disable(ainfo->clockinfo.ssi_clk[slave_ch]);
+	clk_disable(ainfo->clockinfo.ssi_clk[master_ch]);
+	clk_disable(ainfo->clockinfo.ssiu_clk);
 }
 EXPORT_SYMBOL(scu_deinit_ssi);
 
 void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
 {
+	clk_enable(ainfo->clockinfo.scu_clk);
+	clk_enable(ainfo->clockinfo.src_clk[src_ch]);
+
 	scu_src_init(src_ch, sync_sw);
 	scu_src_control(src_ch, rate, sync_sw);
 	/* start src */
@@ -600,11 +622,16 @@ void scu_deinit_src(int src_ch)
 	/* stop src */
 	scu_src_stop(src_ch, SRC_INOUT);
 	scu_src_deinit(src_ch);
+
+	clk_disable(ainfo->clockinfo.src_clk[src_ch]);
+	clk_disable(ainfo->clockinfo.scu_clk);
 }
 EXPORT_SYMBOL(scu_deinit_src);
 
 void scu_init_dvc(int dvc_ch)
 {
+	clk_enable(ainfo->clockinfo.dvc_clk[dvc_ch]);
+
 	scu_dvc_init(dvc_ch);
 	scu_dvc_control(dvc_ch);
 	/* start dvc */
@@ -617,6 +644,8 @@ void scu_deinit_dvc(int dvc_ch)
 	/* stop dvc */
 	scu_dvc_stop(dvc_ch);
 	scu_dvc_deinit(dvc_ch);
+
+	clk_disable(ainfo->clockinfo.dvc_clk[dvc_ch]);
 }
 EXPORT_SYMBOL(scu_deinit_dvc);
 
@@ -772,10 +801,14 @@ static int scu_dai_put_volume(struct snd_kcontrol *kctrl,
 			ainfo->volume[0][0] = ucontrol->value.integer.value[0];
 			ainfo->volume[0][1] = ucontrol->value.integer.value[1];
 			/* DVC0 L:vol0r R:vol1r */
+			clk_enable(ainfo->clockinfo.scu_clk);
+			clk_enable(ainfo->clockinfo.dvc_clk[0]);
 			writel(ainfo->volume[0][0],
 				(u32 *)&rinfo->dvcreg[0]->vol0r);
 			writel(ainfo->volume[0][1],
 				(u32 *)&rinfo->dvcreg[0]->vol1r);
+			clk_disable(ainfo->clockinfo.dvc_clk[0]);
+			clk_disable(ainfo->clockinfo.scu_clk);
 		}
 		break;
 	case CTRL_CAPTURE:
@@ -787,10 +820,14 @@ static int scu_dai_put_volume(struct snd_kcontrol *kctrl,
 			ainfo->volume[1][0] = ucontrol->value.integer.value[0];
 			ainfo->volume[1][1] = ucontrol->value.integer.value[1];
 			/* DVC1 L:vol1r R:vol0r */
+			clk_enable(ainfo->clockinfo.scu_clk);
+			clk_enable(ainfo->clockinfo.dvc_clk[1]);
 			writel(ainfo->volume[1][0],
 				(u32 *)&rinfo->dvcreg[1]->vol1r);
 			writel(ainfo->volume[1][1],
 				(u32 *)&rinfo->dvcreg[1]->vol0r);
+			clk_disable(ainfo->clockinfo.dvc_clk[1]);
+			clk_disable(ainfo->clockinfo.scu_clk);
 		}
 		break;
 	default:
@@ -862,7 +899,11 @@ static int scu_dai_put_mute(struct snd_kcontrol *kctrl,
 		ainfo->mute[1] = ucontrol->value.integer.value[1];
 		mute = (ainfo->mute[1] << 1) + ainfo->mute[0];
 		mute = ~mute & 0x3;
+		clk_enable(ainfo->clockinfo.scu_clk);
+		clk_enable(ainfo->clockinfo.dvc_clk[0]);
 		writel(mute, (u32 *)&rinfo->dvcreg[0]->zcmcr);
+		clk_disable(ainfo->clockinfo.dvc_clk[0]);
+		clk_disable(ainfo->clockinfo.scu_clk);
 	}
 
 	return change;
@@ -1121,31 +1162,31 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		goto error_clk_put;
 	}
 
-	cinfo->src0_clk = clk_get(NULL, "src0");
-	if (IS_ERR(cinfo->src0_clk)) {
+	cinfo->src_clk[SRC0] = clk_get(NULL, "src0");
+	if (IS_ERR(cinfo->src_clk[SRC0])) {
 		dev_err(&pdev->dev, "Unable to get src0 clock\n");
-		ret = PTR_ERR(cinfo->src0_clk);
+		ret = PTR_ERR(cinfo->src_clk[SRC0]);
 		goto error_clk_put;
 	}
 
-	cinfo->src1_clk = clk_get(NULL, "src1");
-	if (IS_ERR(cinfo->src1_clk)) {
+	cinfo->src_clk[SRC1] = clk_get(NULL, "src1");
+	if (IS_ERR(cinfo->src_clk[SRC1])) {
 		dev_err(&pdev->dev, "Unable to get src1 clock\n");
-		ret = PTR_ERR(cinfo->src1_clk);
+		ret = PTR_ERR(cinfo->src_clk[SRC1]);
 		goto error_clk_put;
 	}
 
-	cinfo->dvc0_clk = clk_get(NULL, "dvc0");
-	if (IS_ERR(cinfo->dvc0_clk)) {
+	cinfo->dvc_clk[DVC0] = clk_get(NULL, "dvc0");
+	if (IS_ERR(cinfo->dvc_clk[DVC0])) {
 		dev_err(&pdev->dev, "Unable to get dvc0 clock\n");
-		ret = PTR_ERR(cinfo->dvc0_clk);
+		ret = PTR_ERR(cinfo->dvc_clk[DVC0]);
 		goto error_clk_put;
 	}
 
-	cinfo->dvc1_clk = clk_get(NULL, "dvc1");
-	if (IS_ERR(cinfo->dvc1_clk)) {
+	cinfo->dvc_clk[DVC1] = clk_get(NULL, "dvc1");
+	if (IS_ERR(cinfo->dvc_clk[DVC1])) {
 		dev_err(&pdev->dev, "Unable to get dvc1 clock\n");
-		ret = PTR_ERR(cinfo->dvc1_clk);
+		ret = PTR_ERR(cinfo->dvc_clk[DVC1]);
 		goto error_clk_put;
 	}
 
@@ -1156,17 +1197,17 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		goto error_clk_put;
 	}
 
-	cinfo->ssi0_clk = clk_get(NULL, "ssi0");
-	if (IS_ERR(cinfo->ssi0_clk)) {
+	cinfo->ssi_clk[SSI0] = clk_get(NULL, "ssi0");
+	if (IS_ERR(cinfo->ssi_clk[SSI0])) {
 		dev_err(&pdev->dev, "Unable to get ssi0 clock\n");
-		ret = PTR_ERR(cinfo->ssi0_clk);
+		ret = PTR_ERR(cinfo->ssi_clk[SSI0]);
 		goto error_clk_put;
 	}
 
-	cinfo->ssi1_clk = clk_get(NULL, "ssi1");
-	if (IS_ERR(cinfo->ssi1_clk)) {
+	cinfo->ssi_clk[SSI1] = clk_get(NULL, "ssi1");
+	if (IS_ERR(cinfo->ssi_clk[SSI1])) {
 		dev_err(&pdev->dev, "Unable to get ssi1 clock\n");
-		ret = PTR_ERR(cinfo->ssi1_clk);
+		ret = PTR_ERR(cinfo->ssi_clk[SSI1]);
 		goto error_clk_put;
 	}
 
@@ -1266,16 +1307,6 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	rinfo->adgreg = mem;
 	DBG_MSG("adgreg=%08x\n", (int)rinfo->adgreg);
 
-	clk_enable(cinfo->adg_clk);
-	clk_enable(cinfo->scu_clk);
-	clk_enable(cinfo->src0_clk);
-	clk_enable(cinfo->src1_clk);
-	clk_enable(cinfo->dvc0_clk);
-	clk_enable(cinfo->dvc1_clk);
-	clk_enable(cinfo->ssiu_clk);
-	clk_enable(cinfo->ssi0_clk);
-	clk_enable(cinfo->ssi1_clk);
-
 	ret = snd_soc_register_platform(&pdev->dev, &scu_platform);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "cannot snd soc register\n");
@@ -1287,9 +1318,6 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "cannot snd soc dais register\n");
 		goto error_unregister;
 	}
-
-	adg_init();
-	scu_ssiu_init();
 
 	FNC_EXIT
 	return ret;
@@ -1322,20 +1350,20 @@ error_clk_put:
 		clk_put(cinfo->adg_clk);
 	if (!IS_ERR(cinfo->scu_clk))
 		clk_put(cinfo->scu_clk);
-	if (!IS_ERR(cinfo->src0_clk))
-		clk_put(cinfo->src0_clk);
-	if (!IS_ERR(cinfo->src1_clk))
-		clk_put(cinfo->src1_clk);
-	if (!IS_ERR(cinfo->dvc0_clk))
-		clk_put(cinfo->dvc0_clk);
-	if (!IS_ERR(cinfo->dvc1_clk))
-		clk_put(cinfo->dvc1_clk);
+	if (!IS_ERR(cinfo->src_clk[SRC0]))
+		clk_put(cinfo->src_clk[SRC0]);
+	if (!IS_ERR(cinfo->src_clk[SRC1]))
+		clk_put(cinfo->src_clk[SRC1]);
+	if (!IS_ERR(cinfo->dvc_clk[DVC0]))
+		clk_put(cinfo->dvc_clk[DVC0]);
+	if (!IS_ERR(cinfo->dvc_clk[DVC1]))
+		clk_put(cinfo->dvc_clk[DVC1]);
 	if (!IS_ERR(cinfo->ssiu_clk))
 		clk_put(cinfo->ssiu_clk);
-	if (!IS_ERR(cinfo->ssi0_clk))
-		clk_put(cinfo->ssi0_clk);
-	if (!IS_ERR(cinfo->ssi1_clk))
-		clk_put(cinfo->ssi1_clk);
+	if (!IS_ERR(cinfo->ssi_clk[SSI0]))
+		clk_put(cinfo->ssi_clk[SSI0]);
+	if (!IS_ERR(cinfo->ssi_clk[SSI1]))
+		clk_put(cinfo->ssi_clk[SSI1]);
 
 	FNC_EXIT
 	return ret;
@@ -1350,25 +1378,15 @@ static int __devexit scu_remove(struct platform_device *pdev)
 	snd_soc_unregister_dai(&pdev->dev);
 	snd_soc_unregister_platform(&pdev->dev);
 
-	clk_disable(cinfo->adg_clk);
-	clk_disable(cinfo->scu_clk);
-	clk_disable(cinfo->src0_clk);
-	clk_disable(cinfo->src1_clk);
-	clk_disable(cinfo->dvc0_clk);
-	clk_disable(cinfo->dvc1_clk);
-	clk_disable(cinfo->ssiu_clk);
-	clk_disable(cinfo->ssi0_clk);
-	clk_disable(cinfo->ssi1_clk);
-
 	clk_put(cinfo->adg_clk);
 	clk_put(cinfo->scu_clk);
-	clk_put(cinfo->src0_clk);
-	clk_put(cinfo->src1_clk);
-	clk_put(cinfo->dvc0_clk);
-	clk_put(cinfo->dvc1_clk);
+	clk_put(cinfo->src_clk[SRC0]);
+	clk_put(cinfo->src_clk[SRC1]);
+	clk_put(cinfo->dvc_clk[DVC0]);
+	clk_put(cinfo->dvc_clk[DVC1]);
 	clk_put(cinfo->ssiu_clk);
-	clk_put(cinfo->ssi0_clk);
-	clk_put(cinfo->ssi1_clk);
+	clk_put(cinfo->ssi_clk[SSI0]);
+	clk_put(cinfo->ssi_clk[SSI1]);
 
 	iounmap(rinfo->scureg);
 	iounmap(rinfo->ssiureg);
