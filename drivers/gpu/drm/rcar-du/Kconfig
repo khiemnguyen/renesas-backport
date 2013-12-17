@@ -14,15 +14,3 @@ config DRM_RCAR_LVDS
 	help
 	  Enable support the R-Car Display Unit embedded LVDS encoders
 	  (currently only on R8A7790).
-
-config DRM_RCAR_DU1_OVERLAY_NUM
-	int "R-Car overlay layers in DU1"
-	range 0 6
-	depends on DRM_RCAR_DU
-	help
-	  Choose this option if you want to change the number of overlay
-	  layers using in DU1.
-	  The maximum can be set up to 6.
-	  If you choose 2 overlay layers in this config,
-	  2 overlay layers will be assigned to DU1 statically,
-	  and 4 overlay layers will be assigned to DU0 statically.

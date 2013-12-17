@@ -241,10 +241,8 @@ void rcar_du_crtc_update_planes(struct drm_crtc *crtc)
 		 * split, or through a module parameter). Flicker would then
 		 * occur only if we need to break the pre-association.
 		 */
-		if ((value & dptsr) != dptsr) {
-			rcar_du_group_write(rcrtc->group, DPTSR, DPTSR_MASK
-			 & (rcar_du_group_read(rcrtc->group, DPTSR) | dptsr));
-
+		if (value != dptsr) {
+			rcar_du_group_write(rcrtc->group, DPTSR, dptsr);
 			if (rcrtc->group->used_crtcs)
 				rcar_du_group_restart(rcrtc->group);
 		}
@@ -258,7 +256,6 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 {
 	struct drm_crtc *crtc = &rcrtc->crtc;
 	unsigned int i;
-	unsigned int value = 0;
 
 	if (rcrtc->started)
 		return;
@@ -269,16 +266,6 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 	/* Set display off and background to black */
 	rcar_du_crtc_write(rcrtc, DOOR, DOOR_RGB(0, 0, 0));
 	rcar_du_crtc_write(rcrtc, BPOR, BPOR_RGB(0, 0, 0));
-
-	/* Initialized DPTSR register */
-	if (rcrtc->index == 0) {
-		for (i = 0; i < ARRAY_SIZE(rcrtc->group->planes.planes); ++i) {
-			if (i < CONFIG_DRM_RCAR_DU1_OVERLAY_NUM)
-				value |= (DPTSR_PnDK(i) | DPTSR_PnTS(i));
-		}
-		rcar_du_group_write(rcrtc->group, DPTSR, DPTSR_MASK
-		     & (rcar_du_group_read(rcrtc->group, DPTSR) | value));
-	}
 
 	/* Configure display timings and output routing */
 	rcar_du_crtc_set_display_timing(rcrtc);
