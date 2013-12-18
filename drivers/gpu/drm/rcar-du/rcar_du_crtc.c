@@ -1,7 +1,7 @@
 /*
  * rcar_du_crtc.c  --  R-Car Display Unit CRTCs
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -362,6 +362,8 @@ void rcar_du_crtc_resume(struct rcar_du_crtc *rcrtc)
 static void rcar_du_crtc_update_base(struct rcar_du_crtc *rcrtc)
 {
 	struct drm_crtc *crtc = &rcrtc->crtc;
+
+	rcrtc->plane->pitch = crtc->fb->pitches[0];
 
 	rcar_du_plane_compute_base(rcrtc->plane, crtc->fb);
 	rcar_du_plane_update_base(rcrtc->plane);

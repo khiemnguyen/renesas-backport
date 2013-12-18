@@ -1,7 +1,7 @@
 /*
  * rcar_du_plane.c  --  R-Car Display Unit Planes
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -207,6 +207,7 @@ void rcar_du_plane_update_base(struct rcar_du_plane *plane)
 {
 	struct rcar_du_group *rgrp = plane->group;
 	unsigned int index = plane->hwindex;
+	u32 mwr;
 
 	/* The Y position is expressed in raster line units and must be doubled
 	 * for 32bpp formats, according to the R8A7790 datasheet. No mention of
@@ -231,6 +232,16 @@ void rcar_du_plane_update_base(struct rcar_du_plane *plane)
 				    (plane->format->bpp == 16 ? 2 : 1) / 2);
 		rcar_du_plane_write(rgrp, index, PnDSA0R, plane->dma[1]);
 	}
+	/* Memory pitch (expressed in pixels) */
+	if (plane->format->planes == 2)
+		mwr = plane->pitch;
+	else
+		mwr = plane->pitch * 8 / plane->format->bpp;
+
+	if ((plane->interlace_flag) && (plane->format->bpp == 32))
+		rcar_du_plane_write(rgrp, index, PnMWR, mwr * 2);
+	else
+		rcar_du_plane_write(rgrp, index, PnMWR, mwr);
 }
 
 void rcar_du_plane_compute_base(struct rcar_du_plane *plane,
