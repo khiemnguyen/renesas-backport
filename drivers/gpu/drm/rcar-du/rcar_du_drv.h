@@ -1,7 +1,7 @@
 /*
  * rcar_du_drv.h  --  R-Car Display Unit DRM driver
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -46,6 +46,7 @@ struct rcar_du_lvdsenc;
  */
 struct rcar_du_output_routing {
 	unsigned int possible_crtcs;
+	unsigned int possible_clones;
 	unsigned int encoder_type;
 };
 
