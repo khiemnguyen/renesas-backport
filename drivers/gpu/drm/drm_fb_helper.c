@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (c) 2006-2009 Red Hat Inc.
  * Copyright (c) 2006-2008 Intel Corporation
  * Copyright (c) 2007 Dave Airlie <airlied@linux.ie>
@@ -1231,7 +1232,9 @@ static int drm_fb_helper_probe_connector_modes(struct drm_fb_helper *fb_helper,
 				match_flag = true;
 				break;
 			}
-			if (!match_flag) {
+			if ((!match_flag) &&
+				 (connector->status ==
+				  connector_status_connected)) {
 				printk(KERN_ERR
 				 "Error! parse setting(%dx%d),laced:%d\n",
 				cmdline_mode->xres, cmdline_mode->yres,
