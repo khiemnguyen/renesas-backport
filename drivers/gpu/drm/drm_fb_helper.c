@@ -705,7 +705,8 @@ int drm_fb_helper_set_par(struct fb_info *info)
 #if defined(CONFIG_DRM_FBDEV_CRTC)
 	struct drm_display_mode *disp_set_mode;
 	struct drm_display_mode *ref_disp_mode = NULL;
-	struct drm_connector *disp_conn;
+	struct drm_connector *disp_conn = NULL;
+	struct drm_mode_set *mode_set;
 	struct drm_framebuffer *fb;
 	unsigned int bytes_per_pixel;
 	unsigned int match_flag;
@@ -732,9 +733,20 @@ int drm_fb_helper_set_par(struct fb_info *info)
 #if defined(CONFIG_DRM_FBDEV_CRTC)
 	disp_set_mode =
 		fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.mode;
-	disp_conn =
-		fb_helper->connector_info[CONFIG_DRM_FBDEV_CRTC_NUM]->connector;
+	mode_set = &fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set;
 	fb = fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.fb;
+
+	for (i = 0; i < fb_helper->connector_count; i++) {
+		if (fb_helper->connector_info[i]) {
+			disp_conn = fb_helper->connector_info[i]->connector;
+			if ((disp_conn->encoder) &&
+				(disp_conn->encoder->crtc->base.id
+				 == mode_set->crtc->base.id))
+				break;
+			else
+				disp_conn = NULL;
+		}
+	}
 
 	if (disp_set_mode && disp_conn && fb &&
 		 ((info->flags & FBINFO_MISC_USEREVENT)
