@@ -1,7 +1,7 @@
 /*
  * SuperH Mobile SDHI
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (C) 2009 Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
@@ -394,6 +394,32 @@ static const struct sh_mobile_sdhi_ops sdhi_ops = {
 	.cd_wakeup = sh_mobile_sdhi_cd_wakeup,
 };
 
+static void sh_mobile_sdhi_hw_reset(struct tmio_mmc_host *host)
+{
+	struct tmio_mmc_data *pdata = host->pdata;
+
+	if (pdata->flags & TMIO_MMC_HAS_UHS_SCC) {
+		/* Reset SCC */
+		sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, ~0x0100 &
+			sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+		writel(~SH_MOBILE_SDHI_SCC_CKSEL_DTSEL &
+			readl(host->ctl + SH_MOBILE_SDHI_SCC_CKSEL),
+			host->ctl + SH_MOBILE_SDHI_SCC_CKSEL);
+
+		sd_ctrl_write16(host, CTL_SD_CARD_CLK_CTL, 0x0100 |
+			sd_ctrl_read16(host, CTL_SD_CARD_CLK_CTL));
+
+		writel(~SH_MOBILE_SDHI_SCC_DTCNTL_TAPEN &
+			readl(host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL),
+			host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL);
+
+		writel(~SH_MOBILE_SDHI_SCC_RVSCNTL_RVSEN &
+			readl(host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL),
+			host->ctl + SH_MOBILE_SDHI_SCC_RVSCNTL);
+	}
+}
+
 static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 {
 	struct sh_mobile_sdhi *priv;
@@ -438,6 +464,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	mmc_data->retuning = sh_mobile_sdhi_retuning;
 	mmc_data->disable_auto_cmd12 = sh_mobile_sdhi_disable_auto_cmd12;
 	mmc_data->set_clk_div = sh_mobile_sdhi_set_clk_div;
+	mmc_data->hw_reset = sh_mobile_sdhi_hw_reset;
 	if (p) {
 		mmc_data->flags = p->tmio_flags;
 		if (mmc_data->flags & TMIO_MMC_HAS_IDLE_WAIT)
