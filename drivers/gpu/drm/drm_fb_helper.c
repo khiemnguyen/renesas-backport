@@ -710,7 +710,6 @@ int drm_fb_helper_set_par(struct fb_info *info)
 	struct drm_framebuffer *fb;
 	unsigned int bytes_per_pixel;
 	unsigned int match_flag;
-	bool mode_change_flag = false;
 	unsigned int pre_pixfmt;
 #endif
 
@@ -754,11 +753,20 @@ int drm_fb_helper_set_par(struct fb_info *info)
 
 		pre_pixfmt = drm_mode_legacy_fb_format(var->bits_per_pixel,
 						       fb->depth);
+		bytes_per_pixel = DIV_ROUND_UP(var->bits_per_pixel, 8);
 
-		if ((var->xres != disp_set_mode->hdisplay) ||
+		if ((var->xres == disp_set_mode->hdisplay) &&
+			 (var->yres == disp_set_mode->vdisplay) &&
+			 (var->xres_virtual !=
+			 (fb->pitches[0] / bytes_per_pixel)) &&
+			 (fb->pixel_format == pre_pixfmt)) {
+			disp_set_mode->private_flags = DRM_FB_CHANGED;
+		} else if ((var->xres != disp_set_mode->hdisplay) ||
 			 (var->yres != disp_set_mode->vdisplay) ||
-			 (fb->pixel_format != pre_pixfmt))
-			mode_change_flag = true;
+			 (fb->pixel_format != pre_pixfmt)) {
+			disp_set_mode->private_flags = DRM_MODE_CHANGED;
+		} else
+			disp_set_mode->private_flags = false;
 
 		match_flag = 0;
 		list_for_each_entry(ref_disp_mode, &disp_conn->modes, head) {
@@ -792,20 +800,18 @@ int drm_fb_helper_set_par(struct fb_info *info)
 		disp_set_mode->flags = ref_disp_mode->flags;
 		disp_set_mode->base.type = DRM_MODE_OBJECT_MODE;
 
-		bytes_per_pixel = DIV_ROUND_UP(var->bits_per_pixel, 8);
 		fb->width = var->xres_virtual;
 		fb->height = var->yres_virtual;
 		fb->bits_per_pixel = var->bits_per_pixel;
-		fb->pitches[0] = var->xres * bytes_per_pixel;
+		fb->pitches[0] = var->xres_virtual * bytes_per_pixel;
 		fb->pixel_format = drm_mode_legacy_fb_format(
 					fb->bits_per_pixel, fb->depth);
 		drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
 		drm_fb_helper_fill_var(info, fb_helper,
 					 var->xres, var->yres);
-		if (!mode_change_flag)
+		if (!disp_set_mode->private_flags)
 			goto mode_no_change;
 
-		disp_set_mode->private_flags = true;
 		ret = drm_mode_set_config_internal(&fb_helper->
 				crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set);
 		if (ret) {
@@ -1111,7 +1117,8 @@ void drm_fb_helper_fill_var(struct fb_info *info, struct drm_fb_helper *fb_helpe
 	struct drm_display_mode *drm_mode;
 #endif
 	info->pseudo_palette = fb_helper->pseudo_palette;
-	info->var.xres_virtual = fb->width;
+	info->var.xres_virtual = fb->pitches[0] /
+				  DIV_ROUND_UP(fb->bits_per_pixel, 8);
 	info->var.yres_virtual = fb->height;
 	info->var.bits_per_pixel = fb->bits_per_pixel;
 	info->var.accel_flags = FB_ACCELF_TEXT;
