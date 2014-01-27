@@ -3,7 +3,7 @@
  *
  * Renesas R-Car VSP1 - User-space API
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contacts: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
  *

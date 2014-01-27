@@ -1,7 +1,7 @@
 /*
  * vsp1_lif.c  --  R-Car VSP1 LCD Controller Interface
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
