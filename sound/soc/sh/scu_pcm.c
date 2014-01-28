@@ -70,18 +70,26 @@ static void scu_dma_callback(struct snd_pcm_substream *ss)
 	struct snd_soc_dai *dai = scu_get_dai(ss);
 	struct snd_pcm_runtime *runtime = ss->runtime;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
-	int buf_pos;
-	u32 dma_size;
-	u32 dma_paddr;
+	snd_pcm_uframes_t remain, offset, dma_size;
 
 	FNC_ENTRY
 
-	buf_pos = pcminfo->period % runtime->periods;
-	dma_size = frames_to_bytes(runtime, runtime->period_size);
-	dma_paddr = runtime->dma_addr + (buf_pos * dma_size);
-	dma_sync_single_for_cpu(dai->dev, dma_paddr, dma_size, DMA_DIR(dir));
+	offset = pcminfo->tran_size % runtime->buffer_size;
+	remain = runtime->buffer_size - offset;
+	dma_size = runtime->period_size;
 
-	pcminfo->tran_period++;
+	if (remain < runtime->period_size) {
+		dma_sync_single_for_cpu(dai->dev,
+			runtime->dma_addr + frames_to_bytes(runtime, offset),
+			frames_to_bytes(runtime, remain), DMA_DIR(dir));
+		offset = 0;
+		dma_size -= remain;
+	}
+	dma_sync_single_for_cpu(dai->dev,
+			runtime->dma_addr + frames_to_bytes(runtime, offset),
+			frames_to_bytes(runtime, dma_size), DMA_DIR(dir));
+
+	pcminfo->tran_size += runtime->period_size;
 
 	/* Notify alsa: a period is done */
 	snd_pcm_period_elapsed(ss);
@@ -213,33 +221,20 @@ static int scu_dma_release(struct snd_pcm_substream *ss)
 	return ret;
 }
 
-static int scu_dma_start(int sid, struct snd_pcm_substream *ss)
+static int __scu_dma_start(int sid, struct snd_pcm_substream *ss,
+		u32 dma_paddr, u32 dma_size, dma_async_tx_callback callback)
 {
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
-	int buf_pos;
 	struct snd_pcm_runtime *runtime = ss->runtime;
 	struct scu_pcm_info *pcminfo = runtime->private_data;
 	struct device *dev = ss->pcm->card->dev;
 	struct dma_async_tx_descriptor *desc;
 	dma_cookie_t cookie;
-	u32 dma_size;
-	u32 dma_paddr;
 	struct snd_soc_dai *dai;
 
 	FNC_ENTRY
+
 	dai = scu_get_dai(ss);
-
-	/* buffer control */
-	buf_pos = pcminfo->period % runtime->periods;
-	DBG_MSG("buf_pos=%d\n", buf_pos);
-
-	/* DMA size */
-	dma_size = frames_to_bytes(runtime, runtime->period_size);
-	DBG_MSG("dma_size=%d\n", dma_size);
-
-	/* DMA physical adddress */
-	dma_paddr = runtime->dma_addr + (buf_pos * dma_size);
-	DBG_MSG("dma_paddr=0x%08x\n", dma_paddr);
 
 	dma_sync_single_for_device(dai->dev, dma_paddr, dma_size, DMA_DIR(dir));
 
@@ -250,7 +245,7 @@ static int scu_dma_start(int sid, struct snd_pcm_substream *ss)
 		return -ENOMEM;
 	}
 
-	desc->callback = (dma_async_tx_callback)scu_dma_callback;
+	desc->callback = callback;
 	desc->callback_param = ss;
 
 	cookie = dmaengine_submit(desc);
@@ -262,11 +257,46 @@ static int scu_dma_start(int sid, struct snd_pcm_substream *ss)
 
 	dma_async_issue_pending(pcminfo->de_chan[sid]);
 
-	/* Update period */
-	pcminfo->period++;
-
 	FNC_EXIT
 	return 0;
+}
+
+static int scu_dma_start(int sid, struct snd_pcm_substream *ss)
+{
+	struct snd_pcm_runtime *runtime = ss->runtime;
+	struct scu_pcm_info *pcminfo = runtime->private_data;
+	snd_pcm_uframes_t remain, offset, dma_size;
+	int ret = 0;
+
+	FNC_ENTRY
+
+	offset = pcminfo->set_size % runtime->buffer_size;
+	remain = runtime->buffer_size - offset;
+	dma_size = runtime->period_size;
+
+	if (remain < runtime->period_size) {
+		ret = __scu_dma_start(sid, ss,
+			runtime->dma_addr + frames_to_bytes(runtime, offset),
+			frames_to_bytes(runtime, remain),
+			NULL);
+		if (ret)
+			goto done;
+		offset = 0;
+		dma_size -= remain;
+	}
+
+	ret = __scu_dma_start(sid, ss,
+		runtime->dma_addr + frames_to_bytes(runtime, offset),
+		frames_to_bytes(runtime, dma_size),
+		(dma_async_tx_callback)scu_dma_callback);
+
+done:
+	/* Update total frame size */
+	if (!ret)
+		pcminfo->set_size += runtime->period_size;
+
+	FNC_EXIT
+	return ret;
 }
 
 static int scu_dma_stop(int sid, struct snd_pcm_substream *ss)
@@ -429,6 +459,9 @@ static int scu_audio_start(struct snd_pcm_substream *ss)
 	/* PCM 1st process */
 	pcminfo->flag_first = 1;
 
+	pcminfo->set_size = 0;
+	pcminfo->tran_size = 0;
+
 	mdelay(codec_powerup_wait);
 	queue_work(pcminfo->workq, &pcminfo->work);
 
@@ -466,8 +499,6 @@ static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 		return pcminfo;
 
 	/* initialize rcar_pcm_info structure */
-	pcminfo->period      = 0;
-	pcminfo->tran_period = 0;
 	pcminfo->routeinfo   = scu_get_route_info();
 	pcminfo->ss          = ss;
 	pcminfo->pdata       = scu_get_platform_data();
@@ -612,8 +643,7 @@ static snd_pcm_uframes_t scu_pcm_pointer_dma(struct snd_pcm_substream *ss)
 	struct scu_pcm_info *pcminfo = runtime->private_data;
 	snd_pcm_uframes_t position = 0;
 
-	position = runtime->period_size *
-			(pcminfo->tran_period % runtime->periods);
+	position = pcminfo->tran_size % runtime->buffer_size;
 
 	DBG_MSG("\tposition = %d\n", (u32)position);
 

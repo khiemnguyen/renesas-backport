@@ -2,7 +2,7 @@
  * include/sound/sh_scu.h
  *     This file is header file for SCU peripheral.
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2
@@ -2195,8 +2195,8 @@ struct scu_platform_data {
 struct scu_pcm_info {
 	int flag_first;			/* for PCM 1st process */
 	int flag_start;			/* for DMA control */
-	unsigned int period;		/* for buffer control */
-	unsigned int tran_period;	/* A number of transferred period */
+	unsigned int set_size;		/* total frame size to transfer */
+	unsigned int tran_size;		/* total transferred frame size */
 	spinlock_t pcm_lock;		/* for trigger process */
 	struct dma_chan **de_chan;
 	struct sh_dmadesc_slave *de_param;
