@@ -2,7 +2,7 @@
  * sound/soc/sh/scu_pcm.c
  *     This file is ALSA SoC driver for SCU peripheral.
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * This file is based on the sound/soc/sh/siu_pcm.c
  *
@@ -95,7 +95,7 @@ static void scu_dma_callback(struct snd_pcm_substream *ss)
 	FNC_EXIT
 }
 
-static int scu_dmae_req_chan(int sid, struct snd_pcm_substream *ss)
+static int scu_dma_req_chan(int sid, struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	struct sh_dmadesc_slave *param = &pcminfo->de_param[sid];
@@ -133,7 +133,7 @@ static int scu_dmae_req_chan(int sid, struct snd_pcm_substream *ss)
 	return ret;
 }
 
-static void scu_dmae_rel_chan(int sid, struct snd_pcm_substream *ss)
+static void scu_dma_rel_chan(int sid, struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 
@@ -149,7 +149,7 @@ static void scu_dmae_rel_chan(int sid, struct snd_pcm_substream *ss)
 	return;
 }
 
-static int scu_dmae_request(struct snd_pcm_substream *ss)
+static int scu_dma_request(struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
@@ -169,13 +169,13 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 	audmapp_slave_id = scu_find_data(route, pcminfo->pdata->audmapp_slave,
 					pcminfo->pdata->audmapp_slave_num);
 	if (audma_slave_id != -1) {
-		ret = scu_dmae_req_chan(audma_slave_id, ss);
+		ret = scu_dma_req_chan(audma_slave_id, ss);
 		if (ret < 0)
 			return ret;
 	}
 
 	if (audmapp_slave_id != -1) {
-		ret = scu_dmae_req_chan(audmapp_slave_id, ss);
+		ret = scu_dma_req_chan(audmapp_slave_id, ss);
 		if (ret < 0)
 			return ret;
 	}
@@ -184,7 +184,7 @@ static int scu_dmae_request(struct snd_pcm_substream *ss)
 	return ret;
 }
 
-static int scu_dmae_release(struct snd_pcm_substream *ss)
+static int scu_dma_release(struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
@@ -204,16 +204,16 @@ static int scu_dmae_release(struct snd_pcm_substream *ss)
 	audmapp_slave_id = scu_find_data(route, pcminfo->pdata->audmapp_slave,
 					pcminfo->pdata->audmapp_slave_num);
 	if (audma_slave_id != -1)
-		scu_dmae_rel_chan(audma_slave_id, ss);
+		scu_dma_rel_chan(audma_slave_id, ss);
 
 	if (audmapp_slave_id != -1)
-		scu_dmae_rel_chan(audmapp_slave_id, ss);
+		scu_dma_rel_chan(audmapp_slave_id, ss);
 
 	FNC_EXIT
 	return ret;
 }
 
-static int scu_audma_start(int sid, struct snd_pcm_substream *ss)
+static int scu_dma_start(int sid, struct snd_pcm_substream *ss)
 {
 	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE;
 	int buf_pos;
@@ -269,7 +269,7 @@ static int scu_audma_start(int sid, struct snd_pcm_substream *ss)
 	return 0;
 }
 
-static int scu_audma_stop(int sid, struct snd_pcm_substream *ss)
+static int scu_dma_stop(int sid, struct snd_pcm_substream *ss)
 {
 	FNC_ENTRY
 	FNC_EXIT
@@ -312,11 +312,11 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 					pcminfo->pdata->dvc_ch_num);
 
 	/* start dma */
-	scu_audma_start(audma_slave_id, ss);
+	scu_dma_start(audma_slave_id, ss);
 
 	if (first_flag) {
 		/* start dma */
-		scu_audma_start(audma_slave_id, ss);
+		scu_dma_start(audma_slave_id, ss);
 
 		adg_init();
 
@@ -388,7 +388,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 	adg_deinit();
 
 	/* stop dma */
-	scu_audma_stop(audma_slave_id, ss);
+	scu_dma_stop(audma_slave_id, ss);
 
 	FNC_EXIT
 	return;
@@ -417,9 +417,9 @@ static int scu_audio_start(struct snd_pcm_substream *ss)
 
 	FNC_ENTRY
 	/* dma channel request */
-	ret = scu_dmae_request(ss);
+	ret = scu_dma_request(ss);
 	if (ret < 0) {
-		pr_info("scu_dmae_request faild\n");
+		pr_info("scu_dma_request faild\n");
 		FNC_EXIT
 		return ret;
 	}
@@ -449,7 +449,7 @@ static int scu_audio_stop(struct snd_pcm_substream *ss)
 	scu_pcm_stop(ss);
 
 	/* dma channel release */
-	ret = scu_dmae_release(ss);
+	ret = scu_dma_release(ss);
 
 	FNC_EXIT
 	return ret;
