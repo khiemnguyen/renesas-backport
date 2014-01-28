@@ -746,32 +746,32 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFA0)
 	/* SCIFA0 (CN19: DEBUG SERIAL0) */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.0", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.0", "pfc-r8a7791",
 				  "scifa0_data", "scifa0"),
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFA1)
 	/* SCIFA1 (CN20: DEBUG SERIAL1) */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.1", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.1", "pfc-r8a7791",
 				  "scifa1_data", "scifa1"),
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFA2)
 	/* SCIFA2 */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.5", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.5", "pfc-r8a7791",
 				  "scifa2_data", "scifa2"),
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFB0)
 	/* SCIFB0 */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.2", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.2", "pfc-r8a7791",
 				  "scifb0_data", "scifb0"),
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFB1)
 	/* SCIFB1 */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.3", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.3", "pfc-r8a7791",
 				  "scifb1_data", "scifb1"),
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_SCIFB2)
 	/* SCIFB2 */
-	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.4", "pfc-r8a7790",
+	PIN_MAP_MUX_GROUP_DEFAULT("sh-sci.4", "pfc-r8a7791",
 				  "scifb2_data", "scifb2"),
 #endif
 #if defined(CONFIG_SERIAL_SH_SCI_USE_HSCIF1)
