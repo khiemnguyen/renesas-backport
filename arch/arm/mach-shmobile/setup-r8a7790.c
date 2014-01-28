@@ -1318,7 +1318,7 @@ static int __init usbh_init(void)
 	clk_ehci = clk_get(NULL, "usb_fck");
 	if (IS_ERR(clk_ehci)) {
 		ret = PTR_ERR(clk_ehci);
-		goto err_iounmap;
+		goto err_clkget_hs;
 	}
 
 	clk_enable(clk_hs);
@@ -1339,6 +1339,12 @@ static int __init usbh_init(void)
 		/* pci int enable */
 		usbh_pci_int_enable(ch);
 	}
+
+	clk_disable(clk_ehci);
+	clk_disable(clk_hs);
+	clk_put(clk_ehci);
+err_clkget_hs:
+	clk_put(clk_hs);
 err_iounmap:
 	iounmap(hs_usb);
 
