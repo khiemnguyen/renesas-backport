@@ -792,6 +792,11 @@ static const struct pinctrl_map koelsch_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7791",
 				  "intc_irq0", "intc"),
+	/* I2C2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-rcar_h2.2", "pfc-r8a7791",
+				  "i2c2_data", "i2c2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-rcar_h2.2", "pfc-r8a7791",
+				  "i2c2_clk", "i2c2"),
 	/* MSIOF0 */
 	PIN_MAP_MUX_GROUP_DEFAULT("spi_sh_msiof.0", "pfc-r8a7791",
 				  "msiof0_clk", "msiof0"),
