@@ -999,8 +999,11 @@ static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 	 * DR flags
 	 */
 	if (((ssr_status & SCxSR_RDxF(port)) || s->chan_rx) &&
-	    (scr_status & SCSCR_RIE))
+	    (scr_status & SCSCR_RIE)) {
+		if (port->type == PORT_SCIF || port->type == PORT_HSCIF)
+			sci_handle_fifo_overrun(port);
 		ret = sci_rx_interrupt(irq, ptr);
+	}
 
 	/* Error Interrupt */
 	if ((ssr_status & SCxSR_ERRORS(port)) && err_enabled)
