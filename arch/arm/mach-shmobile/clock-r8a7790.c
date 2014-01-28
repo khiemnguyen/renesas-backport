@@ -423,7 +423,6 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("ohci-platform.0", &mstp_clks[MSTP703]),
 	CLKDEV_DEV_ID("ohci-platform.1", &mstp_clks[MSTP703]),
 	CLKDEV_DEV_ID("ohci-platform.2", &mstp_clks[MSTP703]),
-	CLKDEV_CON_ID("ss_usb", &mstp_clks[MSTP328]),
 	CLKDEV_DEV_ID("xhci-hcd.0", &mstp_clks[MSTP328]),
 	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
 	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
