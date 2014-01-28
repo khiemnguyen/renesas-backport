@@ -1306,9 +1306,6 @@ static void __init usbh_pci_int_enable(int ch)
 static int __init usbh_init(void)
 {
 	struct clk *clk_hs, *clk_ehci;
-#ifdef CONFIG_USB_XHCI_HCD
-	struct clk *clk_xhci;
-#endif /* CONFIG_USB_XHCI_HCD */
 	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
 	unsigned int ch = 0;
 	int ret = 0;
@@ -1339,16 +1336,6 @@ static int __init usbh_init(void)
 
 	clk_enable(clk_hs);
 	clk_enable(clk_ehci);
-
-#ifdef CONFIG_USB_XHCI_HCD
-	clk_xhci = clk_get(NULL, "ss_usb");
-	if (IS_ERR(clk_xhci)) {
-		ret = PTR_ERR(clk_xhci);
-		goto err_iounmap;
-	}
-
-	clk_enable(clk_xhci);
-#endif /* CONFIG_USB_XHCI_HCD */
 
 	iowrite32(ugctrl2, hs_usb + 0x184);
 
