@@ -841,6 +841,11 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "intc_irq0", "intc"),
+	/* I2C2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-rcar_h2.2", "pfc-r8a7790",
+				  "i2c2_data", "i2c2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-rcar_h2.2", "pfc-r8a7790",
+				  "i2c2_clk", "i2c2"),
 	/* MMC1 */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
 				  "mmc1_data8", "mmc1"),
