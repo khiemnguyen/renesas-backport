@@ -218,3 +218,13 @@ int vsp1_rwpf_set_selection(struct v4l2_subdev *subdev,
 
 	return 0;
 }
+
+
+int vsp1_rwpf_set_PIconversion(struct v4l2_subdev *sd,
+				struct v4l2_subdev_fh *fh,
+				struct v4l2_subdev_PIconversion *PIconversion)
+{
+	struct vsp1_rwpf *rwpf = to_rwpf(sd);
+	rwpf->PIconversion = PIconversion->PIconversion.PIconversion;
+	return 0;
+}

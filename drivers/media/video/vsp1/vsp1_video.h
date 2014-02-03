@@ -95,6 +95,9 @@ struct vsp1_video_buffer {
 
 	dma_addr_t addr[3];
 	unsigned int length[3];
+
+	bool isBottom;
+	bool topEnd;
 };
 
 static inline struct vsp1_video_buffer *

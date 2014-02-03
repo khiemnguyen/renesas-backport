@@ -501,6 +501,7 @@ vsp1_video_complete_buffer(struct vsp1_video *video)
 	struct vsp1_video_buffer *done;
 	unsigned long flags;
 	unsigned int i;
+	struct vsp1_rwpf *rpf = container_of(video, struct vsp1_rwpf, video);
 
 	spin_lock_irqsave(&video->irqlock, flags);
 
@@ -525,12 +526,14 @@ vsp1_video_complete_buffer(struct vsp1_video *video)
 					struct vsp1_video_buffer, queue);
 
 	spin_unlock_irqrestore(&video->irqlock, flags);
-
-	done->buf.v4l2_buf.sequence = video->sequence++;
-	v4l2_get_timestamp(&done->buf.v4l2_buf.timestamp);
-	for (i = 0; i < done->buf.num_planes; ++i)
-		vb2_set_plane_payload(&done->buf, i, done->length[i]);
-	vb2_buffer_done(&done->buf, VB2_BUF_STATE_DONE);
+	if (rpf->PIconversion == 0 || done->isBottom) {
+		done->buf.v4l2_buf.sequence = video->sequence++;
+		v4l2_get_timestamp(&done->buf.v4l2_buf.timestamp);
+		for (i = 0; i < done->buf.num_planes; ++i)
+			vb2_set_plane_payload(&done->buf, i, done->length[i]);
+		vb2_buffer_done(&done->buf, VB2_BUF_STATE_DONE);
+	} else
+		done->topEnd = true;
 
 	return next;
 }
@@ -600,7 +603,11 @@ vsp1_video_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 	const struct v4l2_pix_format_mplane *format;
 	struct v4l2_pix_format_mplane pix_mp;
 	unsigned int i;
+	struct vsp1_rwpf *rpf = container_of(video, struct vsp1_rwpf, video);
+	int index = 0;
 
+	for (index = 0; index < NUM_TMP; index++)
+		rpf->tmp[index] = NULL;
 	if (fmt) {
 		/* Make sure the format is valid and adjust the sizeimage field
 		 * if needed.
@@ -646,6 +653,48 @@ static int vsp1_video_buffer_prepare(struct vb2_buffer *vb)
 	return 0;
 }
 
+static struct vsp1_video_buffer *vsp1_set_field(struct vsp1_video_buffer *buf,
+			struct vsp1_video *video) {
+	int index = 0;
+	int i = 0;
+	struct vsp1_rwpf *rpf = container_of(video, struct vsp1_rwpf, video);
+	const struct v4l2_pix_format_mplane *format = &rpf->video.format;
+
+	buf->isBottom = true;
+
+	for (index = 0; index < NUM_TMP; index++) {
+		if (rpf->tmp[index] == NULL) {
+			rpf->tmp[index] = kmalloc(
+					sizeof(struct vsp1_video_buffer),
+					GFP_KERNEL);
+			INIT_LIST_HEAD(&rpf->tmp[index]->queue);
+			break;
+		} else if (rpf->tmp[index]->topEnd)
+			break;
+	}
+
+	if (index == NUM_TMP) {
+		dev_warn(video->vsp1->dev, "Warnning. Temp buffers are not enough.\n");
+		return NULL;
+	}
+	rpf->tmp[index]->isBottom = false;
+	rpf->tmp[index]->topEnd = false;
+
+	rpf->tmp[index]->addr[0] = buf->addr[0];
+	buf->addr[0] +=  format->plane_fmt[0].bytesperline;
+	if (buf->buf.num_planes > 1) {
+		rpf->tmp[index]->addr[1] = buf->addr[1];
+		buf->addr[1] +=  format->plane_fmt[1].bytesperline;
+	}
+	if (buf->buf.num_planes > 2) {
+		rpf->tmp[index]->addr[2] = buf->addr[2];
+		buf->addr[2] +=  format->plane_fmt[2].bytesperline;
+	}
+
+	return rpf->tmp[index];
+}
+
+
 static void vsp1_video_buffer_queue(struct vb2_buffer *vb)
 {
 	struct vsp1_video *video = vb2_get_drv_priv(vb->vb2_queue);
@@ -653,9 +702,16 @@ static void vsp1_video_buffer_queue(struct vb2_buffer *vb)
 	struct vsp1_video_buffer *buf = to_vsp1_video_buffer(vb);
 	unsigned long flags;
 	bool empty;
+	struct vsp1_video_buffer *top = NULL;
+	struct vsp1_rwpf *rpf = container_of(video, struct vsp1_rwpf, video);
 
 	spin_lock_irqsave(&video->irqlock, flags);
 	empty = list_empty(&video->irqqueue);
+	if (rpf->PIconversion == 1) {
+		top = vsp1_set_field(buf, video);
+		if (top != NULL)
+			list_add_tail(&top->queue, &video->irqqueue);
+	}
 	list_add_tail(&buf->queue, &video->irqqueue);
 	spin_unlock_irqrestore(&video->irqlock, flags);
 
@@ -664,7 +720,10 @@ static void vsp1_video_buffer_queue(struct vb2_buffer *vb)
 
 	spin_lock_irqsave(&pipe->irqlock, flags);
 
-	video->ops->queue(video, buf);
+	if (rpf->PIconversion == 1 && top != NULL)
+		video->ops->queue(video, top);
+	else
+		video->ops->queue(video, buf);
 	pipe->buffers_ready |= 1 << video->pipe_index;
 
 	if (vb2_is_streaming(&video->queue) &&
@@ -724,6 +783,8 @@ static int vsp1_video_stop_streaming(struct vb2_queue *vq)
 	struct vsp1_pipeline *pipe = to_vsp1_pipeline(&video->video.entity);
 	unsigned long flags;
 	int ret;
+	struct vsp1_rwpf *rpf = container_of(video, struct vsp1_rwpf, video);
+	int index = 0;
 
 	mutex_lock(&pipe->lock);
 	if (--pipe->stream_count == 0) {
@@ -741,6 +802,13 @@ static int vsp1_video_stop_streaming(struct vb2_queue *vq)
 	spin_lock_irqsave(&video->irqlock, flags);
 	INIT_LIST_HEAD(&video->irqqueue);
 	spin_unlock_irqrestore(&video->irqlock, flags);
+
+	for (index = 0; index < NUM_TMP; index++) {
+		if (rpf->tmp[index] != NULL) {
+			kfree(rpf->tmp[index]);
+			rpf->tmp[index] = NULL;
+		}
+	}
 
 	return 0;
 }
