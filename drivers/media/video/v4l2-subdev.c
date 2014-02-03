@@ -278,6 +278,10 @@ static long subdev_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 	case VIDIOC_SUBDEV_S_FRAME_INTERVAL:
 		return v4l2_subdev_call(sd, video, s_frame_interval, arg);
 
+	case VIDIOC_SUBDEV_S_PIconversion:
+		return v4l2_subdev_call(sd, pad, s_PIconversion,
+					 subdev_fh, arg);
+
 	case VIDIOC_SUBDEV_ENUM_FRAME_INTERVAL: {
 		struct v4l2_subdev_frame_interval_enum *fie = arg;
 

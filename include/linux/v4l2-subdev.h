@@ -105,6 +105,17 @@ struct v4l2_subdev_frame_interval {
 };
 
 /**
+ * struct v4l2_subdev_PIconversion - Pad-level PIconversion
+ * @pad: pad number, as reported by the media API
+ * @PIconversion: PIconversion able/disable
+ */
+struct v4l2_subdev_PIconversion {
+	__u32 pad;
+	struct v4l2_PIconversion PIconversion;
+	__u32 reserved[9];
+};
+
+/**
  * struct v4l2_subdev_frame_interval_enum - Frame interval enumeration
  * @pad: pad number, as reported by the media API
  * @index: frame interval index during enumeration
@@ -178,5 +189,7 @@ struct v4l2_subdev_selection {
 	_IOWR('V', 61, struct v4l2_subdev_selection)
 #define VIDIOC_SUBDEV_S_SELECTION \
 	_IOWR('V', 62, struct v4l2_subdev_selection)
+#define VIDIOC_SUBDEV_S_PICONVERSION \
+	_IOWR('V', 63, struct v4l2_subdev_PIconversion)
 
 #endif
