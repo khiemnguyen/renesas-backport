@@ -528,11 +528,13 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50 |
 				MMC_CAP_UHS_SDR104 |
+				MMC_CAP_HW_RESET |
 				MMC_CAP_CMD23,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
+				TMIO_MMC_HAS_UHS_SCC |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
 				TMIO_MMC_CLK_ACTUAL |
