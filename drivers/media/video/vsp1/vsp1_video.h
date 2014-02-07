@@ -1,7 +1,7 @@
 /*
  * vsp1_video.h  --  R-Car VSP1 Video Node
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -95,6 +95,9 @@ struct vsp1_video_buffer {
 
 	dma_addr_t addr[3];
 	unsigned int length[3];
+
+	bool isBottom;
+	bool topEnd;
 };
 
 static inline struct vsp1_video_buffer *

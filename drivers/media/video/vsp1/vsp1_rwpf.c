@@ -1,7 +1,7 @@
 /*
  * vsp1_rwpf.c  --  R-Car VSP1 Read and Write Pixel Formatters
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -216,5 +216,15 @@ int vsp1_rwpf_set_selection(struct v4l2_subdev *subdev,
 	format->width = crop->width;
 	format->height = crop->height;
 
+	return 0;
+}
+
+
+int vsp1_rwpf_set_PIconversion(struct v4l2_subdev *sd,
+				struct v4l2_subdev_fh *fh,
+				struct v4l2_subdev_PIconversion *PIconversion)
+{
+	struct vsp1_rwpf *rwpf = to_rwpf(sd);
+	rwpf->PIconversion = PIconversion->PIconversion.PIconversion;
 	return 0;
 }

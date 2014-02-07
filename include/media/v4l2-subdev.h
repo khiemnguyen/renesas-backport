@@ -481,6 +481,8 @@ struct v4l2_subdev_pad_ops {
 			     struct v4l2_subdev_format *source_fmt,
 			     struct v4l2_subdev_format *sink_fmt);
 #endif /* CONFIG_MEDIA_CONTROLLER */
+	int (*s_PIconversion)(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh,
+				struct v4l2_subdev_PIconversion *PIconversion);
 };
 
 struct v4l2_subdev_ops {

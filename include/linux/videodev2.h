@@ -236,6 +236,10 @@ struct v4l2_fract {
 	__u32   denominator;
 };
 
+struct v4l2_PIconversion {
+	__u32   PIconversion;
+};
+
 /**
   * struct v4l2_capability - Describes V4L2 device caps returned by VIDIOC_QUERYCAP
   *

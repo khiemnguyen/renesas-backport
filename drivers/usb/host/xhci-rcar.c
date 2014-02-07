@@ -2,7 +2,7 @@
  * drivers/usb/host/xhci-rcar.c
  *  xHCI host controller driver platform Bus Glue.
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * This file is based on the drivers/usb/host/xhci-plat.c
  *
@@ -17,6 +17,7 @@
  */
 
 #include <linux/platform_device.h>
+#include <linux/pm_runtime.h>
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/firmware.h>
@@ -211,6 +212,9 @@ static int xhci_plat_probe(struct platform_device *pdev)
 		goto release_mem_region;
 	}
 
+	pm_runtime_enable(&pdev->dev);
+	pm_runtime_get_sync(&pdev->dev);
+
 	/* download xHCI Firmware */
 	ret = rcar_xhci_download_fw(pdev, hcd);
 	if (ret) {
@@ -251,6 +255,8 @@ dealloc_usb2_hcd:
 	usb_remove_hcd(hcd);
 
 unmap_registers:
+	pm_runtime_put_sync(&pdev->dev);
+	pm_runtime_disable(&pdev->dev);
 	iounmap(hcd->regs);
 
 release_mem_region:
@@ -271,6 +277,8 @@ static int xhci_plat_remove(struct platform_device *dev)
 	usb_put_hcd(xhci->shared_hcd);
 
 	usb_remove_hcd(hcd);
+	pm_runtime_put_sync(&dev->dev);
+	pm_runtime_disable(&dev->dev);
 	iounmap(hcd->regs);
 	usb_put_hcd(hcd);
 	kfree(xhci);
@@ -278,11 +286,34 @@ static int xhci_plat_remove(struct platform_device *dev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+
+static int xhci_plat_suspend(struct device *dev)
+{
+	return 0;
+}
+
+static int xhci_plat_resume(struct device *dev)
+{
+	return 0;
+}
+
+#else /* !CONFIG_PM */
+#define xhci_plat_suspend	NULL
+#define xhci_plat_resume	NULL
+#endif /* CONFIG_PM */
+
+static const struct dev_pm_ops xhci_plat_pm_ops = {
+	.suspend	= xhci_plat_suspend,
+	.resume		= xhci_plat_resume,
+};
+
 static struct platform_driver usb_xhci_driver = {
 	.probe	= xhci_plat_probe,
 	.remove	= xhci_plat_remove,
 	.driver	= {
 		.name = "xhci-hcd",
+		.pm	= &xhci_plat_pm_ops,
 	},
 };
 MODULE_ALIAS("platform:xhci-hcd");

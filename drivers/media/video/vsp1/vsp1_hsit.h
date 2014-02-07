@@ -1,7 +1,7 @@
 /*
  * vsp1_hsit.h  --  R-Car VSP1 Hue Saturation value (Inverse) Transform
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *

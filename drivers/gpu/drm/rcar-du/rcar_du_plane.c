@@ -1,7 +1,7 @@
 /*
  * rcar_du_plane.c  --  R-Car Display Unit Planes
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -53,9 +53,9 @@ int rcar_du_vsp1_sources_init(struct rcar_du_device *rcdu)
 		enum rcar_du_plane_source source;
 		unsigned int planes;
 	} sources[] = {
-		{ RCAR_DU_PLANE_VSPD0, BIT(RCAR_DU_NUM_KMS_PLANES - 1) },
-		{ RCAR_DU_PLANE_VSPD1, BIT(RCAR_DU_NUM_KMS_PLANES - 2) |
-				       BIT(2 * RCAR_DU_NUM_KMS_PLANES - 1) },
+		{ RCAR_DU_PLANE_VSPD0, BIT(RCAR_DU01_NUM_KMS_PLANES - 1) },
+		{ RCAR_DU_PLANE_VSPD1, BIT(RCAR_DU01_NUM_KMS_PLANES - 2) |
+				       BIT(2 * RCAR_DU2_NUM_KMS_PLANES - 2) },
 	};
 	unsigned int i;
 
@@ -207,6 +207,7 @@ void rcar_du_plane_update_base(struct rcar_du_plane *plane)
 {
 	struct rcar_du_group *rgrp = plane->group;
 	unsigned int index = plane->hwindex;
+	u32 mwr;
 
 	/* The Y position is expressed in raster line units and must be doubled
 	 * for 32bpp formats, according to the R8A7790 datasheet. No mention of
@@ -231,6 +232,16 @@ void rcar_du_plane_update_base(struct rcar_du_plane *plane)
 				    (plane->format->bpp == 16 ? 2 : 1) / 2);
 		rcar_du_plane_write(rgrp, index, PnDSA0R, plane->dma[1]);
 	}
+	/* Memory pitch (expressed in pixels) */
+	if (plane->format->planes == 2)
+		mwr = plane->pitch;
+	else
+		mwr = plane->pitch * 8 / plane->format->bpp;
+
+	if ((plane->interlace_flag) && (plane->format->bpp == 32))
+		rcar_du_plane_write(rgrp, index, PnMWR, mwr * 2);
+	else
+		rcar_du_plane_write(rgrp, index, PnMWR, mwr);
 }
 
 void rcar_du_plane_compute_base(struct rcar_du_plane *plane,
@@ -654,10 +665,16 @@ int rcar_du_planes_register(struct rcar_du_group *rgrp)
 	unsigned int crtcs;
 	unsigned int i;
 	int ret;
+	unsigned int plane_num;
+
+	if (rgrp->index == 1)
+		plane_num = RCAR_DU2_NUM_KMS_PLANES;
+	else
+		plane_num = RCAR_DU01_NUM_KMS_PLANES;
 
 	crtcs = ((1 << rcdu->num_crtcs) - 1) & (3 << (2 * rgrp->index));
 
-	for (i = 0; i < RCAR_DU_NUM_KMS_PLANES; ++i) {
+	for (i = 0; i < plane_num; ++i) {
 		struct rcar_du_kms_plane *plane;
 
 		plane = devm_kzalloc(rcdu->dev, sizeof(*plane), GFP_KERNEL);

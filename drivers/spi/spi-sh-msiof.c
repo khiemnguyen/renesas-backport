@@ -1,7 +1,7 @@
 /*
  * SuperH MSIOF SPI Master Interface
  *
- * Copyright (c) 2013 Renesas Electronics Corporation
+ * Copyright (c) 2013-2014 Renesas Electronics Corporation
  * Copyright (c) 2009 Magnus Damm
  *
  * This program is free software; you can redistribute it and/or modify
@@ -833,7 +833,7 @@ static int sh_msiof_spi_txrx_once(struct sh_msiof_spi_priv *p,
 				  int words, int bits)
 {
 	int fifo_shift;
-	int ret;
+	int ret = 0;
 
 	/* limit maximum word transfer to rx/tx fifo size */
 	if (tx_buf)

@@ -255,7 +255,7 @@ EXPORT_SYMBOL(drm_edid_is_valid);
  * Try to fetch EDID information by calling i2c driver function.
  */
 static int
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 drm_do_probe_ddc_edid(void *data, unsigned char *buf,
 		      int block, int len)
 #else
@@ -263,7 +263,7 @@ drm_do_probe_ddc_edid(struct i2c_adapter *adapter, unsigned char *buf,
 			int block, int len)
 #endif
 {
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 	struct i2c_adapter *adapter = data;
 #endif
 	unsigned char start = block * EDID_LENGTH;
@@ -321,7 +321,7 @@ static bool drm_edid_is_zero(u8 *in_edid, int length)
 	return true;
 }
 
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 struct edid *drm_do_get_edid(struct drm_connector *connector,
 	int (*get_edid_block)(void *, unsigned char *buf, int, int), void *data)
 #else
@@ -338,7 +338,7 @@ drm_do_get_edid(struct drm_connector *connector, struct i2c_adapter *adapter)
 
 	/* base block fetch */
 	for (i = 0; i < 4; i++) {
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 		if (get_edid_block(data, block, 0, EDID_LENGTH))
 #else
 		if (drm_do_probe_ddc_edid(adapter, block, 0, EDID_LENGTH))
@@ -356,7 +356,7 @@ drm_do_get_edid(struct drm_connector *connector, struct i2c_adapter *adapter)
 
 	/* if there's no extensions, we're done */
 	if (block[0x7e] == 0)
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 		return (struct edid *)block;
 #else
 		return block;
@@ -368,7 +368,7 @@ drm_do_get_edid(struct drm_connector *connector, struct i2c_adapter *adapter)
 
 	for (j = 1; j <= block[0x7e]; j++) {
 		for (i = 0; i < 4; i++) {
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 			if (get_edid_block(data,
 				  block + (valid_extensions + 1) * EDID_LENGTH,
 				  j, EDID_LENGTH))
@@ -398,7 +398,7 @@ drm_do_get_edid(struct drm_connector *connector, struct i2c_adapter *adapter)
 		block = new;
 	}
 
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 	return (struct edid *)block;
 #else
 	return block;
@@ -414,7 +414,7 @@ out:
 	kfree(block);
 	return NULL;
 }
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 EXPORT_SYMBOL_GPL(drm_do_get_edid);
 #endif
 
@@ -449,7 +449,7 @@ struct edid *drm_get_edid(struct drm_connector *connector,
 	struct edid *edid = NULL;
 
 	if (drm_probe_ddc(adapter))
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 		edid = drm_do_get_edid(connector,
 				 drm_do_probe_ddc_edid, adapter);
 #else
@@ -929,7 +929,7 @@ static struct drm_display_mode *drm_mode_detailed(struct drm_device *dev,
 	unsigned vblank = (pt->vactive_vblank_hi & 0xf) << 8 | pt->vblank_lo;
 	unsigned hsync_offset = (pt->hsync_vsync_offset_pulse_width_hi & 0xc0) << 2 | pt->hsync_offset_lo;
 	unsigned hsync_pulse_width = (pt->hsync_vsync_offset_pulse_width_hi & 0x30) << 4 | pt->hsync_pulse_width_lo;
-	unsigned vsync_offset = (pt->hsync_vsync_offset_pulse_width_hi & 0xc) >> 2 | pt->vsync_offset_pulse_width_lo >> 4;
+	unsigned vsync_offset = (pt->hsync_vsync_offset_pulse_width_hi & 0xc) << 2 | pt->vsync_offset_pulse_width_lo >> 4;
 	unsigned vsync_pulse_width = (pt->hsync_vsync_offset_pulse_width_hi & 0x3) << 4 | (pt->vsync_offset_pulse_width_lo & 0xf);
 
 	/* ignore tiny modes */
@@ -1010,6 +1010,7 @@ set_size:
 	}
 
 	mode->type = DRM_MODE_TYPE_DRIVER;
+	mode->vrefresh = drm_mode_vrefresh(mode);
 	drm_mode_set_name(mode);
 
 	return mode;
@@ -2056,7 +2057,8 @@ int drm_add_edid_modes(struct drm_connector *connector, struct edid *edid)
 	num_modes += add_cvt_modes(connector, edid);
 	num_modes += add_standard_modes(connector, edid);
 	num_modes += add_established_modes(connector, edid);
-	num_modes += add_inferred_modes(connector, edid);
+	if (edid->features & DRM_EDID_FEATURE_DEFAULT_GTF)
+		num_modes += add_inferred_modes(connector, edid);
 	num_modes += add_cea_modes(connector, edid);
 
 	if (quirks & (EDID_QUIRK_PREFER_LARGE_60 | EDID_QUIRK_PREFER_LARGE_75))

@@ -1380,6 +1380,11 @@ MODULE_LICENSE ("GPL");
 #define PLATFORM_DRIVER		ehci_ls1x_driver
 #endif
 
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
+#include "ehci-rcar.c"
+#define PLATFORM_DRIVER		ehci_platform_driver
+#endif
+
 #ifdef CONFIG_USB_EHCI_HCD_PLATFORM
 #include "ehci-platform.c"
 #define PLATFORM_DRIVER		ehci_platform_driver

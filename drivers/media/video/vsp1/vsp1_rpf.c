@@ -1,7 +1,7 @@
 /*
  * vsp1_rpf.c  --  R-Car VSP1 Read Pixel Formatter
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -50,7 +50,9 @@ static int rpf_s_stream(struct v4l2_subdev *subdev, int enable)
 	const struct v4l2_rect *crop = &rpf->crop;
 	u32 pstride;
 	u32 infmt;
-
+	u32 stride_Y = 0;
+	u32 stride_C = 0;
+	u32 height = 0;
 	if (!enable)
 		return 0;
 
@@ -60,22 +62,31 @@ static int rpf_s_stream(struct v4l2_subdev *subdev, int enable)
 	 * left corner in the plane buffer. Only two offsets are needed, as
 	 * planes 2 and 3 always have identical strides.
 	 */
+	stride_Y = format->plane_fmt[0].bytesperline;
+	height = crop->height;
+
+	if (format->num_planes > 1)
+		stride_C = format->plane_fmt[1].bytesperline;
+
+	if (rpf->PIconversion == 1) {
+		stride_Y = stride_Y * 2;
+		stride_C = stride_C * 2;
+		height = height / 2;
+	}
 	vsp1_rpf_write(rpf, VI6_RPF_SRC_BSIZE,
 		       (crop->width << VI6_RPF_SRC_BSIZE_BHSIZE_SHIFT) |
-		       (crop->height << VI6_RPF_SRC_BSIZE_BVSIZE_SHIFT));
+		       (height << VI6_RPF_SRC_BSIZE_BVSIZE_SHIFT));
 	vsp1_rpf_write(rpf, VI6_RPF_SRC_ESIZE,
 		       (crop->width << VI6_RPF_SRC_ESIZE_EHSIZE_SHIFT) |
-		       (crop->height << VI6_RPF_SRC_ESIZE_EVSIZE_SHIFT));
+		       (height << VI6_RPF_SRC_ESIZE_EVSIZE_SHIFT));
 
-	rpf->offsets[0] = crop->top * format->plane_fmt[0].bytesperline
+	rpf->offsets[0] = crop->top * stride_Y
 			+ crop->left * fmtinfo->bpp[0] / 8;
-	pstride = format->plane_fmt[0].bytesperline
-		<< VI6_RPF_SRCM_PSTRIDE_Y_SHIFT;
+	pstride = stride_Y << VI6_RPF_SRCM_PSTRIDE_Y_SHIFT;
 	if (format->num_planes > 1) {
-		rpf->offsets[1] = crop->top * format->plane_fmt[1].bytesperline
+		rpf->offsets[1] = crop->top * stride_C
 				+ crop->left * fmtinfo->bpp[1] / 8;
-		pstride |= format->plane_fmt[1].bytesperline
-			<< VI6_RPF_SRCM_PSTRIDE_C_SHIFT;
+		pstride |= stride_C << VI6_RPF_SRCM_PSTRIDE_C_SHIFT;
 	}
 
 	vsp1_rpf_write(rpf, VI6_RPF_SRCM_PSTRIDE, pstride);
@@ -126,6 +137,7 @@ static struct v4l2_subdev_pad_ops rpf_pad_ops = {
 	.set_fmt = vsp1_rwpf_set_format,
 	.get_selection = vsp1_rwpf_get_selection,
 	.set_selection = vsp1_rwpf_set_selection,
+	.s_PIconversion = vsp1_rwpf_set_PIconversion,
 };
 
 static struct v4l2_subdev_ops rpf_ops = {
@@ -181,6 +193,8 @@ struct vsp1_rwpf *vsp1_rpf_create(struct vsp1_device *vsp1, unsigned int index)
 	ret = vsp1_entity_init(vsp1, &rpf->entity, 2);
 	if (ret < 0)
 		return ERR_PTR(ret);
+
+	rpf->PIconversion = 0;
 
 	/* Initialize the V4L2 subdev. */
 	subdev = &rpf->entity.subdev;

@@ -1,7 +1,7 @@
 /*
  * r8a7791 processor support
  *
- * Copyright (C) 2013  Renesas Electronics Corporation
+ * Copyright (C) 2013-2014  Renesas Electronics Corporation
  * Copyright (C) 2013  Renesas Solutions Corp.
  * Copyright (C) 2013  Magnus Damm
  *
@@ -734,7 +734,6 @@ static const struct resource r8a7791_i2c5_resources[] __initconst = {
 static const struct i2c_rcar_platform_data				\
 r8a7791_i2c##idx##_platform_data __initconst = {			\
 	.bus_speed = 400000,						\
-	.icccr_cdf_width = I2C_RCAR_ICCCR_IS_3BIT,			\
 };									\
 
 R8A7791_I2C(0);
@@ -745,7 +744,7 @@ R8A7791_I2C(4);
 R8A7791_I2C(5);
 
 #define r8a7791_register_i2c(idx)					\
-	platform_device_register_resndata(&platform_bus, "i2c-rcar", idx, \
+	platform_device_register_resndata(&platform_bus, "i2c-rcar_h2", idx, \
 		r8a7791_i2c##idx##_resources,				\
 		ARRAY_SIZE(r8a7791_i2c##idx##_resources),		\
 		&r8a7791_i2c##idx##_platform_data,			\
@@ -1307,9 +1306,6 @@ static void __init usbh_pci_int_enable(int ch)
 static int __init usbh_init(void)
 {
 	struct clk *clk_hs, *clk_ehci;
-#ifdef CONFIG_USB_XHCI_HCD
-	struct clk *clk_xhci;
-#endif /* CONFIG_USB_XHCI_HCD */
 	void __iomem *hs_usb = ioremap_nocache(0xE6590000, 0x1ff);
 	unsigned int ch = 0;
 	int ret = 0;
@@ -1335,21 +1331,11 @@ static int __init usbh_init(void)
 	clk_ehci = clk_get(NULL, "usb_fck");
 	if (IS_ERR(clk_ehci)) {
 		ret = PTR_ERR(clk_ehci);
-		goto err_iounmap;
+		goto err_clkget_hs;
 	}
 
 	clk_enable(clk_hs);
 	clk_enable(clk_ehci);
-
-#ifdef CONFIG_USB_XHCI_HCD
-	clk_xhci = clk_get(NULL, "ss_usb");
-	if (IS_ERR(clk_xhci)) {
-		ret = PTR_ERR(clk_xhci);
-		goto err_iounmap;
-	}
-
-	clk_enable(clk_xhci);
-#endif /* CONFIG_USB_XHCI_HCD */
 
 	iowrite32(ugctrl2, hs_usb + 0x184);
 
@@ -1368,6 +1354,12 @@ static int __init usbh_init(void)
 			usbh_pci_int_enable(ch);
 		}
 	}
+
+	clk_disable(clk_ehci);
+	clk_disable(clk_hs);
+	clk_put(clk_ehci);
+err_clkget_hs:
+	clk_put(clk_hs);
 err_iounmap:
 	iounmap(hs_usb);
 

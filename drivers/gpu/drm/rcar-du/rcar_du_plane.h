@@ -1,7 +1,7 @@
 /*
  * rcar_du_plane.h  --  R-Car Display Unit Planes
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -29,7 +29,8 @@ struct rcar_du_group;
  * 9 software planes (one for each KMS planes and one for each CRTC).
  */
 
-#define RCAR_DU_NUM_KMS_PLANES		7
+#define RCAR_DU01_NUM_KMS_PLANES	6
+#define RCAR_DU2_NUM_KMS_PLANES		7
 #define RCAR_DU_NUM_HW_PLANES		8
 #define RCAR_DU_NUM_SW_PLANES		9
 

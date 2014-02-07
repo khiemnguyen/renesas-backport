@@ -1,7 +1,7 @@
 /*
  * rcar_du_kms.c  --  R-Car Display Unit Mode Setting
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -267,7 +267,7 @@ int rcar_du_modeset_init(struct rcar_du_device *rcdu)
 			&rcdu->info->routes[renc->output];
 
 		encoder->possible_crtcs = route->possible_crtcs;
-		encoder->possible_clones = (1 << rcdu->pdata->num_encoders) - 1;
+		encoder->possible_clones = route->possible_clones;
 	}
 
 	/* Now that the CRTCs have been initialized register the planes. */

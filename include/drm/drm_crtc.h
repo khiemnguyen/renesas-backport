@@ -627,7 +627,7 @@ struct drm_connector {
 	int audio_latency[2];
 	int null_edid_counter; /* needed to workaround some HW bugs where we get all 0s */
 	unsigned bad_edid_counter;
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 	int cmd_xres, cmd_yres;
 #endif
 };
@@ -1133,7 +1133,7 @@ extern int drm_add_modes_noedid(struct drm_connector *connector,
 extern uint8_t drm_mode_cea_vic(const struct drm_display_mode *mode);
 
 extern int drm_edid_header_is_valid(const u8 *raw_edid);
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 extern struct edid *drm_do_get_edid(struct drm_connector *connector,
 int (*get_edid_block)(void *, unsigned char *buf, int, int), void *data);
 #endif

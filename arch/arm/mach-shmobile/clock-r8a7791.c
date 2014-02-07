@@ -381,8 +381,12 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("hs_usb", &mstp_clks[MSTP704]), /* HSUSB */
 	CLKDEV_DEV_ID("r8a66597_udc.0", &mstp_clks[MSTP704]),
 	CLKDEV_CON_ID("usb_fck", &mstp_clks[MSTP703]), /* ECHI */
+	CLKDEV_DEV_ID("ehci-platform.0", &mstp_clks[MSTP703]),
+	CLKDEV_DEV_ID("ehci-platform.1", &mstp_clks[MSTP703]),
+	CLKDEV_DEV_ID("ohci-platform.0", &mstp_clks[MSTP703]),
+	CLKDEV_DEV_ID("ohci-platform.1", &mstp_clks[MSTP703]),
 	CLKDEV_CON_ID("usb0_dmac", &mstp_clks[MSTP330]),
-	CLKDEV_CON_ID("ss_usb", &mstp_clks[MSTP328]), /* SSUSB */
+	CLKDEV_DEV_ID("xhci-hcd.0", &mstp_clks[MSTP328]), /* SSUSB */
 	CLKDEV_CON_ID("audmac_lo", &mstp_clks[MSTP502]),
 	CLKDEV_CON_ID("audmac_up", &mstp_clks[MSTP501]),
 	CLKDEV_CON_ID("sysdmac_lo", &mstp_clks[MSTP219]),

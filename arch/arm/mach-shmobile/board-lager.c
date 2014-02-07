@@ -1,6 +1,7 @@
 /*
  * Lager board support
  *
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (C) 2013  Renesas Solutions Corp.
  * Copyright (C) 2013  Magnus Damm
  *
@@ -49,11 +50,10 @@
 
 /* DU */
 static struct rcar_du_encoder_data lager_du_encoders[] = {
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 	{
 		.type = RCAR_DU_ENCODER_HDMI,
 		.output = RCAR_DU_OUTPUT_LVDS0,
-		.exclk = 148500000,
 	}, {
 		.type = RCAR_DU_ENCODER_NONE,
 		.output = RCAR_DU_OUTPUT_LVDS1,
@@ -73,17 +73,14 @@ static struct rcar_du_encoder_data lager_du_encoders[] = {
 				.flags = 0,
 			},
 		},
-		.exclk = 148500000,
 	}, {
 		.type = RCAR_DU_ENCODER_VGA,
 		.output = RCAR_DU_OUTPUT_DPAD0,
-		.exclk = 0,
 	},
 #else
 	{
 		.type = RCAR_DU_ENCODER_VGA,
 		.output = RCAR_DU_OUTPUT_DPAD0,
-		.exclk = 148500000,
 	}, {
 		.type = RCAR_DU_ENCODER_NONE,
 		.output = RCAR_DU_OUTPUT_LVDS1,
@@ -103,14 +100,27 @@ static struct rcar_du_encoder_data lager_du_encoders[] = {
 				.flags = 0,
 			},
 		},
-		.exclk = 148500000,
 	},
 #endif
+};
+
+static struct rcar_du_crtc_data lager_du_crtcs[] = {
+	{
+		.exclk = 148500000,
+	},
+	{
+		.exclk = 148500000,
+	},
+	{
+		.exclk = 0,
+	},
 };
 
 static const struct rcar_du_platform_data lager_du_pdata __initconst = {
 	.encoders = lager_du_encoders,
 	.num_encoders = ARRAY_SIZE(lager_du_encoders),
+	.crtcs = lager_du_crtcs,
+	.num_crtcs = ARRAY_SIZE(lager_du_crtcs),
 };
 
 static const struct resource du_resources[] __initconst = {
@@ -557,11 +567,13 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50 |
 				MMC_CAP_UHS_SDR104 |
+				MMC_CAP_HW_RESET |
 				MMC_CAP_CMD23,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
+				TMIO_MMC_HAS_UHS_SCC |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
 				TMIO_MMC_CLK_ACTUAL |
@@ -579,11 +591,13 @@ static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50 |
 				MMC_CAP_UHS_SDR104 |
+				MMC_CAP_HW_RESET |
 				MMC_CAP_CMD23,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
 	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
 				TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
+				TMIO_MMC_HAS_UHS_SCC |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
 				TMIO_MMC_NO_CTL_RESET_SDIO |
 				TMIO_MMC_CLK_ACTUAL |
@@ -831,6 +845,11 @@ static const struct pinctrl_map lager_pinctrl_map[] = {
 				  "eth_rmii", "eth"),
 	PIN_MAP_MUX_GROUP_DEFAULT("r8a779x-ether", "pfc-r8a7790",
 				  "intc_irq0", "intc"),
+	/* I2C2 */
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-rcar_h2.2", "pfc-r8a7790",
+				  "i2c2_data", "i2c2"),
+	PIN_MAP_MUX_GROUP_DEFAULT("i2c-rcar_h2.2", "pfc-r8a7790",
+				  "i2c2_clk", "i2c2"),
 	/* MMC1 */
 	PIN_MAP_MUX_GROUP_DEFAULT("sh_mmcif.1", "pfc-r8a7790",
 				  "mmc1_data8", "mmc1"),

@@ -1,7 +1,7 @@
 /*
  * linux/drivers/mmc/host/tmio_mmc_pio.c
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (C) 2011 Guennadi Liakhovetski
  * Copyright (C) 2007 Ian Molton
  * Copyright (C) 2004 Ian Molton
@@ -329,8 +329,10 @@ static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	pdata->init_tuning(host, &num);
 
 	tap = kmalloc(num * 2, GFP_KERNEL);
-	if (tap == NULL)
-		return -ENOMEM;
+	if (tap == NULL) {
+		ret = -ENOMEM;
+		goto err_tap;
+	}
 
 	data_buf = kmalloc(64, GFP_KERNEL);
 	if (data_buf == NULL) {
@@ -425,6 +427,9 @@ out:
 	kfree(data_buf);
 err_data:
 	kfree(tap);
+err_tap:
+	if (ret < 0 && pdata->hw_reset)
+		pdata->hw_reset(host);
 
 	return ret;
 
@@ -1106,6 +1111,17 @@ static int tmio_mmc_start_signal_voltage_switch(struct mmc_host *mmc,
 	return 0;
 }
 
+static void tmio_mmc_hw_reset(struct mmc_host *mmc)
+{
+	struct tmio_mmc_host *host = mmc_priv(mmc);
+	struct tmio_mmc_data *pdata = host->pdata;
+
+	if (pdata->hw_reset)
+		pdata->hw_reset(host);
+
+	return;
+}
+
 static const struct mmc_host_ops tmio_mmc_ops = {
 	.request	= tmio_mmc_request,
 	.set_ios	= tmio_mmc_set_ios,
@@ -1115,6 +1131,7 @@ static const struct mmc_host_ops tmio_mmc_ops = {
 	.start_signal_voltage_switch
 		= tmio_mmc_start_signal_voltage_switch,
 	.execute_tuning = tmio_mmc_execute_tuning,
+	.hw_reset	= tmio_mmc_hw_reset,
 };
 
 static void tmio_mmc_init_ocr(struct tmio_mmc_host *host)

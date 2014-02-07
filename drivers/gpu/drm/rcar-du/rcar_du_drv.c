@@ -1,7 +1,7 @@
 /*
  * rcar_du_drv.c  --  R-Car Display Unit DRM driver
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -280,19 +280,28 @@ static const struct rcar_du_device_info rcar_du_r8a7790_info = {
 		 * (currently unsupported) TCON output.
 		 */
 		[RCAR_DU_OUTPUT_DPAD0] = {
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 			.possible_crtcs = BIT(2) | BIT(1),
+			.possible_clones = BIT(1),
 #else
 			.possible_crtcs = BIT(2) | BIT(1) | BIT(0),
+			.possible_clones = 0,
 #endif
 			.encoder_type = DRM_MODE_ENCODER_NONE,
 		},
 		[RCAR_DU_OUTPUT_LVDS0] = {
 			.possible_crtcs = BIT(0),
+			.possible_clones = 0,
 			.encoder_type = DRM_MODE_ENCODER_LVDS,
 		},
 		[RCAR_DU_OUTPUT_LVDS1] = {
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 			.possible_crtcs = BIT(2) | BIT(1),
+			.possible_clones = BIT(2),
+#else
+			.possible_crtcs = BIT(2) | BIT(1),
+			.possible_clones = BIT(0),
+#endif
 			.encoder_type = DRM_MODE_ENCODER_LVDS,
 		},
 	},
@@ -315,10 +324,12 @@ static const struct rcar_du_device_info rcar_du_r8a7791_info = {
 		[RCAR_DU_OUTPUT_LVDS0] = {
 			.possible_crtcs = BIT(0),
 			.encoder_type = DRM_MODE_ENCODER_LVDS,
+			.possible_clones = 0,
 		},
 		[RCAR_DU_OUTPUT_DPAD0] = {
 			.possible_crtcs = BIT(1),
 			.encoder_type = RCAR_DU_ENCODER_HDMI,
+			.possible_clones = 0,
 		},
 	},
 	.num_lvds = 1,

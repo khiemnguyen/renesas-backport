@@ -1,7 +1,7 @@
 /*
  * vsp1_rwpf.h  --  R-Car VSP1 Read and Write Pixel Formatters
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -23,6 +23,8 @@
 #define RWPF_PAD_SINK				0
 #define RWPF_PAD_SOURCE				1
 
+#define NUM_TMP 20
+
 struct vsp1_rwpf {
 	struct vsp1_entity entity;
 	struct vsp1_video video;
@@ -33,6 +35,8 @@ struct vsp1_rwpf {
 	struct v4l2_rect crop;
 
 	unsigned int offsets[2];
+	int PIconversion;
+	struct vsp1_video_buffer *tmp[NUM_TMP];
 };
 
 static inline struct vsp1_rwpf *to_rwpf(struct v4l2_subdev *subdev)
@@ -59,5 +63,7 @@ int vsp1_rwpf_get_selection(struct v4l2_subdev *subdev,
 int vsp1_rwpf_set_selection(struct v4l2_subdev *subdev,
 			    struct v4l2_subdev_fh *fh,
 			    struct v4l2_subdev_selection *sel);
-
+int vsp1_rwpf_set_PIconversion(struct v4l2_subdev *sd,
+				struct v4l2_subdev_fh *fh,
+				struct v4l2_subdev_PIconversion *PIconversion);
 #endif /* __VSP1_RWPF_H__ */

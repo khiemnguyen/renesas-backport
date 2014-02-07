@@ -1,7 +1,7 @@
 /*
  * rcar_du_crtc.c  --  R-Car Display Unit CRTCs
  *
- * Copyright (C) 2013 Renesas Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * Contact: Laurent Pinchart (laurent.pinchart@ideasonboard.com)
  *
@@ -94,8 +94,8 @@ static void rcar_du_crtc_set_display_timing(struct rcar_du_crtc *rcrtc)
 	u32 div = 0, div_in = 0, div_ex = 0;
 	u32 abs_in = 0, abs_ex = 0;
 	u32 dclksel_bit = 0, dclkoinv_bit = 0;
-	const struct rcar_du_encoder_data *pdata =
-			&rcrtc->group->dev->pdata->encoders[rcrtc->index];
+	const struct rcar_du_crtc_data *pdata =
+			&rcrtc->group->dev->pdata->crtcs[rcrtc->index];
 
 	/* Internal dot clock */
 	clk_in = clk_get_rate(rcrtc->clock);
@@ -363,6 +363,8 @@ static void rcar_du_crtc_update_base(struct rcar_du_crtc *rcrtc)
 {
 	struct drm_crtc *crtc = &rcrtc->crtc;
 
+	rcrtc->plane->pitch = crtc->fb->pitches[0];
+
 	rcar_du_plane_compute_base(rcrtc->plane, crtc->fb);
 	rcar_du_plane_update_base(rcrtc->plane);
 }
@@ -392,7 +394,16 @@ static bool rcar_du_crtc_mode_fixup(struct drm_crtc *crtc,
 				    const struct drm_display_mode *mode,
 				    struct drm_display_mode *adjusted_mode)
 {
-	/* TODO Fixup modes */
+	struct rcar_du_crtc *rcrtc = to_rcar_crtc(crtc);
+	struct rcar_du_device *rcdu = rcrtc->group->dev;
+
+	/* It is prohibition to set up the width of the multiple of 16
+	   for the specification of H/W in R-Car series */
+	if ((mode) && (mode->hdisplay % 16)) {
+		dev_err(rcdu->dev,
+			"Error! width of the multiple of 16 is prohibition\n");
+		return false;
+	}
 	return true;
 }
 

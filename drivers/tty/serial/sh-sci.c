@@ -1,7 +1,7 @@
 /*
  * drivers/tty/serial/sh-sci.c
  *
- *  Copyright (C) 2013 Renesas Electronics Corporation
+ *  Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * SuperH on-chip serial module support.  (SCI with no FIFO / with FIFO)
  *
@@ -999,8 +999,11 @@ static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 	 * DR flags
 	 */
 	if (((ssr_status & SCxSR_RDxF(port)) || s->chan_rx) &&
-	    (scr_status & SCSCR_RIE))
+	    (scr_status & SCSCR_RIE)) {
+		if (port->type == PORT_SCIF || port->type == PORT_HSCIF)
+			sci_handle_fifo_overrun(port);
 		ret = sci_rx_interrupt(irq, ptr);
+	}
 
 	/* Error Interrupt */
 	if ((ssr_status & SCxSR_ERRORS(port)) && err_enabled)
@@ -1976,9 +1979,9 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 {
 	struct sci_port *s = to_sci_port(port);
 	struct plat_sci_reg *reg;
-	unsigned int baud, smr_val, max_baud, cks;
+	unsigned int baud, smr_val, max_baud, cks = 0;
 	int t = -1;
-	unsigned int srr;
+	unsigned int srr = 0;
 
 	/*
 	 * earlyprintk comes here early on with port->uartclk set to zero.

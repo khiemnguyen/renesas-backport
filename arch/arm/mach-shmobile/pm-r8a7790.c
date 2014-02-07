@@ -1,7 +1,7 @@
 /*
  * r8a7790 Power management support
  *
- * Copyright (C) 2013  Renesas Electronics Corporation
+ * Copyright (C) 2013-2014  Renesas Electronics Corporation
  * Copyright (C) 2011  Renesas Solutions Corp.
  * Copyright (C) 2011  Magnus Damm
  *
@@ -239,7 +239,11 @@ static int r8a7790_enter_suspend(suspend_state_t state)
 	 */
 	gic_cpu_if_down();
 
+#if defined(CONFIG_SMP)
 	return shmobile_smp_apmu_enter_core_standby();
+#else
+	return 0;
+#endif
 }
 
 static void r8a7790_suspend_init(void)

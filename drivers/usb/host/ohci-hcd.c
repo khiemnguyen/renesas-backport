@@ -1115,6 +1115,11 @@ MODULE_LICENSE ("GPL");
 #define PLATFORM_DRIVER		ohci_xls_driver
 #endif
 
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
+#include "ohci-rcar.c"
+#define PLATFORM_DRIVER		ohci_platform_driver
+#endif
+
 #ifdef CONFIG_USB_OHCI_HCD_PLATFORM
 #include "ohci-platform.c"
 #define PLATFORM_DRIVER		ohci_platform_driver

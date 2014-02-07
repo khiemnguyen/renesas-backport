@@ -104,6 +104,9 @@
 /* Actual clock rate. */
 #define TMIO_MMC_CLK_ACTUAL		(1 << 12)
 
+/* Some controllers have UHS-I sampling clock controller */
+#define TMIO_MMC_HAS_UHS_SCC		(1 << 13)
+
 int tmio_core_mmc_enable(void __iomem *cnf, int shift, unsigned long base);
 int tmio_core_mmc_resume(void __iomem *cnf, int shift, unsigned long base);
 void tmio_core_mmc_pwr(void __iomem *cnf, int shift, int state);
@@ -143,6 +146,7 @@ struct tmio_mmc_data {
 	bool (*dma_filter)(struct dma_chan *chan, void *arg);
 	void (*disable_auto_cmd12)(int *val);
 	void (*set_transfer_size)(struct tmio_mmc_host *host, int enable);
+	void (*hw_reset)(struct tmio_mmc_host *host);
 	/* clock management callbacks */
 	int (*clk_enable)(struct platform_device *pdev, unsigned int *f);
 	void (*clk_disable)(struct platform_device *pdev);

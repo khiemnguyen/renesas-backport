@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (c) 2006-2009 Red Hat Inc.
  * Copyright (c) 2006-2008 Intel Corporation
  * Copyright (c) 2007 Dave Airlie <airlied@linux.ie>
@@ -33,6 +34,11 @@
 struct drm_fb_helper;
 
 #include <linux/kgdb.h>
+
+#if defined(CONFIG_DRM_FBDEV_CRTC)
+#define DRM_FB_CHANGED		1
+#define DRM_MODE_CHANGED	2
+#endif
 
 struct drm_fb_helper_crtc {
 	struct drm_mode_set mode_set;

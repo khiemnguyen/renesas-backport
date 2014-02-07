@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (c) 2006-2009 Red Hat Inc.
  * Copyright (c) 2006-2008 Intel Corporation
  * Copyright (c) 2007 Dave Airlie <airlied@linux.ie>
@@ -704,11 +705,11 @@ int drm_fb_helper_set_par(struct fb_info *info)
 #if defined(CONFIG_DRM_FBDEV_CRTC)
 	struct drm_display_mode *disp_set_mode;
 	struct drm_display_mode *ref_disp_mode = NULL;
-	struct drm_connector *disp_conn;
+	struct drm_connector *disp_conn = NULL;
+	struct drm_mode_set *mode_set;
 	struct drm_framebuffer *fb;
 	unsigned int bytes_per_pixel;
 	unsigned int match_flag;
-	bool mode_change_flag = false;
 	unsigned int pre_pixfmt;
 #endif
 
@@ -731,9 +732,20 @@ int drm_fb_helper_set_par(struct fb_info *info)
 #if defined(CONFIG_DRM_FBDEV_CRTC)
 	disp_set_mode =
 		fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.mode;
-	disp_conn =
-		fb_helper->connector_info[CONFIG_DRM_FBDEV_CRTC_NUM]->connector;
+	mode_set = &fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set;
 	fb = fb_helper->crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set.fb;
+
+	for (i = 0; i < fb_helper->connector_count; i++) {
+		if (fb_helper->connector_info[i]) {
+			disp_conn = fb_helper->connector_info[i]->connector;
+			if ((disp_conn->encoder) &&
+				(disp_conn->encoder->crtc->base.id
+				 == mode_set->crtc->base.id))
+				break;
+			else
+				disp_conn = NULL;
+		}
+	}
 
 	if (disp_set_mode && disp_conn && fb &&
 		 ((info->flags & FBINFO_MISC_USEREVENT)
@@ -741,11 +753,20 @@ int drm_fb_helper_set_par(struct fb_info *info)
 
 		pre_pixfmt = drm_mode_legacy_fb_format(var->bits_per_pixel,
 						       fb->depth);
+		bytes_per_pixel = DIV_ROUND_UP(var->bits_per_pixel, 8);
 
-		if ((var->xres != disp_set_mode->hdisplay) ||
+		if ((var->xres == disp_set_mode->hdisplay) &&
+			 (var->yres == disp_set_mode->vdisplay) &&
+			 (var->xres_virtual !=
+			 (fb->pitches[0] / bytes_per_pixel)) &&
+			 (fb->pixel_format == pre_pixfmt)) {
+			disp_set_mode->private_flags = DRM_FB_CHANGED;
+		} else if ((var->xres != disp_set_mode->hdisplay) ||
 			 (var->yres != disp_set_mode->vdisplay) ||
-			 (fb->pixel_format != pre_pixfmt))
-			mode_change_flag = true;
+			 (fb->pixel_format != pre_pixfmt)) {
+			disp_set_mode->private_flags = DRM_MODE_CHANGED;
+		} else
+			disp_set_mode->private_flags = false;
 
 		match_flag = 0;
 		list_for_each_entry(ref_disp_mode, &disp_conn->modes, head) {
@@ -779,20 +800,18 @@ int drm_fb_helper_set_par(struct fb_info *info)
 		disp_set_mode->flags = ref_disp_mode->flags;
 		disp_set_mode->base.type = DRM_MODE_OBJECT_MODE;
 
-		bytes_per_pixel = DIV_ROUND_UP(var->bits_per_pixel, 8);
 		fb->width = var->xres_virtual;
 		fb->height = var->yres_virtual;
 		fb->bits_per_pixel = var->bits_per_pixel;
-		fb->pitches[0] = var->xres * bytes_per_pixel;
+		fb->pitches[0] = var->xres_virtual * bytes_per_pixel;
 		fb->pixel_format = drm_mode_legacy_fb_format(
 					fb->bits_per_pixel, fb->depth);
 		drm_fb_helper_fill_fix(info, fb->pitches[0], fb->depth);
 		drm_fb_helper_fill_var(info, fb_helper,
 					 var->xres, var->yres);
-		if (!mode_change_flag)
+		if (!disp_set_mode->private_flags)
 			goto mode_no_change;
 
-		disp_set_mode->private_flags = true;
 		ret = drm_mode_set_config_internal(&fb_helper->
 				crtc_info[CONFIG_DRM_FBDEV_CRTC_NUM].mode_set);
 		if (ret) {
@@ -904,12 +923,12 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 	struct fb_info *info;
 	struct drm_fb_helper_surface_size sizes;
 	int gamma_size = 0;
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 	int des_hdisplay, des_vdisplay = 0;
 #endif
 
 	memset(&sizes, 0, sizeof(struct drm_fb_helper_surface_size));
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 	sizes.surface_depth = 32;
 #else
 	sizes.surface_depth = 24;
@@ -918,7 +937,7 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 	sizes.fb_width = (unsigned)-1;
 	sizes.fb_height = (unsigned)-1;
 
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 	des_hdisplay = (unsigned)-1;
 	des_vdisplay = (unsigned)-1;
 #endif
@@ -979,16 +998,16 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 			if (desired_mode->vdisplay > sizes.surface_height)
 				sizes.surface_height = desired_mode->vdisplay;
 			crtc_count++;
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 			des_hdisplay = desired_mode->hdisplay;
 			des_vdisplay = desired_mode->vdisplay;
 #endif
 		}
 	}
 
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 	if (crtc_count == 0) {
-#if defined(CONFIG_DRM_ADV7511)
+#if defined(CONFIG_DRM_ADV7511) || defined(CONFIG_DRM_ADV7511_MODULE)
 		sizes.fb_width = sizes.surface_width = 1920;
 		sizes.fb_height = sizes.surface_height = 1080;
 		crtc_count++;
@@ -1010,7 +1029,7 @@ int drm_fb_helper_single_fb_probe(struct drm_fb_helper *fb_helper,
 		sizes.fb_width = sizes.surface_width = 1024;
 		sizes.fb_height = sizes.surface_height = 768;
 	}
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 	if (fb_helper->fbdev) {
 		if (fb_helper->fbdev->var.xres != des_hdisplay) {
 			sizes.fb_width = sizes.surface_width = des_hdisplay;
@@ -1098,7 +1117,8 @@ void drm_fb_helper_fill_var(struct fb_info *info, struct drm_fb_helper *fb_helpe
 	struct drm_display_mode *drm_mode;
 #endif
 	info->pseudo_palette = fb_helper->pseudo_palette;
-	info->var.xres_virtual = fb->width;
+	info->var.xres_virtual = fb->pitches[0] /
+				  DIV_ROUND_UP(fb->bits_per_pixel, 8);
 	info->var.yres_virtual = fb->height;
 	info->var.bits_per_pixel = fb->bits_per_pixel;
 	info->var.accel_flags = FB_ACCELF_TEXT;
@@ -1202,7 +1222,7 @@ static int drm_fb_helper_probe_connector_modes(struct drm_fb_helper *fb_helper,
 	for (i = 0; i < fb_helper->connector_count; i++) {
 		connector = fb_helper->connector_info[i]->connector;
 		cmdline_mode = &fb_helper->connector_info[i]->cmdline_mode;
-#if defined(CONFIG_DRM_RCAR_DU)
+#if defined(CONFIG_DRM_RCAR_DU) || defined(CONFIG_DRM_RCAR_DU_MODULE)
 		if (cmdline_mode->specified) {
 			connector->cmd_xres = cmdline_mode->xres;
 			connector->cmd_yres = cmdline_mode->yres;
@@ -1231,7 +1251,9 @@ static int drm_fb_helper_probe_connector_modes(struct drm_fb_helper *fb_helper,
 				match_flag = true;
 				break;
 			}
-			if (!match_flag) {
+			if ((!match_flag) &&
+				 (connector->status ==
+				  connector_status_connected)) {
 				printk(KERN_ERR
 				 "Error! parse setting(%dx%d),laced:%d\n",
 				cmdline_mode->xres, cmdline_mode->yres,
