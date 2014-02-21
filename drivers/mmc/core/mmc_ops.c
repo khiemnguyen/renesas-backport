@@ -1,7 +1,7 @@
 /*
  *  linux/drivers/mmc/core/mmc_ops.h
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *  Copyright 2006-2007 Pierre Ossman
  * MMC password protection (C) 2006 Instituto Nokia de Tecnologia (INdT),
  * All Rights Reserved.
@@ -96,7 +96,7 @@ int mmc_lock_unlock(struct mmc_card *card, struct key *key, int mode)
 
 	cmd.opcode = MMC_LOCK_UNLOCK;
 	cmd.arg = 0;
-	cmd.flags = MMC_RSP_R1B | MMC_CMD_ADTC;
+	cmd.flags = MMC_RSP_R1 | MMC_CMD_ADTC;
 
 	memset(&data, 0, sizeof(struct mmc_data));
 
