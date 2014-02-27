@@ -602,7 +602,7 @@ static int sh_msiof_spi_txrx_dma(struct sh_msiof_spi_priv *p,
 				  const void *tx_buf, void *rx_buf,
 				  int words, int bits, int bytes_per_word)
 {
-	int ret;
+	int ret = 0;
 
 	/* store bytes_per_word */
 	p->bytes_per_word = bytes_per_word;
