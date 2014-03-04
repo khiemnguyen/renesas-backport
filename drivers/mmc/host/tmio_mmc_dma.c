@@ -85,7 +85,6 @@ static void tmio_mmc_start_dma_rx(struct tmio_mmc_host *host)
 	}
 
 	tmio_mmc_disable_mmc_irqs(host, TMIO_STAT_RXRDY);
-	tmio_mmc_enable_dma(host, true);
 
 	/* The only sg element can be unaligned, use our bounce buffer then */
 	if (!aligned) {
@@ -164,7 +163,6 @@ static void tmio_mmc_start_dma_tx(struct tmio_mmc_host *host)
 	}
 
 	tmio_mmc_disable_mmc_irqs(host, TMIO_STAT_TXRQ);
-	tmio_mmc_enable_dma(host, true);
 
 	/* The only sg element can be unaligned, use our bounce buffer then */
 	if (!aligned) {
@@ -214,47 +212,9 @@ pio:
 		desc, cookie);
 }
 
-static bool tmio_mmc_filter(struct dma_chan *chan, void *arg);
-
 void tmio_mmc_start_dma(struct tmio_mmc_host *host,
 			       struct mmc_data *data)
 {
-	struct tmio_mmc_data *pdata = host->pdata;
-	dma_cap_mask_t mask;
-	struct dma_chan *chan;
-
-	if (pdata->dma && (!host->chan_rx || !host->chan_tx)) {
-		if (host->chan_rx) {
-			chan = host->chan_rx;
-			host->chan_rx = NULL;
-			dma_release_channel(chan);
-		}
-		if (host->chan_tx) {
-			chan = host->chan_tx;
-			host->chan_tx = NULL;
-			dma_release_channel(chan);
-		}
-		dma_cap_zero(mask);
-		dma_cap_set(DMA_SLAVE, mask);
-
-		if (pdata->dma_filter) {
-			host->chan_rx = dma_request_channel(mask,
-						pdata->dma_filter,
-						pdata->dma->chan_priv_rx);
-
-			host->chan_tx = dma_request_channel(mask,
-						pdata->dma_filter,
-						pdata->dma->chan_priv_tx);
-		} else {
-			host->chan_rx = dma_request_channel(mask,
-						tmio_mmc_filter,
-						pdata->dma->chan_priv_rx);
-
-			host->chan_tx = dma_request_channel(mask,
-						tmio_mmc_filter,
-						pdata->dma->chan_priv_tx);
-		}
-	}
 	if (data->flags & MMC_DATA_READ) {
 		if (host->chan_rx)
 			tmio_mmc_start_dma_rx(host);
