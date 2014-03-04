@@ -798,21 +798,13 @@ static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
 		MSIOF_COMMON,
 		.dma_slave_tx		= SHDMA_SLAVE_MSIOF0_TX,
 		.dma_slave_rx		= SHDMA_SLAVE_MSIOF0_RX,
-#ifndef CONFIG_SPI_SH_MSIOF_CH0_SLAVE
 		.mode			= SPI_MSIOF_MASTER,
-#else
-		.mode			= SPI_MSIOF_SLAVE,
-#endif
 	},
 	{
 		MSIOF_COMMON,
 		.dma_slave_tx		= SHDMA_SLAVE_MSIOF1_TX,
 		.dma_slave_rx		= SHDMA_SLAVE_MSIOF1_RX,
-#ifndef CONFIG_SPI_SH_MSIOF_CH1_SLAVE
 		.mode			= SPI_MSIOF_MASTER,
-#else
-		.mode			= SPI_MSIOF_SLAVE,
-#endif
 	},
 	{
 		MSIOF_COMMON,
