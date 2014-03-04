@@ -130,6 +130,102 @@ config MACH_KOELSCH
 	select ARCH_REQUIRE_GPIOLIB
 	select USE_OF
 
+choice
+	prompt "Choice SCIF0/SCIFA0"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default SERIAL_SH_SCI_USE_SCIF0
+
+config SERIAL_SH_SCI_USE_SCIF0
+	bool "USE SCIF-0"
+	help
+	  This option enables SCIF channel number 0.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  Renesas Lager platform is used by choice in SCIF channel number 0
+	  and SCIFA channel number 0.
+
+config SERIAL_SH_SCI_USE_SCIFA0
+	bool "USE SCIFA-0"
+	help
+	  This option enables SCIFA channel number 0.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  Renesas Lager platform is used by choice in SCIF channel number 0
+	  and SCIFA channel number 0.
+
+endchoice
+
+choice
+	prompt "Choice SCIF1/SCIFA1"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default SERIAL_SH_SCI_USE_SCIF1
+
+config SERIAL_SH_SCI_USE_SCIF1
+	bool "USE SCIF-1"
+	help
+	  This option enables SCIF channel number 1.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  Renesas Lager platform is used by choice in SCIF channel number 1
+	  and SCIFA channel number 1.
+
+config SERIAL_SH_SCI_USE_SCIFA1
+	bool "USE SCIFA-1"
+	help
+	  This option enables SCIFA channel number 1.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  Renesas Lager platform is used by choice in SCIF channel number 1
+	  and SCIFA channel number 1.
+
+endchoice
+
+config SERIAL_SH_SCI_USE_SCIFA2
+	bool "USE SCIFA-2"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default n
+	help
+	  This option enables SCIFA channel number 2.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  IF your system doesn't use SCIFA channel number 2,
+	  you may disable this option.
+
+config SERIAL_SH_SCI_USE_SCIFB0
+	bool "USE SCIFB-0"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default n
+	help
+	  This option enables SCIFB channel number 0.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  IF your system doesn't use SCIFB channel number 0,
+	  you may disable this option.
+
+config SERIAL_SH_SCI_USE_SCIFB1
+	bool "USE SCIFB-1"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default n
+	help
+	  This option enables SCIFB channel number 1.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  IF your system doesn't use SCIFB channel number 1,
+	  you may disable this option.
+
+config SERIAL_SH_SCI_USE_SCIFB2
+	bool "USE SCIFB-2"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default n
+	help
+	  This option enables SCIFB channel number 2.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  IF your system doesn't use SCIFB channel number 2,
+	  you may disable this option.
+
+config SERIAL_SH_SCI_USE_HSCIF1
+	bool "USE HSCIF-1"
+	depends on SERIAL_SH_SCI && (MACH_LAGER || MACH_KOELSCH)
+	default n
+	help
+	  This option enables HSCIF channel number 1.
+	  This option is used for Renesas R-Car H2 and R-Car M2 platform.
+	  Renesas Lager platform is used by choice in HSCIF channel number 1
+	  and HSCIFA channel number 1.
+
 config MACH_KZM9D
 	bool "KZM9D board"
 	depends on ARCH_EMEV2
