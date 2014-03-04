@@ -761,8 +761,6 @@ void __init r8a7790_add_mmc_device(struct sh_mmcif_plat_data *pdata,
 #define MSIOF_COMMON				\
 	.rx_fifo_override	= 256,			\
 	.num_chipselect		= 1,			\
-	.dma_devid_lo		= SHDMA_DEVID_SYS_LO,	\
-	.dma_devid_up		= SHDMA_DEVID_SYS_UP,	\
 	.mode			= SPI_MSIOF_MASTER
 
 static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
