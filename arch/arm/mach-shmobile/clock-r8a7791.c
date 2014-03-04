@@ -1,7 +1,7 @@
 /*
  * r8a7791 clock framework support
  *
- * Copyright (C) 2013  Renesas Electronics Corporation
+ * Copyright (C) 2013-2014  Renesas Electronics Corporation
  * Copyright (C) 2013  Renesas Solutions Corp.
  * Copyright (C) 2013  Magnus Damm
  *
@@ -192,7 +192,7 @@ static struct clk div6_clks[DIV6_NR] = {
 
 /* MSTP */
 enum {
-	MSTP1107, MSTP1106, MSTP1105, MSTP721, MSTP720, MSTP719, MSTP718,
+	MSTP1108, MSTP1107, MSTP1106, MSTP721, MSTP720, MSTP719, MSTP718,
 	MSTP717, MSTP716, MSTP715, MSTP714, MSTP713,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, MSTP1014,
@@ -220,9 +220,9 @@ enum {
 	SH_CLK_MSTP32_STS(_parent, SMSTPCR##_reg, _bit, (void __iomem *)MSTPSR##_reg, _flags)
 
 static struct clk mstp_clks[MSTP_NR] = {
-	[MSTP1107] = MSTP(11,  7, &mp_clk, 0), /* SCIFA5 */
-	[MSTP1106] = MSTP(11,  6, &mp_clk, 0), /* SCIFA4 */
-	[MSTP1105] = MSTP(11,  5, &mp_clk, 0), /* SCIFA3 */
+	[MSTP1108] = MSTP(11,  8, &mp_clk, 0), /* SCIFA5 */
+	[MSTP1107] = MSTP(11,  7, &mp_clk, 0), /* SCIFA4 */
+	[MSTP1106] = MSTP(11,  6, &mp_clk, 0), /* SCIFA3 */
 	[MSTP1031] = MSTP(10, 31, &hp_clk, 0), /* SCU (SRC0) */
 	[MSTP1030] = MSTP(10, 30, &hp_clk, 0), /* SCU (SRC1) */
 	[MSTP1019] = MSTP(10, 19, &hp_clk, 0), /* SCU (DVC0) */
@@ -342,9 +342,9 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_DEV_ID("sh-sci.11", &mstp_clks[MSTP718]), /* SCIF3 */
 	CLKDEV_DEV_ID("sh-sci.12", &mstp_clks[MSTP715]), /* SCIF4 */
 	CLKDEV_DEV_ID("sh-sci.13", &mstp_clks[MSTP714]), /* SCIF5 */
-	CLKDEV_DEV_ID("sh-sci.14", &mstp_clks[MSTP1105]), /* SCIFA3 */
-	CLKDEV_DEV_ID("sh-sci.15", &mstp_clks[MSTP1106]), /* SCIFA4 */
-	CLKDEV_DEV_ID("sh-sci.16", &mstp_clks[MSTP1107]), /* SCIFA5 */
+	CLKDEV_DEV_ID("sh-sci.14", &mstp_clks[MSTP1106]), /* SCIFA3 */
+	CLKDEV_DEV_ID("sh-sci.15", &mstp_clks[MSTP1107]), /* SCIFA4 */
+	CLKDEV_DEV_ID("sh-sci.16", &mstp_clks[MSTP1108]), /* SCIFA5 */
 	CLKDEV_DEV_ID("sh-sci.17", &mstp_clks[MSTP713]), /* HSCIF2 */
 	CLKDEV_DEV_ID("r8a779x-ether", &mstp_clks[MSTP813]),
 	CLKDEV_DEV_ID("ee200000.mmcif", &mstp_clks[MSTP315]),
