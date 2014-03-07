@@ -276,4 +276,11 @@ extern struct smp_operations r8a7790_smp_ops;
 
 void r8a7790_module_reset(unsigned int n, u32 bits, int usecs);
 
+#define R8A7790_ES1_SDHI_WORKAROUND
+
+/* Product device */
+#define PRODUCT_REGISTER	0xFF000044
+#define PRODUCT_CUT_MASK	(0x00007FF0)
+#define PRODUCT_H2_BIT		(0x45 << 8)
+
 #endif /* __ASM_R8A7790_H__ */

@@ -470,7 +470,45 @@ static void __init r8a7790_sdhi_clock_init(void)
 {
 	int ret = 0;
 	struct clk *sdhi_clk;
+#ifdef R8A7790_ES1_SDHI_WORKAROUND
+	void __iomem *product_reg;
+	unsigned int clk_rate = 195000000;
 
+	product_reg = ioremap_nocache(PRODUCT_REGISTER, 0x04);
+	if (!product_reg) {
+		pr_err("Cannot ioremap_nocache\n");
+		return;
+	}
+
+	if ((ioread32(product_reg) & PRODUCT_CUT_MASK) == PRODUCT_H2_BIT)
+		clk_rate = 156000000;
+	iounmap(product_reg);
+
+	/* set SDHI0 clock to 156/195 MHz */
+	sdhi_clk = clk_get(NULL, "sdhi0");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi0 clock\n");
+		goto sdhi0_out;
+	}
+	ret = clk_set_rate(sdhi_clk, clk_rate);
+	if (ret < 0)
+		pr_err("Cannot set sdhi0 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+sdhi0_out:
+
+	/* set SDHI1 clock to 156/195 MHz */
+	sdhi_clk = clk_get(NULL, "sdhi1");
+	if (IS_ERR(sdhi_clk)) {
+		pr_err("Cannot get sdhi1 clock\n");
+		goto sdhi1_out;
+	}
+	ret = clk_set_rate(sdhi_clk, clk_rate);
+	if (ret < 0)
+		pr_err("Cannot set sdhi1 clock rate :%d\n", ret);
+
+	clk_put(sdhi_clk);
+#else
 	/* set SDHI0 clock to 195 MHz */
 	sdhi_clk = clk_get(NULL, "sdhi0");
 	if (IS_ERR(sdhi_clk)) {
@@ -495,6 +533,7 @@ sdhi0_out:
 		pr_err("Cannot set sdhi1 clock rate :%d\n", ret);
 
 	clk_put(sdhi_clk);
+#endif
 sdhi1_out:
 
 	/* set SDHI2 clock to 97.5 MHz */
