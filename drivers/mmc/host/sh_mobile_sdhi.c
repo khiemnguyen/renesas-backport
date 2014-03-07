@@ -507,6 +507,11 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	else
 		sd_ctrl_write16(host, 0xe6, 0xa000);
 
+	/* set sampling clock selection range */
+	if (p->scc_tapnum)
+		writel(p->scc_tapnum << 16,
+			host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL);
+
 	/*
 	 * Allow one or more specific (named) ISRs or
 	 * one or more multiplexed (un-named) ISRs.

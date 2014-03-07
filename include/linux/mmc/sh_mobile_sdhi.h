@@ -13,6 +13,9 @@ struct tmio_mmc_data;
 #define SH_MOBILE_SDHI_SIGNAL_180V	0
 #define SH_MOBILE_SDHI_SIGNAL_330V	1
 
+/* sampling clock selection range */
+#define SH_MOBILE_SDHI_SCC_TAP_8	0x08
+
 /**
  * struct sh_mobile_sdhi_ops - SDHI driver callbacks
  * @cd_wakeup:		trigger a card-detection run
@@ -30,6 +33,7 @@ struct sh_mobile_sdhi_info {
 	u32 tmio_ocr_mask;	/* available MMC voltages */
 	unsigned int cd_gpio;
 	struct tmio_mmc_data *pdata;
+	unsigned long scc_tapnum;	/* sampling clock selection range */
 	void (*set_pwr)(struct platform_device *pdev, int state);
 	int (*get_cd)(struct platform_device *pdev);
 	int (*get_ro)(struct platform_device *pdev);
