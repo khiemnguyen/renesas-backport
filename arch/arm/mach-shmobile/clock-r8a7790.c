@@ -192,8 +192,8 @@ enum {
 
 static struct clk div4_clks[DIV4_NR] = {
 	[DIV4_SDH] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 8, 0x0dff, CLK_ENABLE_ON_INIT),
-	[DIV4_SD0] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 4, 0x1de0, CLK_ENABLE_ON_INIT),
-	[DIV4_SD1] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 0, 0x1de0, CLK_ENABLE_ON_INIT),
+	[DIV4_SD0] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 4, 0x1df0, CLK_ENABLE_ON_INIT),
+	[DIV4_SD1] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 0, 0x1df0, CLK_ENABLE_ON_INIT),
 };
 
 /* DIV6 clocks */
@@ -471,26 +471,26 @@ static void __init r8a7790_sdhi_clock_init(void)
 	int ret = 0;
 	struct clk *sdhi_clk;
 
-	/* set SDHI0 clock to 156 MHz */
+	/* set SDHI0 clock to 195 MHz */
 	sdhi_clk = clk_get(NULL, "sdhi0");
 	if (IS_ERR(sdhi_clk)) {
 		pr_err("Cannot get sdhi0 clock\n");
 		goto sdhi0_out;
 	}
-	ret = clk_set_rate(sdhi_clk, 156000000);
+	ret = clk_set_rate(sdhi_clk, 195000000);
 	if (ret < 0)
 		pr_err("Cannot set sdhi0 clock rate :%d\n", ret);
 
 	clk_put(sdhi_clk);
 sdhi0_out:
 
-	/* set SDHI1 clock to 156 MHz */
+	/* set SDHI1 clock to 195 MHz */
 	sdhi_clk = clk_get(NULL, "sdhi1");
 	if (IS_ERR(sdhi_clk)) {
 		pr_err("Cannot get sdhi1 clock\n");
 		goto sdhi1_out;
 	}
-	ret = clk_set_rate(sdhi_clk, 156000000);
+	ret = clk_set_rate(sdhi_clk, 195000000);
 	if (ret < 0)
 		pr_err("Cannot set sdhi1 clock rate :%d\n", ret);
 
