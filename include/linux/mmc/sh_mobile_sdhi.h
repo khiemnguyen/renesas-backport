@@ -15,6 +15,7 @@ struct tmio_mmc_data;
 
 /* sampling clock selection range */
 #define SH_MOBILE_SDHI_SCC_TAP_8	0x08
+#define SH_MOBILE_SDHI_SCC_TAP_10	0x0a
 
 /**
  * struct sh_mobile_sdhi_ops - SDHI driver callbacks
