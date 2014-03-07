@@ -539,6 +539,7 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 				TMIO_MMC_NO_CTL_RESET_SDIO |
 				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_SDIO_STATUS_QUIRK,
+	.scc_tapnum	= SH_MOBILE_SDHI_SCC_TAP_8,
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
