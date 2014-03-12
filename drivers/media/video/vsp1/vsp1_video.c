@@ -656,7 +656,6 @@ static int vsp1_video_buffer_prepare(struct vb2_buffer *vb)
 static struct vsp1_video_buffer *vsp1_set_field(struct vsp1_video_buffer *buf,
 			struct vsp1_video *video) {
 	int index = 0;
-	int i = 0;
 	struct vsp1_rwpf *rpf = container_of(video, struct vsp1_rwpf, video);
 	const struct v4l2_pix_format_mplane *format = &rpf->video.format;
 
