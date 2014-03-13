@@ -1456,7 +1456,6 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_scif(HSCIF0);
 	r8a7790_register_scif(HSCIF1);
 	r8a7790_register_irqc(0);
-	r8a7790_register_thermal();
 	r8a7790_register_cmt(00);
 	r8a7790_register_alsa(0);
 	r8a7790_register_audma(l, SHDMA_DEVID_AUDIO_LO);
