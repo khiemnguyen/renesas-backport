@@ -1233,7 +1233,8 @@ static int drm_fb_helper_probe_connector_modes(struct drm_fb_helper *fb_helper,
 #endif
 		count += connector->funcs->fill_modes(connector, maxX, maxY);
 
-		if (cmdline_mode->specified) {
+		if ((cmdline_mode->specified) && (!cmdline_mode->rb) &&
+						 (!cmdline_mode->margins)) {
 			list_for_each_entry(cur_mode, &connector->modes, head) {
 				if ((cur_mode->hdisplay != cmdline_mode->xres)
 					|| (cur_mode->vdisplay

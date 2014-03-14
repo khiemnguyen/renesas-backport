@@ -29,7 +29,6 @@
 #include <linux/mmc/sh_mobile_sdhi.h>
 #include <linux/mfd/tmio.h>
 #include <linux/sh_dma.h>
-#include <linux/sh_dma-desc.h>
 #include <linux/delay.h>
 
 #include "tmio_mmc.h"
@@ -346,17 +345,6 @@ static int sh_mobile_sdhi_write16_hook(struct tmio_mmc_host *host, int addr)
 	return 0;
 }
 
-static bool sh_mobile_sdhi_dma_filter(struct dma_chan *chan, void *arg)
-{
-	bool result;
-	int *slave_id = (int *)arg;
-
-	result = shdma_chan_filter(chan, (void *)*slave_id);
-	if (result)
-		chan->private = arg;
-	return result;
-}
-
 #define SH_MOBILE_SDHI_DISABLE_AUTO_CMD12	0x4000
 
 static void sh_mobile_sdhi_disable_auto_cmd12(int *val)
@@ -491,7 +479,6 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 			priv->dma_priv.alignment_shift = 5; /* 32byte alignment */
 			mmc_data->set_transfer_size =
 				sh_mobile_sdhi_set_transfer_size;
-			mmc_data->dma_filter = sh_mobile_sdhi_dma_filter;
 			mmc_data->dma = &priv->dma_priv;
 		}
 	}
@@ -519,6 +506,11 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 		sd_ctrl_write16(host, 0x192, 0x0004);
 	else
 		sd_ctrl_write16(host, 0xe6, 0xa000);
+
+	/* set sampling clock selection range */
+	if (p->scc_tapnum)
+		writel(p->scc_tapnum << 16,
+			host->ctl + SH_MOBILE_SDHI_SCC_DTCNTL);
 
 	/*
 	 * Allow one or more specific (named) ISRs or

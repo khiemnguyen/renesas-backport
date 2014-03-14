@@ -13,8 +13,6 @@ struct sh_msiof_spi_info {
 	int mode;
 	int dma_slave_tx;
 	int dma_slave_rx;
-	int dma_devid_lo;
-	int dma_devid_up;
 };
 
 #endif /* __SPI_SH_MSIOF_H__ */

@@ -452,6 +452,11 @@ static const struct sh_dmadesc_slave_config r8a7791_sysdma_slaves[] = {
 		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
 		.mid_rid	= 0xd2,
 	}, {
+		.slave_id	= SHDMA_SLAVE_SCIF0_TX,
+		.addr		= 0xe6e60000 + 0x0c,
+		.chcr		= CHCR_TX(XMIT_SZ_8BIT),
+		.mid_rid	= 0x29,
+	}, {
 		.slave_id	= SHDMA_SLAVE_SCIF0_RX,
 		.addr		= 0xe6e60000 + 0x14,
 		.chcr		= CHCR_RX(XMIT_SZ_8BIT),
@@ -786,30 +791,20 @@ void __init r8a7791_add_mmc_device(struct sh_mmcif_plat_data *pdata)
 /* MSIOF */
 #define MSIOF_COMMON				\
 	.rx_fifo_override	= 256,			\
-	.num_chipselect		= 1,			\
-	.dma_devid_lo		= SHDMA_DEVID_SYS_LO,	\
-	.dma_devid_up		= SHDMA_DEVID_SYS_UP
+	.num_chipselect		= 1
 
 static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
 	{
 		MSIOF_COMMON,
 		.dma_slave_tx		= SHDMA_SLAVE_MSIOF0_TX,
 		.dma_slave_rx		= SHDMA_SLAVE_MSIOF0_RX,
-#ifndef CONFIG_SPI_SH_MSIOF_CH0_SLAVE
 		.mode			= SPI_MSIOF_MASTER,
-#else
-		.mode			= SPI_MSIOF_SLAVE,
-#endif
 	},
 	{
 		MSIOF_COMMON,
 		.dma_slave_tx		= SHDMA_SLAVE_MSIOF1_TX,
 		.dma_slave_rx		= SHDMA_SLAVE_MSIOF1_RX,
-#ifndef CONFIG_SPI_SH_MSIOF_CH1_SLAVE
 		.mode			= SPI_MSIOF_MASTER,
-#else
-		.mode			= SPI_MSIOF_SLAVE,
-#endif
 	},
 	{
 		MSIOF_COMMON,
@@ -1474,7 +1469,6 @@ void __init r8a7791_add_standard_devices(void)
 
 	r8a7791_add_dt_devices();
 	r8a7791_register_irqc(0);
-	r8a7791_register_thermal();
 	r8a7791_register_alsa(0);
 	r8a7791_register_audma(l, SHDMA_DEVID_AUDIO_LO);
 	r8a7791_register_audma(u, SHDMA_DEVID_AUDIO_UP);

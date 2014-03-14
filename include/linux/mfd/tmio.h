@@ -7,7 +7,6 @@
 #include <linux/jiffies.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
-#include <linux/dmaengine.h>
 
 #define tmio_ioread8(addr) readb(addr)
 #define tmio_ioread16(addr) readw(addr)
@@ -143,7 +142,6 @@ struct tmio_mmc_data {
 	int (*select_tuning)(struct tmio_mmc_host *host, unsigned long *tap);
 	bool (*retuning)(struct tmio_mmc_host *host);
 	int (*write16_hook)(struct tmio_mmc_host *host, int addr);
-	bool (*dma_filter)(struct dma_chan *chan, void *arg);
 	void (*disable_auto_cmd12)(int *val);
 	void (*set_transfer_size)(struct tmio_mmc_host *host, int enable);
 	void (*hw_reset)(struct tmio_mmc_host *host);

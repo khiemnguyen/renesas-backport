@@ -2,7 +2,7 @@
  * drivers/dma/sh/shdma-desc.c
  *     This file is DMA Engine driver for SYS-DMAC/Audio-DMAC peripheral.
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * This file is based on the drivers/dma/sh/shdma.c
  *
@@ -396,7 +396,7 @@ static int sh_dmae_set_slave(struct shdma_chan *schan,
 
 	cfg = dmae_find_slave(sh_chan, slave_id);
 	if (!cfg)
-		return -ENODEV;
+		return -ENXIO;
 
 	if (!try) {
 		sh_chan->config = cfg;

@@ -91,9 +91,6 @@ struct sh_msiof_spi_priv {
 #define IER_TDREQE (1 << 28)
 #define IER_RDMAE  (1 << 15)
 #define IER_RDREQE (1 << 12)
-
-static int dma_devid_lo;
-static int dma_devid_up;
 #endif /* CONFIG_SPI_SH_MSIOF_DMA */
 
 static u32 sh_msiof_read(struct sh_msiof_spi_priv *p, int reg_offs)
@@ -605,7 +602,7 @@ static int sh_msiof_spi_txrx_dma(struct sh_msiof_spi_priv *p,
 				  const void *tx_buf, void *rx_buf,
 				  int words, int bits, int bytes_per_word)
 {
-	int ret;
+	int ret = 0;
 
 	/* store bytes_per_word */
 	p->bytes_per_word = bytes_per_word;
@@ -683,10 +680,6 @@ static int sh_msiof_spi_txrx_dma(struct sh_msiof_spi_priv *p,
 
 static bool sh_msiof_spi_dma_filter(struct dma_chan *chan, void *arg)
 {
-	struct platform_device *pdev = to_platform_device(chan->device->dev);
-	if ((pdev->id != dma_devid_lo)
-		&& (pdev->id != dma_devid_up))
-		return false;
 	chan->private = arg;
 	return true;
 }
@@ -1067,8 +1060,6 @@ static int sh_msiof_spi_probe(struct platform_device *pdev)
 	init_completion(&p->dma_rx_wait);
 
 	p->dma_filter = sh_msiof_spi_dma_filter;
-	dma_devid_lo = p->info->dma_devid_lo;
-	dma_devid_up = p->info->dma_devid_up;
 
 	ret = sh_msiof_spi_setup_dma(p);
 	if (ret < 0) {

@@ -760,25 +760,26 @@ void __init r8a7790_add_mmc_device(struct sh_mmcif_plat_data *pdata,
 /* MSIOF */
 #define MSIOF_COMMON				\
 	.rx_fifo_override	= 256,			\
-	.num_chipselect		= 1,			\
-	.dma_devid_lo		= SHDMA_DEVID_SYS_LO,	\
-	.dma_devid_up		= SHDMA_DEVID_SYS_UP,	\
-	.mode			= SPI_MSIOF_MASTER
+	.num_chipselect		= 1
 
 static const struct sh_msiof_spi_info sh_msiof_info[] __initconst = {
 	{
 		MSIOF_COMMON,
+		.mode			= SPI_MSIOF_MASTER
 	},
 	{
 		MSIOF_COMMON,
 		.dma_slave_tx		= SHDMA_SLAVE_MSIOF1_TX,
 		.dma_slave_rx		= SHDMA_SLAVE_MSIOF1_RX,
+		.mode			= SPI_MSIOF_MASTER
 	},
 	{
 		MSIOF_COMMON,
+		.mode			= SPI_MSIOF_MASTER
 	},
 	{
 		MSIOF_COMMON,
+		.mode			= SPI_MSIOF_MASTER
 	},
 };
 
@@ -1455,7 +1456,6 @@ void __init r8a7790_add_standard_devices(void)
 	r8a7790_register_scif(HSCIF0);
 	r8a7790_register_scif(HSCIF1);
 	r8a7790_register_irqc(0);
-	r8a7790_register_thermal();
 	r8a7790_register_cmt(00);
 	r8a7790_register_alsa(0);
 	r8a7790_register_audma(l, SHDMA_DEVID_AUDIO_LO);

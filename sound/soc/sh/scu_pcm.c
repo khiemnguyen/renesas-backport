@@ -103,11 +103,17 @@ static void scu_dma_callback(struct snd_pcm_substream *ss)
 	FNC_EXIT
 }
 
+static bool filter(struct dma_chan *chan, void *slave)
+{
+	chan->private = slave;
+
+	return true;
+}
+
 static int scu_dma_req_chan(int sid, struct snd_pcm_substream *ss)
 {
 	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
 	struct sh_dmadesc_slave *param = &pcminfo->de_param[sid];
-	struct dma_slave_config cfg;
 	dma_cap_mask_t mask;
 	int ret = 0;
 
@@ -121,17 +127,10 @@ static int scu_dma_req_chan(int sid, struct snd_pcm_substream *ss)
 	/* request dma channel */
 	if (pcminfo->de_chan[sid] == NULL) {
 		pcminfo->de_chan[sid] = dma_request_channel(mask,
-						shdma_chan_filter, (void *)sid);
+							filter, (void *)param);
 		if (!pcminfo->de_chan[sid]) {
 			printk(KERN_ERR "DMA channel request error\n");
 			return -EBUSY;
-		}
-
-		cfg.slave_id = sid;
-		ret = dmaengine_slave_config(pcminfo->de_chan[sid], &cfg);
-		if (ret < 0) {
-			dma_release_channel(pcminfo->de_chan[sid]);
-			return ret;
 		}
 	}
 

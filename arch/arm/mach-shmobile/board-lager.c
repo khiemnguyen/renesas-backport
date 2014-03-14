@@ -540,6 +540,11 @@ static int sdhi_get_vlt(struct platform_device *pdev)
 static int sdhi_init(struct platform_device *pdev,
 		const struct sh_mobile_sdhi_ops *ops)
 {
+#ifdef R8A7790_ES1_SDHI_WORKAROUND
+	void __iomem *product_reg;
+	struct sh_mobile_sdhi_info *p = pdev->dev.platform_data;
+#endif
+
 	switch (pdev->id) {
 	case 0:
 		/* SDHI0 */
@@ -547,6 +552,17 @@ static int sdhi_init(struct platform_device *pdev,
 		gpio_request(RCAR_GP_PIN(5, 29), "SDHI0_vol");
 		gpio_direction_output(RCAR_GP_PIN(5, 24), 1);
 		gpio_direction_output(RCAR_GP_PIN(5, 29), 1);
+#ifdef R8A7790_ES1_SDHI_WORKAROUND
+		product_reg = ioremap_nocache(PRODUCT_REGISTER, 0x04);
+		if (!product_reg)
+			return -ENOMEM;
+
+		if ((ioread32(product_reg) & PRODUCT_CUT_MASK) ==
+							PRODUCT_H2_BIT)
+			p->scc_tapnum = SH_MOBILE_SDHI_SCC_TAP_10;
+
+		iounmap(product_reg);
+#endif
 		break;
 	case 2:
 		/* SDHI2 */
@@ -579,6 +595,7 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_SDIO_STATUS_QUIRK |
 				TMIO_MMC_WRPROTECT_DISABLE,
+	.scc_tapnum	= SH_MOBILE_SDHI_SCC_TAP_8,
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
@@ -603,6 +620,7 @@ static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 				TMIO_MMC_CLK_ACTUAL |
 				TMIO_MMC_SDIO_STATUS_QUIRK |
 				TMIO_MMC_WRPROTECT_DISABLE,
+	.scc_tapnum	= SH_MOBILE_SDHI_SCC_TAP_8,
 	.set_pwr	= sdhi_set_pwr,
 	.set_vlt	= sdhi_set_vlt,
 	.get_vlt	= sdhi_get_vlt,
