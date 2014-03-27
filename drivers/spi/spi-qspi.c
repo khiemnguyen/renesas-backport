@@ -1,7 +1,7 @@
 /*
  * drivers/spi/spi-qspi.c
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * spi-qspi.c QSPI bus driver
  *
@@ -385,7 +385,7 @@ static int qspi_init(struct qspi_priv *qspi,
 		case SPI_FLASH_4PAGE_COM:
 			spi_mode = QSPI_SINGLE_RW_MODE;
 			/* Enables clock delay setting, keeps SSL signal */
-			spcmd0 = QSPI_SPCMD_SCKDEN | QSPI_SPCMD_SSLKP | spclk;
+			spcmd0 = QSPI_SPCMD_SXXDEN | QSPI_SPCMD_SSLKP | spclk;
 			/* Negates all SSL signal */
 			spcmd1 = QSPI_SPCMD_SLNDEN | QSPI_SPCMD_SPNDEN | spclk;
 			spcmd1 |= QSPI_SPCMD_MOD_SINGLE;
@@ -394,7 +394,7 @@ static int qspi_init(struct qspi_priv *qspi,
 		case SPI_FLASH_4DUAL_READ_COM:
 			spi_mode = QSPI_DUAL_RW_MODE;
 			/* Enables clock delay setting, keeps SSL signal */
-			spcmd0 = QSPI_SPCMD_SCKDEN | QSPI_SPCMD_SSLKP | spclk;
+			spcmd0 = QSPI_SPCMD_SXXDEN | QSPI_SPCMD_SSLKP | spclk;
 			/* Negates all SSL signal */
 			spcmd1 = QSPI_SPCMD_SLNDEN | QSPI_SPCMD_SPNDEN | spclk;
 			spcmd1 |= QSPI_SPCMD_MOD_DUAL | QSPI_SPCMD_SPRW_READ;
@@ -403,7 +403,7 @@ static int qspi_init(struct qspi_priv *qspi,
 		case SPI_FLASH_4QUAD_READ_COM:
 			spi_mode = QSPI_QUAD_RW_MODE;
 			/* Enables clock delay setting, keeps SSL signal */
-			spcmd0 = QSPI_SPCMD_SCKDEN | QSPI_SPCMD_SSLKP | spclk;
+			spcmd0 = QSPI_SPCMD_SXXDEN | QSPI_SPCMD_SSLKP | spclk;
 			/* Negates all SSL signal */
 			spcmd1 = QSPI_SPCMD_SXXDEN | spclk;
 			spcmd1 |= QSPI_SPCMD_MOD_QUAD | QSPI_SPCMD_SPRW_READ;
