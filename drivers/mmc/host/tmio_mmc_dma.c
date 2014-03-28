@@ -31,8 +31,8 @@ void tmio_mmc_enable_dma(struct tmio_mmc_host *host, bool enable)
 	if (!host->chan_tx || !host->chan_rx)
 		return;
 
-	if (pdata->set_transfer_size)
-		pdata->set_transfer_size(host, enable);
+	if (pdata->enable_sdbuf_acc32)
+		pdata->enable_sdbuf_acc32(host, enable);
 
 #if defined(CONFIG_SUPERH) || defined(CONFIG_ARCH_SHMOBILE)
 	/* Switch DMA mode on or off - SuperH specific? */

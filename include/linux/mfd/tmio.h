@@ -143,7 +143,7 @@ struct tmio_mmc_data {
 	bool (*retuning)(struct tmio_mmc_host *host);
 	int (*write16_hook)(struct tmio_mmc_host *host, int addr);
 	void (*disable_auto_cmd12)(int *val);
-	void (*set_transfer_size)(struct tmio_mmc_host *host, int enable);
+	void (*enable_sdbuf_acc32)(struct tmio_mmc_host *host, int enable);
 	void (*hw_reset)(struct tmio_mmc_host *host);
 	/* clock management callbacks */
 	int (*clk_enable)(struct platform_device *pdev, unsigned int *f);
