@@ -376,7 +376,7 @@ static void sh_mobile_sdhi_enable_sdbuf_acc32(struct tmio_mmc_host *host,
 			acc_size = enable ? HOST_MODE_32BIT : HOST_MODE_16BIT;
 		else
 			acc_size = enable ? EXT_ACC_32BIT : EXT_ACC_16BIT;
-		sd_ctrl_write16(host, 0xe4, acc_size);
+		sd_ctrl_write16(host, EXT_ACC, acc_size);
 	}
 }
 
