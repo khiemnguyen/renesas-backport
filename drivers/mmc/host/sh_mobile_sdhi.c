@@ -364,7 +364,7 @@ static void sh_mobile_sdhi_cd_wakeup(const struct platform_device *pdev)
 #define EXT_ACC_16BIT	0
 #define EXT_ACC_32BIT	1
 
-static void sh_mobile_sdhi_set_transfer_size(struct tmio_mmc_host *host,
+static void sh_mobile_sdhi_enable_sdbuf_acc32(struct tmio_mmc_host *host,
 								int enable)
 {
 	unsigned int acc_size;
@@ -477,8 +477,8 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 			priv->dma_priv.chan_priv_tx = &priv->param_tx.shdma_slave;
 			priv->dma_priv.chan_priv_rx = &priv->param_rx.shdma_slave;
 			priv->dma_priv.alignment_shift = 5; /* 32byte alignment */
-			mmc_data->set_transfer_size =
-				sh_mobile_sdhi_set_transfer_size;
+			mmc_data->enable_sdbuf_acc32 =
+				sh_mobile_sdhi_enable_sdbuf_acc32;
 			mmc_data->dma = &priv->dma_priv;
 		}
 	}
