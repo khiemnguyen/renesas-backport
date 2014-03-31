@@ -498,10 +498,6 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto eprobe;
 
-	/* Set 16bit access */
-	if (mmc_data->flags & TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH)
-		sd_ctrl_write16(host, 0xe4, 1);
-
 	if (host->bus_shift)
 		sd_ctrl_write16(host, 0x192, 0x0004);
 	else

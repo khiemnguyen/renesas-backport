@@ -82,9 +82,6 @@
  */
 #define TMIO_MMC_USE_GPIO_CD		(1 << 5)
 
-/* Switch the register of controller to access the buffer of 16 bit. */
-#define TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH	(1 << 6)
-
 /* NO_CTL_RESET_SDIO register don't work. */
 #define TMIO_MMC_NO_CTL_RESET_SDIO	(1 << 7)
 
