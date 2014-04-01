@@ -1424,21 +1424,6 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 
 void __init r8a7790_add_standard_devices(void)
 {
-	void __iomem *pfcctl;
-
-	pfcctl = ioremap(0xe6060000, 0x300);
-
-	/* SD control registers IOCTRLn: SD pins driving ability */
-	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
-	iowrite32(0xaaaaaaaa, pfcctl + 0x60);	/* IOCTRL0 */
-	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
-	iowrite32(0xaaaaaaaa, pfcctl + 0x64);	/* IOCTRL1 */
-	iowrite32(~0x00154000, pfcctl);		/* PMMR */
-	iowrite32(0x00154000, pfcctl + 0x88);	/* IOCTRL5 */
-	iowrite32(~0xffffffff, pfcctl);		/* PMMR */
-	iowrite32(0xffffffff, pfcctl + 0x8c);	/* IOCTRL6 */
-	iounmap(pfcctl);
-
 	usbh_init();
 
 	r8a7790_pm_init();
