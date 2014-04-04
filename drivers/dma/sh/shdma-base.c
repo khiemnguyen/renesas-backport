@@ -3,7 +3,7 @@
  *
  * extracted from shdma.c
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  * Copyright (C) 2011-2012 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
  * Copyright (C) 2009 Nobuhiro Iwamatsu <iwamatsu.nobuhiro@renesas.com>
  * Copyright (C) 2009 Renesas Solutions, Inc. All rights reserved.
@@ -127,7 +127,7 @@ static dma_cookie_t shdma_tx_submit(struct dma_async_tx_descriptor *tx)
 		ret = pm_runtime_get(schan->dev);
 
 		spin_unlock_irq(&schan->chan_lock);
-		if (ret < 0)
+		if (ret < 0 && ret != -EINPROGRESS)
 			dev_err(schan->dev, "%s(): GET = %d\n", __func__, ret);
 
 		pm_runtime_barrier(schan->dev);
