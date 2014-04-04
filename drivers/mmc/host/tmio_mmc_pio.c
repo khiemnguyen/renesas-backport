@@ -51,6 +51,11 @@
 
 #include "tmio_mmc.h"
 
+static int tmio_mmc_start_data(struct tmio_mmc_host *host,
+	struct mmc_data *data);
+static int tmio_mmc_start_command(struct tmio_mmc_host *host,
+	struct mmc_command *cmd);
+
 void tmio_mmc_enable_mmc_irqs(struct tmio_mmc_host *host, u32 i)
 {
 	host->sdcard_irq_mask &= ~(i & TMIO_MASK_IRQ);
@@ -272,6 +277,8 @@ static void tmio_mmc_finish_request(struct tmio_mmc_host *host)
 {
 	struct mmc_request *mrq;
 	unsigned long flags;
+	struct mmc_command *cmd = host->cmd;
+	int ret = 0;
 
 	spin_lock_irqsave(&host->lock, flags);
 
@@ -293,6 +300,29 @@ static void tmio_mmc_finish_request(struct tmio_mmc_host *host)
 	if (mrq->cmd->error || (mrq->data && mrq->data->error))
 		tmio_mmc_abort_dma(host);
 
+	if (cmd == mrq->sbc) {
+		host->last_req_ts = jiffies;
+		host->mrq = mrq;
+
+		if (mrq->data) {
+			ret = tmio_mmc_start_data(host, mrq->data);
+			if (ret)
+				goto fail;
+		}
+		ret = tmio_mmc_start_command(host, mrq->cmd);
+		if (!ret) {
+			schedule_delayed_work(&host->delayed_reset_work,
+					      msecs_to_jiffies(2000));
+			return;
+		}
+	}
+
+fail:
+	if (ret) {
+		host->force_pio = false;
+		host->mrq = NULL;
+		mrq->cmd->error = ret;
+	}
 	mmc_request_done(host->mmc, mrq);
 }
 
@@ -484,8 +514,10 @@ static int tmio_mmc_start_command(struct tmio_mmc_host *host, struct mmc_command
 		if (data->blocks > 1) {
 			sd_ctrl_write16(host, CTL_STOP_INTERNAL_ACTION, 0x100);
 			c |= TRANSFER_MULTI;
-			if (cmd->opcode == SD_IO_RW_EXTENDED) {
-				/* Disable auto CMD12 at IO_RW_EXTENDED
+			if (cmd->opcode == SD_IO_RW_EXTENDED ||
+			    host->mrq->sbc) {
+				/* Disable auto CMD12 at IO_RW_EXTENDED or
+				  SET_BLOCK_COUNT support card
 				  multiple block transfer */
 				if (pdata->disable_auto_cmd12)
 					pdata->disable_auto_cmd12(&c);
@@ -675,8 +707,6 @@ static void tmio_mmc_cmd_irq(struct tmio_mmc_host *host,
 		pr_debug("Spurious CMD irq\n");
 		goto out;
 	}
-
-	host->cmd = NULL;
 
 	/* This controller is sicker than the PXA one. Not only do we need to
 	 * drop the top 8 bits of the first response word, we also need to
@@ -927,13 +957,17 @@ static void tmio_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	if (mrq->data) {
-		ret = tmio_mmc_start_data(host, mrq->data);
-		if (ret)
-			goto fail;
+	if (mrq->sbc)
+		ret = tmio_mmc_start_command(host, mrq->sbc);
+	else {
+		if (mrq->data) {
+			ret = tmio_mmc_start_data(host, mrq->data);
+			if (ret)
+				goto fail;
+		}
+		ret = tmio_mmc_start_command(host, mrq->cmd);
 	}
 
-	ret = tmio_mmc_start_command(host, mrq->cmd);
 	if (!ret) {
 		schedule_delayed_work(&host->delayed_reset_work,
 				      msecs_to_jiffies(2000));
