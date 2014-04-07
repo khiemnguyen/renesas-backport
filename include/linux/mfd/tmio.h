@@ -134,6 +134,7 @@ struct tmio_mmc_data {
 	int (*get_ro)(struct platform_device *host);
 	int (*start_signal_voltage_switch)(struct tmio_mmc_host *host,
 						unsigned char signal_voltage);
+	bool (*inquiry_tuning)(struct tmio_mmc_host *host);
 	void (*init_tuning)(struct tmio_mmc_host *host, unsigned long *num);
 	int (*prepare_tuning)(struct tmio_mmc_host *host, unsigned long tap);
 	int (*select_tuning)(struct tmio_mmc_host *host, unsigned long *tap);
