@@ -581,6 +581,38 @@ static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		tuning_loop_counter--;
 		timeout--;
 		mdelay(1);
+
+		/* This process is specific card Workaround */
+		spin_lock_irqsave(&host->lock, flags);
+		init_completion(&host->completion);
+		mrq.cmd = &cmd12;
+		mrq.data = NULL;
+
+		cmd12.opcode = MMC_STOP_TRANSMISSION;
+		cmd12.arg = 1;
+		cmd12.flags = MMC_RSP_R1B | MMC_CMD_AC;
+		cmd12.retries = 0;
+		cmd12.error = 0;
+
+		host->mrq = &mrq;
+
+		spin_unlock_irqrestore(&host->lock, flags);
+
+		ret = tmio_mmc_start_command(host, &cmd12);
+		if (ret)
+			goto out;
+
+		timeleft = wait_for_completion_timeout(&host->completion,
+						msecs_to_jiffies(tm));
+		if (timeleft < 0) {
+			ret = timeleft;
+			goto out;
+		}
+
+		if (!timeleft) {
+			ret = -ETIMEDOUT;
+			goto out;
+		}
 	} while ((val < (num * 2)) && (tuning_loop_counter || timeout));
 
 	/*
