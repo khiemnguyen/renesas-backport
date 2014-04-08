@@ -38,6 +38,10 @@
 #define SDHI_VERSION_490C	0x490C
 
 #define EXT_ACC           0xe4
+#define SD_DMACR(x)       ((x) ? 0x192 : 0xe6)
+
+/* Maximum number DMA transfer size */
+#define SH_MOBILE_SDHI_DMA_XMIT_SZ_MAX	6
 
 /* SDHI host controller type */
 enum {
@@ -58,6 +62,13 @@ static unsigned short sh_acc_size[][SH_MOBILE_SDHI_EXT_ACC_MAX] = {
 	/* { 16bit, 32bit, }, */
 	{ 0x0000, 0x0001, },	/* SH_MOBILE_SDHI_VER_490C */
 	{ 0x0001, 0x0000, },	/* SH_MOBILE_SDHI_VER_CB0D */
+};
+
+/* transfer size for SD_DMACR */
+static int sh_dma_size[][SH_MOBILE_SDHI_DMA_XMIT_SZ_MAX] = {
+	/* { 1byte, 2byte, 4byte, 8byte, 16byte, 32byte, }, */
+	{ -EINVAL, 0x0000, 0x0000, -EINVAL, 0x5000, 0xa000, },	/* VER_490C */
+	{ -EINVAL, 0x0000, 0x0000, -EINVAL, 0x0001, 0x0004, },	/* VER_CB0D */
 };
 
 struct sh_mobile_sdhi {
@@ -410,6 +421,19 @@ static void sh_mobile_sdhi_enable_sdbuf_acc32(struct tmio_mmc_host *host,
 
 }
 
+static int sh_mobile_sdhi_get_xmit_size(unsigned int type, int shift)
+{
+	int dma_size;
+
+	if (type >= SH_MOBILE_SDHI_VER_MAX)
+		return -EINVAL;
+	if (shift >= SH_MOBILE_SDHI_DMA_XMIT_SZ_MAX)
+		return -EINVAL;
+
+	dma_size = sh_dma_size[type][shift];
+	return dma_size;
+}
+
 static const struct sh_mobile_sdhi_ops sdhi_ops = {
 	.cd_wakeup = sh_mobile_sdhi_cd_wakeup,
 };
@@ -449,6 +473,10 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	char clk_name[8];
 	int irq, ret, i = 0;
 	bool multiplexed_isr = true;
+	u16 ver;
+	unsigned int type;
+	int base, dma_size;
+	int shift = 1; /* 2byte alignment */
 
 	priv = kzalloc(sizeof(struct sh_mobile_sdhi), GFP_KERNEL);
 	if (priv == NULL) {
@@ -508,7 +536,13 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 			priv->param_rx.shdma_slave.slave_id = p->dma_slave_rx;
 			priv->dma_priv.chan_priv_tx = &priv->param_tx.shdma_slave;
 			priv->dma_priv.chan_priv_rx = &priv->param_rx.shdma_slave;
-			priv->dma_priv.alignment_shift = 5; /* 32byte alignment */
+			if (p->dma_xmit_sz) {
+				base = p->dma_xmit_sz;
+				for (shift = 0; base > 1; shift++)
+					base >>= 1;
+			}
+			priv->dma_priv.alignment_shift = shift;
+
 			mmc_data->enable_sdbuf_acc32 =
 				sh_mobile_sdhi_enable_sdbuf_acc32;
 			mmc_data->dma = &priv->dma_priv;
@@ -536,10 +570,22 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	 */
 	sh_mobile_sdhi_enable_sdbuf_acc32(host, false);
 
-	if (host->bus_shift)
-		sd_ctrl_write16(host, 0x192, 0x0004);
-	else
-		sd_ctrl_write16(host, 0xe6, 0xa000);
+	/* Set DMA xmit size */
+	if (p->dma_slave_tx > 0 && p->dma_slave_rx > 0) {
+		ver = sd_ctrl_read16(host, CTL_VERSION);
+		if (ver == SDHI_VERSION_CB0D)
+			type = SH_MOBILE_SDHI_VER_CB0D;
+		else
+			type = SH_MOBILE_SDHI_VER_490C;
+
+		dma_size = sh_mobile_sdhi_get_xmit_size(type,
+					priv->dma_priv.alignment_shift);
+		if (dma_size < 0) {
+			ret = dma_size;
+			goto eirq_card_detect;
+		}
+		sd_ctrl_write16(host, SD_DMACR(type), dma_size);
+	}
 
 	/* set sampling clock selection range */
 	if (p->scc_tapnum)
