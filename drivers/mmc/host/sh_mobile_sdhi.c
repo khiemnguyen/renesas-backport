@@ -33,7 +33,32 @@
 
 #include "tmio_mmc.h"
 
+/* SDHI host controller version */
+#define SDHI_VERSION_CB0D	0xCB0D
+#define SDHI_VERSION_490C	0x490C
+
 #define EXT_ACC           0xe4
+
+/* SDHI host controller type */
+enum {
+	SH_MOBILE_SDHI_VER_490C = 0,
+	SH_MOBILE_SDHI_VER_CB0D,
+	SH_MOBILE_SDHI_VER_MAX, /* SDHI max */
+};
+
+/* SD buffer access size */
+enum {
+	SH_MOBILE_SDHI_EXT_ACC_16BIT = 0,
+	SH_MOBILE_SDHI_EXT_ACC_32BIT,
+	SH_MOBILE_SDHI_EXT_ACC_MAX, /* EXT_ACC access size max */
+};
+
+/* SD buffer access size for EXT_ACC */
+static unsigned short sh_acc_size[][SH_MOBILE_SDHI_EXT_ACC_MAX] = {
+	/* { 16bit, 32bit, }, */
+	{ 0x0000, 0x0001, },	/* SH_MOBILE_SDHI_VER_490C */
+	{ 0x0001, 0x0000, },	/* SH_MOBILE_SDHI_VER_CB0D */
+};
 
 struct sh_mobile_sdhi {
 	struct clk *clk;
@@ -361,23 +386,28 @@ static void sh_mobile_sdhi_cd_wakeup(const struct platform_device *pdev)
 	mmc_detect_change(dev_get_drvdata(&pdev->dev), msecs_to_jiffies(100));
 }
 
-#define HOST_MODE_16BIT	1
-#define HOST_MODE_32BIT	0
-#define EXT_ACC_16BIT	0
-#define EXT_ACC_32BIT	1
-
 static void sh_mobile_sdhi_enable_sdbuf_acc32(struct tmio_mmc_host *host,
 								int enable)
 {
-	unsigned int acc_size;
+	unsigned short acc_size;
+	unsigned int type;
+	u16 ver;
 
-	if (host->pdata->dma->alignment_shift > 1) {
-		if (host->bus_shift)
-			acc_size = enable ? HOST_MODE_32BIT : HOST_MODE_16BIT;
-		else
-			acc_size = enable ? EXT_ACC_32BIT : EXT_ACC_16BIT;
-		sd_ctrl_write16(host, EXT_ACC, acc_size);
+	ver = sd_ctrl_read16(host, CTL_VERSION);
+	if (ver == SDHI_VERSION_CB0D)
+		type = SH_MOBILE_SDHI_VER_CB0D;
+	else if (ver == SDHI_VERSION_490C)
+		type = SH_MOBILE_SDHI_VER_490C;
+	else {
+		dev_err(host->pdata->dev, "Unknown SDHI version\n");
+		return;
 	}
+
+	acc_size = enable ?
+		sh_acc_size[type][SH_MOBILE_SDHI_EXT_ACC_32BIT] :
+		sh_acc_size[type][SH_MOBILE_SDHI_EXT_ACC_16BIT];
+	sd_ctrl_write16(host, EXT_ACC, acc_size);
+
 }
 
 static const struct sh_mobile_sdhi_ops sdhi_ops = {
@@ -419,7 +449,6 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	char clk_name[8];
 	int irq, ret, i = 0;
 	bool multiplexed_isr = true;
-	u16 ver;
 
 	priv = kzalloc(sizeof(struct sh_mobile_sdhi), GFP_KERNEL);
 	if (priv == NULL) {
@@ -505,9 +534,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	 * FIXME:
 	 * this Workaround can be more clever method
 	 */
-	ver = sd_ctrl_read16(host, CTL_VERSION);
-	if (ver == 0xCB0D)
-		sd_ctrl_write16(host, EXT_ACC, 1);
+	sh_mobile_sdhi_enable_sdbuf_acc32(host, false);
 
 	if (host->bus_shift)
 		sd_ctrl_write16(host, 0x192, 0x0004);
