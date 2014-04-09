@@ -232,6 +232,15 @@ power_cycle:
 	return -EAGAIN;
 }
 
+static bool sh_mobile_sdhi_inquiry_tuning(struct tmio_mmc_host *host)
+{
+	/* SDHI should be tuning only SDR104 */
+	if (host->mmc->ios.timing == MMC_TIMING_UHS_SDR104)
+		return true;
+	else
+		return false;
+}
+
 /* SCC registers */
 #define SH_MOBILE_SDHI_SCC_DTCNTL	0x300
 #define SH_MOBILE_SDHI_SCC_TAPSET	0x304
@@ -507,6 +516,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 	mmc_data->clk_enable = sh_mobile_sdhi_clk_enable;
 	mmc_data->clk_disable = sh_mobile_sdhi_clk_disable;
 	mmc_data->capabilities = MMC_CAP_MMC_HIGHSPEED;
+	mmc_data->inquiry_tuning = sh_mobile_sdhi_inquiry_tuning;
 	mmc_data->init_tuning = sh_mobile_sdhi_init_tuning;
 	mmc_data->prepare_tuning = sh_mobile_sdhi_prepare_tuning;
 	mmc_data->select_tuning = sh_mobile_sdhi_select_tuning;
