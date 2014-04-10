@@ -116,7 +116,6 @@ pio:
 		tmio_mmc_enable_dma(host, false);
 		if (ret >= 0)
 			ret = -EIO;
-		tmio_mmc_enable_dma(host, false);
 		host->chan_rx = NULL;
 		dma_release_channel(chan);
 		/* Free the Tx channel too */
@@ -200,7 +199,6 @@ pio:
 		tmio_mmc_enable_dma(host, false);
 		if (ret >= 0)
 			ret = -EIO;
-		tmio_mmc_enable_dma(host, false);
 		host->chan_tx = NULL;
 		dma_release_channel(chan);
 		/* Free the Rx channel too */
