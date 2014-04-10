@@ -2,7 +2,7 @@
  * sound/soc/sh/scu_dai.c
  *     This file is ALSA SoC driver for SCU peripheral.
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * This file is based on the sound/soc/sh/siu_dai.c
  *
@@ -1331,7 +1331,7 @@ error_unmap:
 	if (rinfo->ssiureg)
 		iounmap(rinfo->ssiureg);
 	if (rinfo->ssireg)
-		iounmap(rinfo->ssireg);
+		iounmap(rinfo->ssireg[0]);
 	if (rinfo->adgreg)
 		iounmap(rinfo->adgreg);
 
@@ -1390,7 +1390,7 @@ static int __devexit scu_remove(struct platform_device *pdev)
 
 	iounmap(rinfo->scureg);
 	iounmap(rinfo->ssiureg);
-	iounmap(rinfo->ssireg);
+	iounmap(rinfo->ssireg[0]);
 	iounmap(rinfo->adgreg);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
