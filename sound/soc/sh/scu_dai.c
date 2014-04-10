@@ -1046,11 +1046,11 @@ static void scu_alloc_scureg(void __iomem *mem)
 	void __iomem *offset;
 
 	/* SCU common */
-	rinfo->scureg = mem + 0x500000;
+	rinfo->scureg = mem;
 	DBG_MSG("scureg=%08x\n", (int)rinfo->scureg);
 
 	/* SCU common SRC */
-	offset = mem + 0x500000;
+	offset = mem;
 	for (i = 0; i < MAXCH_SRC; i++) {
 		rinfo->scusrcreg[i] = (struct scu_src_regs *)offset;
 		offset += 0x20;
@@ -1058,7 +1058,7 @@ static void scu_alloc_scureg(void __iomem *mem)
 	}
 
 	/* SCU common CMD */
-	offset = mem + 0x500184;
+	offset = mem + 0x184;
 	for (i = 0; i < MAXCH_CMD; i++) {
 		rinfo->scucmdreg[i] = (struct scu_cmd_regs *)offset;
 		offset += 0x20;
@@ -1066,7 +1066,7 @@ static void scu_alloc_scureg(void __iomem *mem)
 	}
 
 	/* SRC */
-	offset = mem + 0x500200;
+	offset = mem + 0x200;
 	for (i = 0; i < MAXCH_SRC; i++) {
 		rinfo->srcreg[i] = (struct src_regs *)offset;
 		offset += 0x40;
@@ -1074,7 +1074,7 @@ static void scu_alloc_scureg(void __iomem *mem)
 	}
 
 	/* CTU */
-	offset = mem + 0x500500;
+	offset = mem + 0x500;
 	for (i = 0; i < MAXCH_CTU; i++) {
 		rinfo->ctureg[i] = (struct ctu_regs *)offset;
 		offset += 0x100;
@@ -1082,7 +1082,7 @@ static void scu_alloc_scureg(void __iomem *mem)
 	}
 
 	/* MIX */
-	offset = mem + 0x500d00;
+	offset = mem + 0xd00;
 	for (i = 0; i < MAXCH_CMD; i++) {
 		rinfo->mixreg[i] = (struct mix_regs *)offset;
 		offset += 0x40;
@@ -1090,7 +1090,7 @@ static void scu_alloc_scureg(void __iomem *mem)
 	}
 
 	/* DVC */
-	offset = mem + 0x500e00;
+	offset = mem + 0xe00;
 	for (i = 0; i < MAXCH_CMD; i++) {
 		rinfo->dvcreg[i] = (struct dvc_regs *)offset;
 		offset += 0x100;
