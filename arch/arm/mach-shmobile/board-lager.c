@@ -338,6 +338,10 @@ static struct scu_platform_data scu_pdata __initdata = {
 	.ssi_mode_num		= ARRAY_SIZE(ssi_mode_value),
 	.src_mode		= src_mode_value,
 	.src_mode_num		= ARRAY_SIZE(src_mode_value),
+	.ssi_num_playback	= SSI0,
+	.ssi_irq_playback	= (gic_spi(370) + SSI0),
+	.ssi_num_capture	= SSI1,
+	.ssi_irq_capture	= (gic_spi(370) + SSI1),
 };
 
 static struct i2c_board_info alsa_i2c[] = {
