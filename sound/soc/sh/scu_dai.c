@@ -67,6 +67,12 @@ struct scu_platform_data *scu_get_platform_data(void)
 }
 EXPORT_SYMBOL(scu_get_platform_data);
 
+struct scu_irq_info *scu_get_irq_info(void)
+{
+	return &ainfo->irqinfo;
+}
+EXPORT_SYMBOL(scu_get_irq_info);
+
 /************************************************************************
 
 	basic function
@@ -90,6 +96,48 @@ static void scu_and_writel(u32 data, u32 *reg)
 	val = readl(reg);
 	writel((val & data), reg);
 	spin_unlock(sculock);
+}
+
+/************************************************************************
+
+	interrupt function
+
+************************************************************************/
+/* from SSI */
+static irqreturn_t scu_ssi_interrupt(int irq, void *data)
+{
+	struct scu_irq_info *irqinfo = data;
+	u32 scu_ssi_status;
+	int ssi_num;
+	int ch;
+
+	if (irq == irqinfo->ssi_irq_playback) {
+		ssi_num = irqinfo->ssi_num_playback;
+		ch = CTRL_PLAYBACK;
+	} else if (irq == irqinfo->ssi_irq_capture) {
+		ssi_num = irqinfo->ssi_num_capture;
+		ch = CTRL_CAPTURE;
+	} else {
+		DBG_MSG("Illegal interrupt! SSI_IRQ = %d\n", irq);
+		return IRQ_HANDLED;
+	}
+
+	scu_ssi_status = readl(&rinfo->ssireg[ssi_num]->sr);
+
+	if (scu_ssi_status & SSISR_OIRQ)
+		DBG_MSG("Overflow!!! at SSI%d\n", ssi_num);
+	if (scu_ssi_status & SSISR_UIRQ)
+		DBG_MSG("Underflow!!! at SSI%d\n", ssi_num);
+	if (!(scu_ssi_status & (SSISR_OIRQ | SSISR_UIRQ))) {
+		DBG_MSG("Illegal interrupt! ");
+		DBG_MSG("SSI_IRQ = %d, SSI_STATUS = 0x%08x\n",
+							irq, scu_ssi_status);
+		return IRQ_HANDLED;
+	}
+
+	snd_pcm_stop(irqinfo->ss[ch], SNDRV_PCM_STATE_XRUN);
+
+	return IRQ_HANDLED;
 }
 
 /************************************************************************
@@ -556,11 +604,18 @@ void scu_init_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 		scu_or_writel((1 << ch),
 			(u32 *)(rinfo->ssiureg + SSI_MODE0));
 
+	/* clear interrupt (SSISR_OIRQ, SSISR_UIRQ) */
+	writel(0, &rinfo->ssireg[ch]->sr);
+
 	/* SSI init */
 	scu_ssi_control(master_ch, slave_ch, mode);
 
 	/* SSI start */
 	scu_ssi_start(ch, dir);
+
+	/* enable interrupt by SSI_INT_ENABLE_MAIN */
+	scu_or_writel((SSI_INT_EN_UIRQ | SSI_INT_EN_OIRQ),
+			&rinfo->ssiu_std_reg[ch]->int_enable_main);
 }
 EXPORT_SYMBOL(scu_init_ssi);
 
@@ -582,8 +637,15 @@ void scu_deinit_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 		return;
 	}
 
+	/* disable interrupt by SSI_INT_ENABLE_MAIN */
+	scu_or_writel(~(SSI_INT_EN_UIRQ | SSI_INT_EN_OIRQ),
+			&rinfo->ssiu_std_reg[ch]->int_enable_main);
+
 	/* SSI stop */
 	scu_ssi_stop(ch, dir);
+
+	/* clear interrupt (SSISR_OIRQ, SSISR_UIRQ) */
+	writel(0, &rinfo->ssireg[ch]->sr);
 
 	/* SSI_MODE0 (SSI independant) */
 	if (ind == SSI_INDEPENDANT)
@@ -1100,6 +1162,21 @@ static void scu_alloc_scureg(void __iomem *mem)
 	return;
 }
 
+static void scu_alloc_ssiureg(void __iomem *mem)
+{
+	int i;
+	void __iomem *offset;
+
+	offset = mem;
+	for (i = 0; i < MAXCH_SSI; i++) {
+		rinfo->ssiu_std_reg[i] = (struct ssiu_std_regs *)offset;
+		offset += 0x80;
+		DBG_MSG("ssiureg[%2d]=%08x\n", i, (int)rinfo->ssiu_std_reg[i]);
+	}
+
+	return;
+}
+
 static void scu_alloc_ssireg(void __iomem *mem)
 {
 	int i;
@@ -1115,10 +1192,37 @@ static void scu_alloc_ssireg(void __iomem *mem)
 	return;
 }
 
+static int scu_request_irqs(struct scu_irq_info *irqinfo,
+						struct scu_audio_info *ainfo)
+{
+	int ret;
+
+	/* ssi interrupt for playback */
+	ret = request_irq(irqinfo->ssi_irq_playback, scu_ssi_interrupt, 0,
+						ainfo->ssi_irq_pname, irqinfo);
+	if (ret < 0)
+		return ret;
+
+	/* ssi interrupt for capture */
+	ret = request_irq(irqinfo->ssi_irq_capture, scu_ssi_interrupt, 0,
+						ainfo->ssi_irq_cname, irqinfo);
+	if (ret < 0)
+		free_irq(irqinfo->ssi_irq_playback, irqinfo);
+
+	return ret;
+}
+
+static void scu_free_irqs(struct scu_irq_info *irqinfo)
+{
+	free_irq(irqinfo->ssi_irq_capture, irqinfo);
+	free_irq(irqinfo->ssi_irq_playback, irqinfo);
+}
+
 static int __devinit scu_probe(struct platform_device *pdev)
 {
 	int ret = 0;
 	struct scu_clock_info *cinfo;
+	struct scu_irq_info *irqinfo;
 	struct resource *scu_res;
 	struct resource *scu_region = NULL;
 	struct resource *ssiu_res;
@@ -1128,6 +1232,7 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	struct resource *adg_res;
 	struct resource *adg_region = NULL;
 	void __iomem *mem;
+	struct resource *irq_res[2];
 
 	FNC_ENTRY
 	if (pdev->id != 0) {
@@ -1143,6 +1248,7 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	}
 	cinfo = &ainfo->clockinfo;
 	rinfo = &ainfo->reginfo;
+	irqinfo = &ainfo->irqinfo;
 
 	spin_lock_init(&ainfo->scu_lock);
 	sculock = &ainfo->scu_lock;
@@ -1240,6 +1346,39 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		goto error_clk_put;
 	}
 
+	/* ssi number for playback */
+	irqinfo->ssi_num_playback = pdata->ssi_num_playback;
+	/* ssi irq number for playback */
+	irqinfo->ssi_irq_playback = platform_get_irq(pdev, 0);
+	/* ssi irq resource for playback */
+	irq_res[0] = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	if (irqinfo->ssi_irq_playback < 0 || !(irq_res[0])) {
+		dev_err(&pdev->dev, "No ssi_irq resource for playback\n");
+		ret = -ENODEV;
+		goto error_clk_put;
+	};
+	snprintf(ainfo->ssi_irq_pname, 16, "%s", irq_res[0]->name);
+
+	/* ssi number for capture */
+	irqinfo->ssi_num_capture = pdata->ssi_num_capture;
+	/* ssi irq number for capture */
+	irqinfo->ssi_irq_capture = platform_get_irq(pdev, 1);
+	/* ssi irq resource for capture */
+	irq_res[1] = platform_get_resource(pdev, IORESOURCE_IRQ, 1);
+	if (irqinfo->ssi_irq_capture < 0 || !(irq_res[1])) {
+		dev_err(&pdev->dev, "No ssi_irq resource for capture\n");
+		ret = -ENODEV;
+		goto error_clk_put;
+	};
+	snprintf(ainfo->ssi_irq_cname, 16, "%s", irq_res[1]->name);
+
+	/* request irqs */
+	ret = scu_request_irqs(irqinfo, ainfo);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "cannot snd soc register\n");
+		goto error_clk_put;
+	}
+
 	scu_region = request_mem_region(scu_res->start,
 			resource_size(scu_res), pdev->name);
 	if (!scu_region) {
@@ -1289,6 +1428,7 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	}
 	rinfo->ssiureg = mem;
 	DBG_MSG("ssiureg=%08x\n", (int)rinfo->ssiureg);
+	scu_alloc_ssiureg(mem);
 
 	mem = ioremap_nocache(ssi_res->start, resource_size(ssi_res));
 	if (!mem) {
@@ -1345,6 +1485,9 @@ error_release:
 	if (adg_region)
 		release_mem_region(adg_res->start, resource_size(adg_res));
 
+/* error irqs */
+	scu_free_irqs(irqinfo);
+
 error_clk_put:
 	if (!IS_ERR(cinfo->adg_clk))
 		clk_put(cinfo->adg_clk);
@@ -1372,6 +1515,7 @@ error_clk_put:
 static int __devexit scu_remove(struct platform_device *pdev)
 {
 	struct scu_clock_info *cinfo = &ainfo->clockinfo;
+	struct scu_irq_info *irqinfo = &ainfo->irqinfo;
 	struct resource *res;
 
 	FNC_ENTRY
@@ -1387,6 +1531,8 @@ static int __devexit scu_remove(struct platform_device *pdev)
 	clk_put(cinfo->ssiu_clk);
 	clk_put(cinfo->ssi_clk[SSI0]);
 	clk_put(cinfo->ssi_clk[SSI1]);
+
+	scu_free_irqs(irqinfo);
 
 	iounmap(rinfo->scureg);
 	iounmap(rinfo->ssiureg);

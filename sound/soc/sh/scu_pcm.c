@@ -513,6 +513,7 @@ static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 	pcminfo->routeinfo   = scu_get_route_info();
 	pcminfo->ss          = ss;
 	pcminfo->pdata       = scu_get_platform_data();
+	pcminfo->irqinfo     = scu_get_irq_info();
 
 	/* allocate dma_chan structure */
 	pcminfo->de_chan = kzalloc((sizeof(struct dma_chan) *
@@ -567,6 +568,8 @@ static int scu_pcm_open(struct snd_pcm_substream *ss)
 	if (pcminfo == NULL)
 		return -ENOMEM;
 
+	pcminfo->irqinfo->ss[dir] = ss;
+
 	ret = scu_check_route(dir, pcminfo->routeinfo);
 	if (ret < 0)
 		return ret;
@@ -580,7 +583,12 @@ static int scu_pcm_open(struct snd_pcm_substream *ss)
 
 static int scu_pcm_close(struct snd_pcm_substream *ss)
 {
+	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
+	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE ? 1 : 0;
+
 	FNC_ENTRY
+
+	pcminfo->irqinfo->ss[dir] = NULL;
 	FNC_EXIT
 	return 0;
 }

@@ -441,6 +441,10 @@ enum {
 #define	SSI_CTRL_4CH_START0	(1<<0)
 #define	SSI_CTRL_1CH_START	(1<<0)
 
+/* SSI_INT_ENABLE_MAIN */
+#define	SSI_INT_EN_UIRQ		(1<<27)
+#define	SSI_INT_EN_OIRQ		(1<<26)
+
 /* SSI_MODE0 bit */
 #define	SSI_MODE0_SWAP9	(1<<25)
 #define	SSI_MODE0_SWAP8	(1<<24)
@@ -2090,6 +2094,16 @@ struct dvc_regs {
 	u32	dvier;
 };
 
+struct ssiu_std_regs {
+	u32	busif_mode;
+	u32	busif_adinr;
+	u32	busif_dalign;
+	u32	mode;
+	u32	control;
+	u32	status;
+	u32	int_enable_main;
+};
+
 struct ssi_regs {
 	u32	cr;
 	u32	sr;
@@ -2110,6 +2124,7 @@ struct scu_reg_info {
 	struct mix_regs		*mixreg[MAXCH_CMD];
 	struct dvc_regs		*dvcreg[MAXCH_CMD];
 	void __iomem		*ssiureg;
+	struct ssiu_std_regs	*ssiu_std_reg[MAXCH_SSI];
 	struct ssi_regs		*ssireg[MAXCH_SSI];
 	void __iomem		*adgreg;
 };
@@ -2147,10 +2162,21 @@ struct scu_clock_info {
 	struct clk *ssi_clk[MAXCH_SSI];
 };
 
+struct scu_irq_info {
+	struct snd_pcm_substream *ss[2];
+	int ssi_num_playback;
+	int ssi_irq_playback;
+	int ssi_num_capture;
+	int ssi_irq_capture;
+};
+
 struct scu_audio_info {
 	struct scu_reg_info reginfo;
 	struct scu_route_info routeinfo;
 	struct scu_clock_info clockinfo;
+	struct scu_irq_info irqinfo;
+	char ssi_irq_pname[16];
+	char ssi_irq_cname[16];
 	spinlock_t scu_lock;		/* for common register */
 	unsigned int rate[2];
 	unsigned int volume[2][2];
@@ -2190,6 +2216,10 @@ struct scu_platform_data {
 	int ssi_mode_num;
 	struct scu_config *src_mode;
 	int src_mode_num;
+	int ssi_num_playback;
+	int ssi_irq_playback;
+	int ssi_num_capture;
+	int ssi_irq_capture;
 };
 
 struct scu_pcm_info {
@@ -2205,6 +2235,7 @@ struct scu_pcm_info {
 	struct scu_route_info *routeinfo;
 	struct snd_pcm_substream *ss;
 	struct scu_platform_data *pdata;
+	struct scu_irq_info *irqinfo;
 };
 
 /************************************************************************
@@ -2234,6 +2265,7 @@ extern struct snd_soc_platform_driver scu_platform;
 
 extern struct scu_route_info *scu_get_route_info(void);
 extern struct scu_platform_data *scu_get_platform_data(void);
+extern struct scu_irq_info *scu_get_irq_info(void);
 
 extern void scu_init_ssi(int, int, int, int, int);
 extern void scu_init_src(int, unsigned int, unsigned int);
