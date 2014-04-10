@@ -271,6 +271,8 @@ static const struct resource r8a7791_scu_resources[] __initconst = {
 	DEFINE_RES_MEM_NAMED(0xec5a0000, 0x68, "adg"),
 	DEFINE_RES_IRQ_NAMED(gic_spi(370), "ssi0"),
 	DEFINE_RES_IRQ_NAMED(gic_spi(371), "ssi1"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(352), "src0"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(353), "src1"),
 };
 
 void __init r8a7791_add_scu_device(struct scu_platform_data *pdata)
