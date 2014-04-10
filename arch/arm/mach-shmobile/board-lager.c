@@ -342,6 +342,10 @@ static struct scu_platform_data scu_pdata __initdata = {
 	.ssi_irq_playback	= (gic_spi(370) + SSI0),
 	.ssi_num_capture	= SSI1,
 	.ssi_irq_capture	= (gic_spi(370) + SSI1),
+	.src_num_playback	= SRC0,
+	.src_irq_playback	= (gic_spi(352) + SRC0),
+	.src_num_capture	= SRC1,
+	.src_irq_capture	= (gic_spi(352) + SRC1),
 };
 
 static struct i2c_board_info alsa_i2c[] = {
