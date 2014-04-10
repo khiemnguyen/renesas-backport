@@ -771,7 +771,9 @@ static int sci_handle_errors(struct uart_port *port)
 			if (tty_insert_flip_char(tty, 0, TTY_OVERRUN))
 				copied++;
 
+#if !(defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791))
 			dev_notice(port->dev, "overrun error");
+#endif
 		}
 	}
 
@@ -842,7 +844,9 @@ static int sci_handle_fifo_overrun(struct uart_port *port)
 		tty_insert_flip_char(tty, 0, TTY_OVERRUN);
 		tty_flip_buffer_push(tty);
 
+#if !(defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791))
 		dev_notice(port->dev, "overrun error\n");
+#endif
 		copied++;
 	}
 
@@ -981,12 +985,18 @@ static inline unsigned long port_rx_irq_mask(struct uart_port *port)
 static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 {
 	unsigned short ssr_status, scr_status, err_enabled;
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
+	unsigned short slr_status;
+#endif
 	struct uart_port *port = ptr;
 	struct sci_port *s = to_sci_port(port);
 	irqreturn_t ret = IRQ_NONE;
 
 	ssr_status = serial_port_in(port, SCxSR);
 	scr_status = serial_port_in(port, SCSCR);
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
+	slr_status = serial_port_in(port, SCLSR);
+#endif
 	err_enabled = scr_status & port_rx_irq_mask(port);
 
 	/* Tx Interrupt */
@@ -1000,8 +1010,10 @@ static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 	 */
 	if (((ssr_status & SCxSR_RDxF(port)) || s->chan_rx) &&
 	    (scr_status & SCSCR_RIE)) {
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
 		if (port->type == PORT_SCIF || port->type == PORT_HSCIF)
 			sci_handle_fifo_overrun(port);
+#endif
 		ret = sci_rx_interrupt(irq, ptr);
 	}
 
@@ -1012,6 +1024,13 @@ static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 	/* Break Interrupt */
 	if ((ssr_status & SCxSR_BRK(port)) && err_enabled)
 		ret = sci_br_interrupt(irq, ptr);
+
+#if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
+	if (port->type == PORT_SCIF || port->type == PORT_HSCIF) {
+		if ((slr_status & 0x01))
+			sci_handle_fifo_overrun(port);
+	}
+#endif
 
 	return ret;
 }
