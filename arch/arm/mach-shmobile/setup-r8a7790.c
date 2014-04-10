@@ -234,7 +234,7 @@ static const struct resource cmt00_resources[] __initconst = {
 		"lager_alsa_soc_platform", idx, NULL, 0, NULL, 0)
 
 static const struct resource r8a7790_scu_resources[] __initconst = {
-	DEFINE_RES_MEM_NAMED(0xec000000, 0x501000, "scu"),
+	DEFINE_RES_MEM_NAMED(0xec500000, 0x1000, "scu"),
 	DEFINE_RES_MEM_NAMED(0xec540000, 0x860, "ssiu"),
 	DEFINE_RES_MEM_NAMED(0xec541000, 0x280, "ssi"),
 	DEFINE_RES_MEM_NAMED(0xec5a0000, 0x68, "adg"),
