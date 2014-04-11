@@ -79,7 +79,7 @@ int rcar_du_lvdsenc_start(struct rcar_du_lvdsenc *lvds,
 	rcar_lvds_write(lvds, LVDCTRCR, LVDCTRCR_CTR3SEL_ZERO |
 			LVDCTRCR_CTR2SEL_DISP | LVDCTRCR_CTR1SEL_VSYNC |
 			LVDCTRCR_CTR0SEL_HSYNC);
-#ifdef R8A7790_ES1_DU_WORKAROUND
+#ifdef R8A7790_ES1_DU_LVDS_LANE_MISCONNECTION_WORKAROUND
 	if (rcar_du_has(rcrtc->group->dev,
 			 RCAR_DU_FEATURE_LVDCHCR_WORKAROUND)) {
 		rcar_lvds_write(lvds, LVDCHCR,

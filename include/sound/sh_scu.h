@@ -163,6 +163,8 @@
 #define	CMD1_CONTROL		0x01b0
 #define	SCU_SYSTEM_STATUS0	0x01c8
 #define	SCU_SYSTEM_INT_ENABLE0	0x01cc
+#define	SCU_SYSTEM_STATUS1	0x01d0
+#define	SCU_SYSTEM_INT_ENABLE1	0x01d4
 
 /* SRC input/output */
 #define	SRC_INOUT		0
@@ -183,6 +185,18 @@
 #define	SRC_MODE_START_OUT	(1<<4)
 #define	SRC_MODE_START_IN	(1<<0)
 
+/* SRC_STATUS */
+#define	SRC_STATUS_UF_SRCO	(1<<13)
+#define	SRC_STATUS_OF_SRCO	(1<<12)
+#define	SRC_STATUS_OF_SRCI	(1<<9)
+#define	SRC_STATUS_UF_SRCI	(1<<8)
+
+/* SRC_INT_ENABLE0 */
+#define	SRC_INT_EN0_UF_SRCO_IE	(1<<13)
+#define	SRC_INT_EN0_OF_SRCO_IE	(1<<12)
+#define	SRC_INT_EN0_OF_SRCI_IE	(1<<9)
+#define	SRC_INT_EN0_UF_SRCI_IE	(1<<8)
+
 /* CMD_ROUTE_SELECT */
 #define	CMD_ROUTE_SELECT_CASE_CTU_ALL	(0<<16)
 #define	CMD_ROUTE_SELECT_CASE_CTU0	(1<<16)
@@ -196,6 +210,22 @@
 
 /* CMD_CONTROL */
 #define	CMD_CONTROL_START_OUT	(1<<4)
+
+/* SCU_SYSTEM_STATUS0 */
+#define	SCU_SYS_ST0_OF_SRC_O		(1<<16)
+#define	SCU_SYS_ST0_UF_SRC_I		(1<<0)
+
+/* SCU_SYSTEM_INT_ENABLE0 */
+#define	SCU_SYS_INTEN0_OF_SRC_O_IE	(1<<16)
+#define	SCU_SYS_INTEN0_UF_SRC_I_IE	(1<<0)
+
+/* SCU_SYSTEM_STATUS1 */
+#define	SCU_SYS_ST1_UF_SRC_O		(1<<16)
+#define	SCU_SYS_ST1_OF_SRC_I		(1<<0)
+
+/* SCU_SYSTEM_INT_ENABLE1 */
+#define	SCU_SYS_INTEN1_UF_SRC_O_IE	(1<<16)
+#define	SCU_SYS_INTEN1_OF_SRC_I_IE	(1<<0)
 
 /*
  *	SRC
@@ -440,6 +470,10 @@ enum {
 #define	SSI_CTRL_4CH_START1	(1<<4)
 #define	SSI_CTRL_4CH_START0	(1<<0)
 #define	SSI_CTRL_1CH_START	(1<<0)
+
+/* SSI_INT_ENABLE_MAIN */
+#define	SSI_INT_EN_UIRQ		(1<<27)
+#define	SSI_INT_EN_OIRQ		(1<<26)
 
 /* SSI_MODE0 bit */
 #define	SSI_MODE0_SWAP9	(1<<25)
@@ -1995,6 +2029,13 @@ struct scu_cmd_regs {
 	u32	control;
 };
 
+struct scu_sys_regs {
+	u32	status0;
+	u32	interrupt0;
+	u32	status1;
+	u32	interrupt1;
+};
+
 struct src_regs {
 	u32	swrsr;
 	u32	srcir;
@@ -2090,6 +2131,16 @@ struct dvc_regs {
 	u32	dvier;
 };
 
+struct ssiu_std_regs {
+	u32	busif_mode;
+	u32	busif_adinr;
+	u32	busif_dalign;
+	u32	mode;
+	u32	control;
+	u32	status;
+	u32	int_enable_main;
+};
+
 struct ssi_regs {
 	u32	cr;
 	u32	sr;
@@ -2105,11 +2156,13 @@ struct scu_reg_info {
 	void __iomem		*scureg;
 	struct scu_src_regs	*scusrcreg[MAXCH_SRC];
 	struct scu_cmd_regs	*scucmdreg[MAXCH_CMD];
+	struct scu_sys_regs	*scu_sys_regs;
 	struct src_regs		*srcreg[MAXCH_SRC];
 	struct ctu_regs		*ctureg[MAXCH_CTU];
 	struct mix_regs		*mixreg[MAXCH_CMD];
 	struct dvc_regs		*dvcreg[MAXCH_CMD];
 	void __iomem		*ssiureg;
+	struct ssiu_std_regs	*ssiu_std_reg[MAXCH_SSI];
 	struct ssi_regs		*ssireg[MAXCH_SSI];
 	void __iomem		*adgreg;
 };
@@ -2119,7 +2172,7 @@ struct scu_pcm_callback {
 	void (*init_src)(int, unsigned int, unsigned int);
 	void (*init_dvc)(int);
 	void (*deinit_ssi)(int, int, int, int, int);
-	void (*deinit_src)(int);
+	void (*deinit_src)(int, unsigned int);
 	void (*deinit_dvc)(int);
 };
 
@@ -2147,10 +2200,27 @@ struct scu_clock_info {
 	struct clk *ssi_clk[MAXCH_SSI];
 };
 
+struct scu_irq_info {
+	struct snd_pcm_substream *ss[2];
+	int ssi_num_playback;
+	int ssi_irq_playback;
+	int ssi_num_capture;
+	int ssi_irq_capture;
+	int src_num_playback;
+	int src_irq_playback;
+	int src_num_capture;
+	int src_irq_capture;
+};
+
 struct scu_audio_info {
 	struct scu_reg_info reginfo;
 	struct scu_route_info routeinfo;
 	struct scu_clock_info clockinfo;
+	struct scu_irq_info irqinfo;
+	char ssi_irq_pname[16];
+	char ssi_irq_cname[16];
+	char src_irq_pname[16];
+	char src_irq_cname[16];
 	spinlock_t scu_lock;		/* for common register */
 	unsigned int rate[2];
 	unsigned int volume[2][2];
@@ -2190,6 +2260,14 @@ struct scu_platform_data {
 	int ssi_mode_num;
 	struct scu_config *src_mode;
 	int src_mode_num;
+	int ssi_num_playback;
+	int ssi_irq_playback;
+	int ssi_num_capture;
+	int ssi_irq_capture;
+	int src_num_playback;
+	int src_irq_playback;
+	int src_num_capture;
+	int src_irq_capture;
 };
 
 struct scu_pcm_info {
@@ -2205,6 +2283,7 @@ struct scu_pcm_info {
 	struct scu_route_info *routeinfo;
 	struct snd_pcm_substream *ss;
 	struct scu_platform_data *pdata;
+	struct scu_irq_info *irqinfo;
 };
 
 /************************************************************************
@@ -2234,6 +2313,7 @@ extern struct snd_soc_platform_driver scu_platform;
 
 extern struct scu_route_info *scu_get_route_info(void);
 extern struct scu_platform_data *scu_get_platform_data(void);
+extern struct scu_irq_info *scu_get_irq_info(void);
 
 extern void scu_init_ssi(int, int, int, int, int);
 extern void scu_init_src(int, unsigned int, unsigned int);
@@ -2241,7 +2321,7 @@ extern void scu_init_dvc(int);
 extern void adg_init(void);
 
 extern void scu_deinit_ssi(int, int, int, int, int);
-extern void scu_deinit_src(int);
+extern void scu_deinit_src(int, unsigned int);
 extern void scu_deinit_dvc(int);
 extern void adg_deinit(void);
 

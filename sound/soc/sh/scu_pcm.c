@@ -300,7 +300,13 @@ done:
 
 static int scu_dma_stop(int sid, struct snd_pcm_substream *ss)
 {
+	struct snd_pcm_runtime *runtime = ss->runtime;
+	struct scu_pcm_info *pcminfo = runtime->private_data;
+
 	FNC_ENTRY
+
+	dmaengine_terminate_all(pcminfo->de_chan[sid]);
+
 	FNC_EXIT
 	return 0;
 }
@@ -377,6 +383,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 	int ssi_depend = 0;
 	int ssi_mode = 0;
 	int src_ch = 0;
+	int src_mode = 0;
 	int dvc_ch = 0;
 	struct scu_pcm_callback callback;
 
@@ -397,6 +404,8 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 					pcminfo->pdata->ssi_mode_num);
 	src_ch = scu_find_data(route, pcminfo->pdata->src_ch,
 					pcminfo->pdata->src_ch_num);
+	src_mode = scu_find_data(route, pcminfo->pdata->src_mode,
+					pcminfo->pdata->src_mode_num);
 	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
 					pcminfo->pdata->dvc_ch_num);
 
@@ -406,7 +415,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 
 	/* stop src */
 	if (callback.deinit_src)
-		callback.deinit_src(src_ch);
+		callback.deinit_src(src_ch, src_mode);
 
 	/* stop ssi */
 	if (callback.deinit_ssi)
@@ -428,10 +437,16 @@ static void scu_dma_do_work(struct work_struct *work)
 	struct scu_pcm_info *pcminfo =
 			container_of(work, struct scu_pcm_info, work);
 	struct snd_pcm_substream *ss = pcminfo->ss;
+	unsigned long flags;
 
 	FNC_ENTRY
-	/* start pcm process */
-	scu_pcm_start(ss, pcminfo->flag_first);
+
+	spin_lock_irqsave(&pcminfo->pcm_lock, flags);
+	if (pcminfo->flag_start == 1)
+		/* start pcm process */
+		scu_pcm_start(ss, pcminfo->flag_first);
+	spin_unlock_irqrestore(&pcminfo->pcm_lock, flags);
+
 	if (pcminfo->flag_first == 1)
 		pcminfo->flag_first = 0;
 
@@ -501,6 +516,7 @@ static struct scu_pcm_info *scu_pcm_new_stream(struct snd_pcm_substream *ss)
 	pcminfo->routeinfo   = scu_get_route_info();
 	pcminfo->ss          = ss;
 	pcminfo->pdata       = scu_get_platform_data();
+	pcminfo->irqinfo     = scu_get_irq_info();
 
 	/* allocate dma_chan structure */
 	pcminfo->de_chan = kzalloc((sizeof(struct dma_chan) *
@@ -555,6 +571,8 @@ static int scu_pcm_open(struct snd_pcm_substream *ss)
 	if (pcminfo == NULL)
 		return -ENOMEM;
 
+	pcminfo->irqinfo->ss[dir] = ss;
+
 	ret = scu_check_route(dir, pcminfo->routeinfo);
 	if (ret < 0)
 		return ret;
@@ -568,7 +586,12 @@ static int scu_pcm_open(struct snd_pcm_substream *ss)
 
 static int scu_pcm_close(struct snd_pcm_substream *ss)
 {
+	struct scu_pcm_info *pcminfo = ss->runtime->private_data;
+	int dir = ss->stream == SNDRV_PCM_STREAM_CAPTURE ? 1 : 0;
+
 	FNC_ENTRY
+
+	pcminfo->irqinfo->ss[dir] = NULL;
 	FNC_EXIT
 	return 0;
 }
@@ -614,10 +637,12 @@ static int scu_pcm_trigger(struct snd_pcm_substream *ss, int cmd)
 	int ret = 0;
 	struct snd_pcm_runtime *runtime = ss->runtime;
 	struct scu_pcm_info *pcminfo = runtime->private_data;
-
-	spin_lock(&pcminfo->pcm_lock);
+	unsigned long flags;
 
 	FNC_ENTRY
+
+	spin_lock_irqsave(&pcminfo->pcm_lock, flags);
+
 	switch (cmd) {
 	case SNDRV_PCM_TRIGGER_START:
 		ret = scu_audio_start(ss);
@@ -630,7 +655,7 @@ static int scu_pcm_trigger(struct snd_pcm_substream *ss, int cmd)
 		break;
 	}
 
-	spin_unlock(&pcminfo->pcm_lock);
+	spin_unlock_irqrestore(&pcminfo->pcm_lock, flags);
 
 	FNC_EXIT
 	return ret;

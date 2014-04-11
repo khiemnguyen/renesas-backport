@@ -338,6 +338,14 @@ static struct scu_platform_data scu_pdata __initdata = {
 	.ssi_mode_num		= ARRAY_SIZE(ssi_mode_value),
 	.src_mode		= src_mode_value,
 	.src_mode_num		= ARRAY_SIZE(src_mode_value),
+	.ssi_num_playback	= SSI0,
+	.ssi_irq_playback	= (gic_spi(370) + SSI0),
+	.ssi_num_capture	= SSI1,
+	.ssi_irq_capture	= (gic_spi(370) + SSI1),
+	.src_num_playback	= SRC0,
+	.src_irq_playback	= (gic_spi(352) + SRC0),
+	.src_num_capture	= SRC1,
+	.src_irq_capture	= (gic_spi(352) + SRC1),
 };
 
 static struct i2c_board_info alsa_i2c[] = {
@@ -580,14 +588,14 @@ static int sdhi_init(struct platform_device *pdev,
 static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI0_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI0_RX,
+	.dma_xmit_sz	= SH_MOBILE_SDHI_DMA_XMIT_SZ_32BYTE,
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50 |
 				MMC_CAP_UHS_SDR104 |
 				MMC_CAP_HW_RESET |
 				MMC_CAP_CMD23,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
-	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
-				TMIO_MMC_CLK_NO_SLEEP |
+	.tmio_flags	= TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
 				TMIO_MMC_HAS_UHS_SCC |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
@@ -605,14 +613,14 @@ static struct sh_mobile_sdhi_info sdhi0_platform_data = {
 static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI1_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI1_RX,
+	.dma_xmit_sz	= SH_MOBILE_SDHI_DMA_XMIT_SZ_32BYTE,
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50 |
 				MMC_CAP_UHS_SDR104 |
 				MMC_CAP_HW_RESET |
 				MMC_CAP_CMD23,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
-	.tmio_flags	= TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH |
-				TMIO_MMC_CLK_NO_SLEEP |
+	.tmio_flags	= TMIO_MMC_CLK_NO_SLEEP |
 				TMIO_MMC_HAS_IDLE_WAIT |
 				TMIO_MMC_HAS_UHS_SCC |
 				TMIO_MMC_NO_CTL_CLK_AND_WAIT_CTL |
@@ -630,6 +638,7 @@ static struct sh_mobile_sdhi_info sdhi1_platform_data = {
 static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI2_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI2_RX,
+	.dma_xmit_sz	= SH_MOBILE_SDHI_DMA_XMIT_SZ_32BYTE,
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,
@@ -650,6 +659,7 @@ static struct sh_mobile_sdhi_info sdhi2_platform_data = {
 static struct sh_mobile_sdhi_info sdhi3_platform_data = {
 	.dma_slave_tx	= SHDMA_SLAVE_SDHI3_TX,
 	.dma_slave_rx	= SHDMA_SLAVE_SDHI3_RX,
+	.dma_xmit_sz	= SH_MOBILE_SDHI_DMA_XMIT_SZ_32BYTE,
 	.tmio_caps	= MMC_CAP_SD_HIGHSPEED | MMC_CAP_SDIO_IRQ |
 				MMC_CAP_UHS_SDR50,
 	.tmio_caps2	= MMC_CAP2_NO_2BLKS_READ,

@@ -234,10 +234,14 @@ static const struct resource cmt00_resources[] __initconst = {
 		"lager_alsa_soc_platform", idx, NULL, 0, NULL, 0)
 
 static const struct resource r8a7790_scu_resources[] __initconst = {
-	DEFINE_RES_MEM_NAMED(0xec000000, 0x501000, "scu"),
+	DEFINE_RES_MEM_NAMED(0xec500000, 0x1000, "scu"),
 	DEFINE_RES_MEM_NAMED(0xec540000, 0x860, "ssiu"),
 	DEFINE_RES_MEM_NAMED(0xec541000, 0x280, "ssi"),
 	DEFINE_RES_MEM_NAMED(0xec5a0000, 0x68, "adg"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(370), "ssi0"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(371), "ssi1"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(352), "src0"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(353), "src1"),
 };
 
 void __init r8a7790_add_scu_device(struct scu_platform_data *pdata)
@@ -1424,21 +1428,6 @@ static struct platform_device *r8a7790_early_devices[] __initdata = {
 
 void __init r8a7790_add_standard_devices(void)
 {
-	void __iomem *pfcctl;
-
-	pfcctl = ioremap(0xe6060000, 0x300);
-
-	/* SD control registers IOCTRLn: SD pins driving ability */
-	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
-	iowrite32(0xaaaaaaaa, pfcctl + 0x60);	/* IOCTRL0 */
-	iowrite32(~0xaaaaaaaa, pfcctl);		/* PMMR */
-	iowrite32(0xaaaaaaaa, pfcctl + 0x64);	/* IOCTRL1 */
-	iowrite32(~0x00154000, pfcctl);		/* PMMR */
-	iowrite32(0x00154000, pfcctl + 0x88);	/* IOCTRL5 */
-	iowrite32(~0xffffffff, pfcctl);		/* PMMR */
-	iowrite32(0xffffffff, pfcctl + 0x8c);	/* IOCTRL6 */
-	iounmap(pfcctl);
-
 	usbh_init();
 
 	r8a7790_pm_init();

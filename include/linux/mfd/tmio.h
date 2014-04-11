@@ -82,9 +82,6 @@
  */
 #define TMIO_MMC_USE_GPIO_CD		(1 << 5)
 
-/* Switch the register of controller to access the buffer of 16 bit. */
-#define TMIO_MMC_BUFF_16BITACC_ACTIVE_HIGH	(1 << 6)
-
 /* NO_CTL_RESET_SDIO register don't work. */
 #define TMIO_MMC_NO_CTL_RESET_SDIO	(1 << 7)
 
@@ -137,13 +134,14 @@ struct tmio_mmc_data {
 	int (*get_ro)(struct platform_device *host);
 	int (*start_signal_voltage_switch)(struct tmio_mmc_host *host,
 						unsigned char signal_voltage);
+	bool (*inquiry_tuning)(struct tmio_mmc_host *host);
 	void (*init_tuning)(struct tmio_mmc_host *host, unsigned long *num);
 	int (*prepare_tuning)(struct tmio_mmc_host *host, unsigned long tap);
 	int (*select_tuning)(struct tmio_mmc_host *host, unsigned long *tap);
 	bool (*retuning)(struct tmio_mmc_host *host);
 	int (*write16_hook)(struct tmio_mmc_host *host, int addr);
 	void (*disable_auto_cmd12)(int *val);
-	void (*set_transfer_size)(struct tmio_mmc_host *host, int enable);
+	void (*enable_sdbuf_acc32)(struct tmio_mmc_host *host, int enable);
 	void (*hw_reset)(struct tmio_mmc_host *host);
 	/* clock management callbacks */
 	int (*clk_enable)(struct platform_device *pdev, unsigned int *f);

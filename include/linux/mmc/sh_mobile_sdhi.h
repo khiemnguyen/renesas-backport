@@ -17,6 +17,12 @@ struct tmio_mmc_data;
 #define SH_MOBILE_SDHI_SCC_TAP_8	0x08
 #define SH_MOBILE_SDHI_SCC_TAP_10	0x0a
 
+/* SDHI DMA transmfer size */
+#define SH_MOBILE_SDHI_DMA_XMIT_SZ_2BYTE	2
+#define SH_MOBILE_SDHI_DMA_XMIT_SZ_4BYTE	4
+#define SH_MOBILE_SDHI_DMA_XMIT_SZ_16BYTE	16
+#define SH_MOBILE_SDHI_DMA_XMIT_SZ_32BYTE	32
+
 /**
  * struct sh_mobile_sdhi_ops - SDHI driver callbacks
  * @cd_wakeup:		trigger a card-detection run
@@ -28,6 +34,7 @@ struct sh_mobile_sdhi_ops {
 struct sh_mobile_sdhi_info {
 	int dma_slave_tx;
 	int dma_slave_rx;
+	int dma_xmit_sz;
 	unsigned long tmio_flags;
 	unsigned long tmio_caps;
 	unsigned long tmio_caps2;

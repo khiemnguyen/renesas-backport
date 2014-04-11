@@ -31,8 +31,9 @@ void tmio_mmc_enable_dma(struct tmio_mmc_host *host, bool enable)
 	if (!host->chan_tx || !host->chan_rx)
 		return;
 
-	if (pdata->set_transfer_size)
-		pdata->set_transfer_size(host, enable);
+	if (pdata->enable_sdbuf_acc32 && pdata->dma &&
+				pdata->dma->alignment_shift > 1)
+		pdata->enable_sdbuf_acc32(host, enable);
 
 #if defined(CONFIG_SUPERH) || defined(CONFIG_ARCH_SHMOBILE)
 	/* Switch DMA mode on or off - SuperH specific? */
@@ -112,9 +113,9 @@ static void tmio_mmc_start_dma_rx(struct tmio_mmc_host *host)
 pio:
 	if (!desc) {
 		/* DMA failed, fall back to PIO */
+		tmio_mmc_enable_dma(host, false);
 		if (ret >= 0)
 			ret = -EIO;
-		tmio_mmc_enable_dma(host, false);
 		host->chan_rx = NULL;
 		dma_release_channel(chan);
 		/* Free the Tx channel too */
@@ -195,9 +196,9 @@ static void tmio_mmc_start_dma_tx(struct tmio_mmc_host *host)
 pio:
 	if (!desc) {
 		/* DMA failed, fall back to PIO */
+		tmio_mmc_enable_dma(host, false);
 		if (ret >= 0)
 			ret = -EIO;
-		tmio_mmc_enable_dma(host, false);
 		host->chan_tx = NULL;
 		dma_release_channel(chan);
 		/* Free the Rx channel too */
