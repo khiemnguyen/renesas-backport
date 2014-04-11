@@ -383,6 +383,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 	int ssi_depend = 0;
 	int ssi_mode = 0;
 	int src_ch = 0;
+	int src_mode = 0;
 	int dvc_ch = 0;
 	struct scu_pcm_callback callback;
 
@@ -403,6 +404,8 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 					pcminfo->pdata->ssi_mode_num);
 	src_ch = scu_find_data(route, pcminfo->pdata->src_ch,
 					pcminfo->pdata->src_ch_num);
+	src_mode = scu_find_data(route, pcminfo->pdata->src_mode,
+					pcminfo->pdata->src_mode_num);
 	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
 					pcminfo->pdata->dvc_ch_num);
 
@@ -412,7 +415,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 
 	/* stop src */
 	if (callback.deinit_src)
-		callback.deinit_src(src_ch);
+		callback.deinit_src(src_ch, src_mode);
 
 	/* stop ssi */
 	if (callback.deinit_ssi)

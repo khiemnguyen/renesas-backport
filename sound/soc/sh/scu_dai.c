@@ -103,6 +103,79 @@ static void scu_and_writel(u32 data, u32 *reg)
 	interrupt function
 
 ************************************************************************/
+/* from SRC */
+static irqreturn_t scu_src_interrupt(int irq, void *data)
+{
+	struct scu_irq_info *irqinfo = data;
+	u32 scu_src_sys_status0, scu_src_sys_status1;
+	int src_num;
+	int ch;
+	struct scu_pcm_info *pcminfo;
+	int dir;
+	int route;
+	int src_mode;
+
+	if (irq == irqinfo->src_irq_playback) {
+		src_num = irqinfo->src_num_playback;
+		ch = dir = CTRL_PLAYBACK;
+	} else if (irq == irqinfo->src_irq_capture) {
+		src_num = irqinfo->src_num_capture;
+		ch = dir = CTRL_CAPTURE;
+	} else {
+		DBG_MSG("Illegal interrupt! SRC_IRQ = %d\n", irq);
+		return IRQ_HANDLED;
+	}
+
+	pcminfo = irqinfo->ss[ch]->runtime->private_data;
+
+	if (!dir)	/* playback */
+		route = pcminfo->routeinfo->p_route;
+	else		/* capture */
+		route = pcminfo->routeinfo->c_route;
+
+	src_mode = scu_find_data(route, pcminfo->pdata->src_mode,
+					pcminfo->pdata->src_mode_num);
+
+	if (src_mode == SRC_CR_ASYNC) {
+		scu_src_sys_status0 = readl(&rinfo->scu_sys_regs->status0);
+		if (scu_src_sys_status0 & (SCU_SYS_ST0_OF_SRC_O << src_num))
+			DBG_MSG("Overflow!!! at SRC%d async mode\n",
+								src_num);
+		if (scu_src_sys_status0 & (SCU_SYS_ST0_UF_SRC_I << src_num))
+			DBG_MSG("Underflow!!! at SRC%d async mode\n", src_num);
+		if (!(scu_src_sys_status0 &
+			((SCU_SYS_ST0_OF_SRC_O |
+				SCU_SYS_ST0_UF_SRC_I) << src_num))) {
+			DBG_MSG("Illegal interrupt! ");
+			DBG_MSG(
+				"SRC_IRQ = %d, SRC_SYS_STATUS0 = 0x%08x\n",
+						irq, scu_src_sys_status0);
+			return IRQ_HANDLED;
+		}
+
+		snd_pcm_stop(irqinfo->ss[ch], SNDRV_PCM_STATE_XRUN);
+	} else {	/* SRC_CR_SYNC */
+		scu_src_sys_status1 = readl(&rinfo->scu_sys_regs->status1);
+		if (scu_src_sys_status1 & (SCU_SYS_ST1_UF_SRC_O << src_num))
+			DBG_MSG("Underflow!!! at SRC%d sync mode\n", src_num);
+		if (scu_src_sys_status1 & (SCU_SYS_ST1_OF_SRC_I << src_num))
+			DBG_MSG("Overflow!!! at SRC%d sync mode\n", src_num);
+
+		if (!(scu_src_sys_status1 &
+			((SCU_SYS_ST1_UF_SRC_O |
+				SCU_SYS_ST1_OF_SRC_I) << src_num))) {
+			DBG_MSG("Illegal interrupt! ");
+			DBG_MSG("SRC_IRQ = %d, SRC_SYS_STATUS1 = 0x%08x\n",
+						irq, scu_src_sys_status1);
+			return IRQ_HANDLED;
+		}
+
+		snd_pcm_stop(irqinfo->ss[ch], SNDRV_PCM_STATE_XRUN);
+	}
+
+	return IRQ_HANDLED;
+}
+
 /* from SSI */
 static irqreturn_t scu_ssi_interrupt(int irq, void *data)
 {
@@ -672,18 +745,67 @@ void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
 	clk_enable(ainfo->clockinfo.scu_clk);
 	clk_enable(ainfo->clockinfo.src_clk[src_ch]);
 
+	/* clear interrupt status */
+	writel((SCU_SYS_ST0_OF_SRC_O | SCU_SYS_ST0_UF_SRC_I) << src_ch,
+						&rinfo->scu_sys_regs->status0);
+	writel((SCU_SYS_ST1_UF_SRC_O | SCU_SYS_ST1_OF_SRC_I) << src_ch,
+						&rinfo->scu_sys_regs->status1);
+
 	scu_src_init(src_ch, sync_sw);
 	scu_src_control(src_ch, rate, sync_sw);
 	/* start src */
 	scu_src_start(src_ch, SRC_INOUT);
+
+	/* enable interrupt */
+	if (sync_sw) {
+		scu_or_writel(SRC_INT_EN0_UF_SRCO_IE | SRC_INT_EN0_OF_SRCI_IE,
+			(u32 *)&rinfo->scusrcreg[src_ch]->int_enable0);
+
+		scu_or_writel((1 << src_ch | 1 << (src_ch + 16)),
+			(u32 *)&rinfo->scu_sys_regs->interrupt1);
+	} else {
+		scu_or_writel(SRC_INT_EN0_OF_SRCO_IE | SRC_INT_EN0_UF_SRCI_IE,
+			(u32 *)&rinfo->scusrcreg[src_ch]->int_enable0);
+
+		scu_or_writel((1 << src_ch | 1 << (src_ch + 16)),
+			(u32 *)&rinfo->scu_sys_regs->interrupt0);
+	}
 }
 EXPORT_SYMBOL(scu_init_src);
 
-void scu_deinit_src(int src_ch)
+void scu_deinit_src(int src_ch, unsigned int sync_sw)
 {
+	/* disable interrupt */
+	if (sync_sw) {
+
+		/* keep ie=1 of SRC_INT_ENABLE0 for other SRC */
+
+		/* set ie=0 of SCU_SYSTEM_STATUS1 for self SRC */
+		scu_and_writel(~((SCU_SYS_INTEN1_UF_SRC_O_IE |
+					SCU_SYS_INTEN1_OF_SRC_I_IE) << src_ch),
+				(u32 *)&rinfo->scu_sys_regs->interrupt1);
+	} else {
+
+		/* keep ie=1 of SRC_INT_ENABLE0 for other SRC */
+
+		/* set ie=0 of SCU_SYSTEM_STATUS0 for self SRC */
+		scu_and_writel(~((SCU_SYS_INTEN0_OF_SRC_O_IE |
+					SCU_SYS_INTEN0_UF_SRC_I_IE) << src_ch),
+				(u32 *)&rinfo->scu_sys_regs->interrupt0);
+	}
+
 	/* stop src */
 	scu_src_stop(src_ch, SRC_INOUT);
 	scu_src_deinit(src_ch);
+
+	/* clear interrupt status */
+	if (sync_sw) {
+		writel((SCU_SYS_ST0_OF_SRC_O | SCU_SYS_ST0_UF_SRC_I) << src_ch,
+						&rinfo->scu_sys_regs->status0);
+	} else {
+		writel((SCU_SYS_ST1_UF_SRC_O | SCU_SYS_ST1_OF_SRC_I) << src_ch,
+						&rinfo->scu_sys_regs->status1);
+	}
 
 	clk_disable(ainfo->clockinfo.src_clk[src_ch]);
 	clk_disable(ainfo->clockinfo.scu_clk);
@@ -1127,6 +1249,11 @@ static void scu_alloc_scureg(void __iomem *mem)
 		DBG_MSG("scucmdreg[%2d]=%08x\n", i, (int)rinfo->scucmdreg[i]);
 	}
 
+	/* SCU SYSTEM */
+	offset = mem + 0x1C8;
+	rinfo->scu_sys_regs = (struct scu_sys_regs *)offset;
+	DBG_MSG("scusystemreg=%08x\n", (int)rinfo->scu_sys_regs);
+
 	/* SRC */
 	offset = mem + 0x200;
 	for (i = 0; i < MAXCH_SRC; i++) {
@@ -1207,13 +1334,38 @@ static int scu_request_irqs(struct scu_irq_info *irqinfo,
 	ret = request_irq(irqinfo->ssi_irq_capture, scu_ssi_interrupt, 0,
 						ainfo->ssi_irq_cname, irqinfo);
 	if (ret < 0)
-		free_irq(irqinfo->ssi_irq_playback, irqinfo);
+		goto error_req_irq1;
+
+	/* src interrupt for playback */
+	ret = request_irq(irqinfo->src_irq_playback, scu_src_interrupt, 0,
+						ainfo->src_irq_pname, irqinfo);
+	if (ret < 0)
+		goto error_req_irq2;
+
+	/* src interrupt for capture */
+	ret = request_irq(irqinfo->src_irq_capture, scu_src_interrupt, 0,
+						ainfo->src_irq_cname, irqinfo);
+	if (ret < 0)
+		goto error_req_irq3;
+
+	return 0;
+
+error_req_irq3:
+	free_irq(irqinfo->src_irq_playback, irqinfo);
+
+error_req_irq2:
+	free_irq(irqinfo->ssi_irq_capture, irqinfo);
+
+error_req_irq1:
+	free_irq(irqinfo->ssi_irq_playback, irqinfo);
 
 	return ret;
 }
 
 static void scu_free_irqs(struct scu_irq_info *irqinfo)
 {
+	free_irq(irqinfo->src_irq_capture, irqinfo);
+	free_irq(irqinfo->src_irq_playback, irqinfo);
 	free_irq(irqinfo->ssi_irq_capture, irqinfo);
 	free_irq(irqinfo->ssi_irq_playback, irqinfo);
 }
@@ -1232,7 +1384,7 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	struct resource *adg_res;
 	struct resource *adg_region = NULL;
 	void __iomem *mem;
-	struct resource *irq_res[2];
+	struct resource *irq_res[4];
 
 	FNC_ENTRY
 	if (pdev->id != 0) {
@@ -1371,6 +1523,32 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		goto error_clk_put;
 	};
 	snprintf(ainfo->ssi_irq_cname, 16, "%s", irq_res[1]->name);
+
+	/* src number for playback */
+	irqinfo->src_num_playback = pdata->src_num_playback;
+	/* src irq number for playback */
+	irqinfo->src_irq_playback = platform_get_irq(pdev, 2);
+	/* src irq resource for playback */
+	irq_res[2] = platform_get_resource(pdev, IORESOURCE_IRQ, 2);
+	if (irqinfo->src_irq_playback < 0 || !(irq_res[2])) {
+		dev_err(&pdev->dev, "No src_irq resource for playback\n");
+		ret = -ENODEV;
+		goto error_clk_put;
+	};
+	snprintf(ainfo->src_irq_pname, 16, "%s", irq_res[2]->name);
+
+	/* src number for capture */
+	irqinfo->src_num_capture = pdata->src_num_capture;
+	/* src irq number for capture */
+	irqinfo->src_irq_capture = platform_get_irq(pdev, 3);
+	/* src irq resource for capture */
+	irq_res[3] = platform_get_resource(pdev, IORESOURCE_IRQ, 3);
+	if (irqinfo->src_irq_capture < 0 || !(irq_res[3])) {
+		dev_err(&pdev->dev, "No src_irq resource for capture\n");
+		ret = -ENODEV;
+		goto error_clk_put;
+	};
+	snprintf(ainfo->src_irq_cname, 16, "%s", irq_res[3]->name);
 
 	/* request irqs */
 	ret = scu_request_irqs(irqinfo, ainfo);
