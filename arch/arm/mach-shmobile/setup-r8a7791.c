@@ -337,6 +337,14 @@ static const struct resource thermal_resources[] __initconst = {
 
 void __init r8a7791_add_dt_devices(void)
 {
+	r8a7791_register_cmt(00);
+	r8a7791_register_audio_dmac(0);
+	r8a7791_register_audio_dmac(1);
+	r8a7791_register_audmapp();
+}
+
+void __init r8a7791_add_standard_devices(void)
+{
 	r8a7791_register_scif(0);
 	r8a7791_register_scif(1);
 	r8a7791_register_scif(2);
@@ -352,14 +360,6 @@ void __init r8a7791_add_dt_devices(void)
 	r8a7791_register_scif(12);
 	r8a7791_register_scif(13);
 	r8a7791_register_scif(14);
-	r8a7791_register_cmt(00);
-	r8a7791_register_audio_dmac(0);
-	r8a7791_register_audio_dmac(1);
-	r8a7791_register_audmapp();
-}
-
-void __init r8a7791_add_standard_devices(void)
-{
 	r8a7791_add_dt_devices();
 	r8a7791_register_irqc(0);
 	r8a7791_register_thermal();
