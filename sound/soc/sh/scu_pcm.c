@@ -322,6 +322,7 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 	int src_ch = 0;
 	int src_mode = 0;
 	int dvc_ch = 0;
+	int use_dvc_in = 0;
 	struct scu_pcm_callback callback;
 
 	FNC_ENTRY
@@ -345,6 +346,8 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 					pcminfo->pdata->src_mode_num);
 	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
 					pcminfo->pdata->dvc_ch_num);
+	if (dvc_ch != -1 && dir == SNDRV_PCM_STREAM_CAPTURE)
+		use_dvc_in = 1;
 
 	/* start dma */
 	scu_dma_start(audma_slave_id, ss);
@@ -363,7 +366,8 @@ static void scu_pcm_start(struct snd_pcm_substream *ss, int first_flag)
 
 		/* start src */
 		if (callback.init_src)
-			callback.init_src(src_ch, ss->runtime->rate, src_mode);
+			callback.init_src(src_ch, ss->runtime->rate, src_mode,
+								use_dvc_in);
 
 		/* start dvc */
 		if (callback.init_dvc)
@@ -385,6 +389,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 	int src_ch = 0;
 	int src_mode = 0;
 	int dvc_ch = 0;
+	int use_dvc_in = 0;
 	struct scu_pcm_callback callback;
 
 	FNC_ENTRY
@@ -408,6 +413,8 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 					pcminfo->pdata->src_mode_num);
 	dvc_ch = scu_find_data(route, pcminfo->pdata->dvc_ch,
 					pcminfo->pdata->dvc_ch_num);
+	if (dvc_ch != -1 && dir == SNDRV_PCM_STREAM_CAPTURE)
+		use_dvc_in = 1;
 
 	/* stop dvc */
 	if (callback.deinit_dvc)
@@ -415,7 +422,7 @@ static void scu_pcm_stop(struct snd_pcm_substream *ss)
 
 	/* stop src */
 	if (callback.deinit_src)
-		callback.deinit_src(src_ch, src_mode);
+		callback.deinit_src(src_ch, src_mode, use_dvc_in);
 
 	/* stop ssi */
 	if (callback.deinit_ssi)

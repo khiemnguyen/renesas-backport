@@ -740,7 +740,8 @@ void scu_deinit_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 }
 EXPORT_SYMBOL(scu_deinit_ssi);
 
-void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
+void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw,
+								int use_dvc_in)
 {
 	clk_enable(ainfo->clockinfo.scu_clk);
 	clk_enable(ainfo->clockinfo.src_clk[src_ch]);
@@ -754,7 +755,10 @@ void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
 	scu_src_init(src_ch, sync_sw);
 	scu_src_control(src_ch, rate, sync_sw);
 	/* start src */
-	scu_src_start(src_ch, SRC_INOUT);
+	if (use_dvc_in)
+		scu_src_start(src_ch, SRC_IN);
+	else
+		scu_src_start(src_ch, SRC_INOUT);
 
 	/* enable interrupt */
 	if (sync_sw) {
@@ -775,7 +779,7 @@ void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
 }
 EXPORT_SYMBOL(scu_init_src);
 
-void scu_deinit_src(int src_ch, unsigned int sync_sw)
+void scu_deinit_src(int src_ch, unsigned int sync_sw, int use_dvc_in)
 {
 	/* disable interrupt */
 	if (sync_sw) {
@@ -797,7 +801,10 @@ void scu_deinit_src(int src_ch, unsigned int sync_sw)
 	}
 
 	/* stop src */
-	scu_src_stop(src_ch, SRC_INOUT);
+	if (use_dvc_in)
+		scu_src_stop(src_ch, SRC_IN);
+	else
+		scu_src_stop(src_ch, SRC_INOUT);
 	scu_src_deinit(src_ch);
 
 	/* clear interrupt status */

@@ -2169,10 +2169,10 @@ struct scu_reg_info {
 
 struct scu_pcm_callback {
 	void (*init_ssi)(int, int, int, int, int);
-	void (*init_src)(int, unsigned int, unsigned int);
+	void (*init_src)(int, unsigned int, unsigned int, int);
 	void (*init_dvc)(int);
 	void (*deinit_ssi)(int, int, int, int, int);
-	void (*deinit_src)(int, unsigned int);
+	void (*deinit_src)(int, unsigned int, int);
 	void (*deinit_dvc)(int);
 };
 
@@ -2316,12 +2316,12 @@ extern struct scu_platform_data *scu_get_platform_data(void);
 extern struct scu_irq_info *scu_get_irq_info(void);
 
 extern void scu_init_ssi(int, int, int, int, int);
-extern void scu_init_src(int, unsigned int, unsigned int);
+extern void scu_init_src(int, unsigned int, unsigned int, int);
 extern void scu_init_dvc(int);
 extern void adg_init(void);
 
 extern void scu_deinit_ssi(int, int, int, int, int);
-extern void scu_deinit_src(int, unsigned int);
+extern void scu_deinit_src(int, unsigned int, int);
 extern void scu_deinit_dvc(int);
 extern void adg_deinit(void);
 
