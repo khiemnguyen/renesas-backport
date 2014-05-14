@@ -761,14 +761,16 @@ void scu_init_src(int src_ch, unsigned int rate, unsigned int sync_sw)
 		scu_or_writel(SRC_INT_EN0_UF_SRCO_IE | SRC_INT_EN0_OF_SRCI_IE,
 			(u32 *)&rinfo->scusrcreg[src_ch]->int_enable0);
 
-		scu_or_writel((1 << src_ch | 1 << (src_ch + 16)),
-			(u32 *)&rinfo->scu_sys_regs->interrupt1);
+		scu_or_writel((SCU_SYS_INTEN1_UF_SRC_O_IE |
+				SCU_SYS_INTEN1_OF_SRC_I_IE) << src_ch,
+				(u32 *)&rinfo->scu_sys_regs->interrupt1);
 	} else {
 		scu_or_writel(SRC_INT_EN0_OF_SRCO_IE | SRC_INT_EN0_UF_SRCI_IE,
 			(u32 *)&rinfo->scusrcreg[src_ch]->int_enable0);
 
-		scu_or_writel((1 << src_ch | 1 << (src_ch + 16)),
-			(u32 *)&rinfo->scu_sys_regs->interrupt0);
+		scu_or_writel((SCU_SYS_INTEN0_OF_SRC_O_IE |
+				SCU_SYS_INTEN0_UF_SRC_I_IE) << src_ch,
+				(u32 *)&rinfo->scu_sys_regs->interrupt0);
 	}
 }
 EXPORT_SYMBOL(scu_init_src);
