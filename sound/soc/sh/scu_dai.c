@@ -802,11 +802,11 @@ void scu_deinit_src(int src_ch, unsigned int sync_sw)
 
 	/* clear interrupt status */
 	if (sync_sw) {
-		writel((SCU_SYS_ST0_OF_SRC_O | SCU_SYS_ST0_UF_SRC_I) << src_ch,
-						&rinfo->scu_sys_regs->status0);
-	} else {
 		writel((SCU_SYS_ST1_UF_SRC_O | SCU_SYS_ST1_OF_SRC_I) << src_ch,
 						&rinfo->scu_sys_regs->status1);
+	} else {
+		writel((SCU_SYS_ST0_OF_SRC_O | SCU_SYS_ST0_UF_SRC_I) << src_ch,
+						&rinfo->scu_sys_regs->status0);
 	}
 
 	clk_disable(ainfo->clockinfo.src_clk[src_ch]);
