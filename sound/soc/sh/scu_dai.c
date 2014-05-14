@@ -386,9 +386,6 @@ static void scu_src_init(int src_ch, unsigned int sync_sw)
 	u32 val = SRC_MODE_SRCUSE;
 
 	FNC_ENTRY
-	/* SCU SRC0_BUSIF_DALIGN */
-	writel(SRC_DALIGN_STEREO_R,
-		(u32 *)&rinfo->scusrcreg[src_ch]->dalign);
 
 	/* SCU SRC_MODE */
 	if (src_ch == 0 && sync_sw == 1)
@@ -676,6 +673,10 @@ void scu_init_ssi(int master_ch, int slave_ch, int mode, int ind, int dir)
 	if (ind == SSI_INDEPENDANT)
 		scu_or_writel((1 << ch),
 			(u32 *)(rinfo->ssiureg + SSI_MODE0));
+	else
+		/* SSI_BUSIF_DALIGN */
+		writel(SSI_DALIGN_STEREO_R,
+			(u32 *)&rinfo->ssiu_std_reg[ch]->busif_dalign);
 
 	/* clear interrupt (SSISR_OIRQ, SSISR_UIRQ) */
 	writel(0, &rinfo->ssireg[ch]->sr);
