@@ -284,10 +284,10 @@ static struct scu_config dvc_route_select_value[] = {
 };
 
 static struct scu_config ssi_depend_value[] = {
-	{RP_MEM_SSI0,		SSI_INDEPENDANT},
+	{RP_MEM_SSI0,		SSI_DEPENDANT},
 	{RP_MEM_SRC0_SSI0,	SSI_DEPENDANT},
 	{RP_MEM_SRC0_DVC0_SSI0,	SSI_DEPENDANT},
-	{RC_SSI1_MEM,		SSI_INDEPENDANT},
+	{RC_SSI1_MEM,		SSI_DEPENDANT},
 	{RC_SSI1_SRC1_MEM,	SSI_DEPENDANT},
 	{RC_SSI1_SRC1_DVC1_MEM,	SSI_DEPENDANT},
 };
