@@ -311,9 +311,9 @@ static struct clk *audma_clk_get(struct platform_device *pdev)
 static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
 	{
 		.slave_id	= SHDMA_SLAVE_PCM_MEM_SSI0,
-		.addr		= 0xec241008,
+		.addr		= 0xec100000,
 		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
-		.mid_rid	= 0x01,
+		.mid_rid	= 0x15,
 		.desc_mode	= 2,
 		.desc_offset	= 0x0,
 		.desc_stepnum	= 4,
@@ -327,9 +327,9 @@ static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
 		.desc_stepnum	= 4,
 	}, {
 		.slave_id	= SHDMA_SLAVE_PCM_SSI1_MEM,
-		.addr		= 0xec24104c,
+		.addr		= 0xec101000,
 		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
-		.mid_rid	= 0x04,
+		.mid_rid	= 0x4a,
 		.desc_mode	= 2,
 		.desc_offset	= 0x100,
 		.desc_stepnum	= 4,
