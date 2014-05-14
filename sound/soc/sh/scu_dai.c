@@ -782,7 +782,7 @@ void scu_deinit_src(int src_ch, unsigned int sync_sw)
 
 		/* keep ie=1 of SRC_INT_ENABLE0 for other SRC */
 
-		/* set ie=0 of SCU_SYSTEM_STATUS1 for self SRC */
+		/* set ie=0 of SCU_SYSTEM_INT_ENABLE1 for self SRC */
 		scu_and_writel(~((SCU_SYS_INTEN1_UF_SRC_O_IE |
 					SCU_SYS_INTEN1_OF_SRC_I_IE) << src_ch),
 				(u32 *)&rinfo->scu_sys_regs->interrupt1);
@@ -790,7 +790,7 @@ void scu_deinit_src(int src_ch, unsigned int sync_sw)
 
 		/* keep ie=1 of SRC_INT_ENABLE0 for other SRC */
 
-		/* set ie=0 of SCU_SYSTEM_STATUS0 for self SRC */
+		/* set ie=0 of SCU_SYSTEM_INT_ENABLE0 for self SRC */
 		scu_and_writel(~((SCU_SYS_INTEN0_OF_SRC_O_IE |
 					SCU_SYS_INTEN0_UF_SRC_I_IE) << src_ch),
 				(u32 *)&rinfo->scu_sys_regs->interrupt0);
