@@ -2,7 +2,7 @@
  * drivers/dma/sh/shdma-desc.h
  *     This file is header file for SYS-DMAC/Audio-DMAC peripheral.
  *
- * Copyright (C) 2013 Renesas Electronics Corporation
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
  *
  * This file is based on the drivers/dma/sh/shdma.h
  *
@@ -104,10 +104,10 @@ struct sh_dmadesc_desc {
 #define DSIE	0x00040000
 #define DM_INC	0x00004000
 #define DM_DEC	0x00008000
-#define DM_FIX	0x0000c000
+#define DM_FIX	0x00000000
 #define SM_INC	0x00001000
 #define SM_DEC	0x00002000
-#define SM_FIX	0x00003000
+#define SM_FIX	0x00000000
 #define RS_IN	0x00000200
 #define RS_OUT	0x00000300
 #define TS_BLK	0x00000040
