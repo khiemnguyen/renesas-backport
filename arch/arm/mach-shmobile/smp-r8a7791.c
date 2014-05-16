@@ -1,6 +1,7 @@
 /*
  * SMP support for r8a7791
  *
+ * Copyright (C) 2014 Renesas Electronics Corporation
  * Copyright (C) 2013 Renesas Solutions Corp.
  * Copyright (C) 2013 Magnus Damm
  *
@@ -19,17 +20,20 @@
 #include <linux/io.h>
 #include <asm/smp_plat.h>
 #include <mach/common.h>
+#include <mach/r8a7791.h>
 
 #define RST		0xe6160000
 #define CA15BAR		0x0020
 #define CA15RESCNT	0x0040
 #define SECRAM		0xe6300000
+#define APMU		0xe6151000
+#define CA15DBGRCR	0x1180
 
 static void __init r8a7791_smp_prepare_cpus(unsigned int max_cpus)
 {
 	void __iomem *p;
 	unsigned int k;
-	u32 bar;
+	u32 bar, val;
 
 	/* SECRAM for jump stub, because BAR requires 256KB aligned address */
 	shmobile_boot_p = ioremap_nocache(SECRAM, SZ_256K);
@@ -42,6 +46,14 @@ static void __init r8a7791_smp_prepare_cpus(unsigned int max_cpus)
 	bar = (SECRAM >> 8) & 0xfffffc00;
 	writel_relaxed(bar, p + CA15BAR);
 	writel_relaxed(bar | 0x10, p + CA15BAR);
+
+	/* setup for debug mode */
+	if (rcar_gen2_read_mode_pins() & MD(21)) {
+		p = ioremap_nocache(APMU, 0x2000);
+		val = readl_relaxed(p + CA15DBGRCR);
+		writel_relaxed((val | 0x01f80000), p + CA15DBGRCR);
+		iounmap(p);
+	}
 
 	/* keep secondary CPU cores in reset */
 	for (k = 1; k < max_cpus; k++)

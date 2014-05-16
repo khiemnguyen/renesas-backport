@@ -1,6 +1,7 @@
 /*
  *  SuperH Ethernet device driver
  *
+ *  Copyright (C) 2014  Renesas Electronics Corporation
  *  Copyright (C) 2006-2012 Nobuhiro Iwamatsu
  *  Copyright (C) 2008-2013 Renesas Solutions Corp.
  *  Copyright (C) 2013 Cogent Embedded, Inc.
@@ -1274,7 +1275,6 @@ static int sh_eth_rx(struct net_device *ndev, u32 intr_status, int *quota)
 	int entry = mdp->cur_rx % mdp->num_rx_ring;
 	int boguscnt = (mdp->dirty_rx + mdp->num_rx_ring) - mdp->cur_rx;
 	struct sk_buff *skb;
-	int exceeded = 0;
 	u16 pkt_len = 0;
 	u32 desc_status;
 
@@ -1286,10 +1286,9 @@ static int sh_eth_rx(struct net_device *ndev, u32 intr_status, int *quota)
 		if (--boguscnt < 0)
 			break;
 
-		if (*quota <= 0) {
-			exceeded = 1;
+		if (*quota <= 0)
 			break;
-		}
+
 		(*quota)--;
 
 		if (!(desc_status & RDFEND))
@@ -1380,7 +1379,7 @@ static int sh_eth_rx(struct net_device *ndev, u32 intr_status, int *quota)
 		sh_eth_write(ndev, EDRRR_R, EDRRR);
 	}
 
-	return exceeded;
+	return (*quota <= 0);
 }
 
 static void sh_eth_rcv_snd_disable(struct net_device *ndev)
@@ -2710,6 +2709,9 @@ static int sh_eth_drv_probe(struct platform_device *pdev)
 	ret = register_netdev(ndev);
 	if (ret)
 		goto out_napi_del;
+
+	if (mdp->cd->rmiimode)
+		sh_eth_write(ndev, 0x1, RMIIMODE);
 
 	/* mdio bus init */
 	ret = sh_mdio_init(ndev, pdev->id, pd);

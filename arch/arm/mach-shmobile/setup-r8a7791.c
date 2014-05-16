@@ -174,7 +174,7 @@ static const struct plat_sci_port scif[] __initconst = {
 		SHDMA_SLAVE_HSCIF0_TX, SHDMA_SLAVE_HSCIF0_RX), /* HSCIF0 */
 	HSCIF_DATA(HSCIF1, 0xe62c8000, gic_spi(155),
 		SHDMA_SLAVE_HSCIF1_TX, SHDMA_SLAVE_HSCIF1_RX), /* HSCIF1 */
-	SCIF_DATA(SCIF2, 0xe6e56000, gic_spi(164), 0, 0), /* SCIF2 */
+	SCIF_DATA(SCIF2, 0xe6e58000, gic_spi(22), 0, 0), /* SCIF2 */
 	SCIF_DATA(SCIF3, 0xe6ea8000, gic_spi(23), 0, 0), /* SCIF3 */
 	SCIF_DATA(SCIF4, 0xe6ee0000, gic_spi(24), 0, 0), /* SCIF4 */
 	SCIF_DATA(SCIF5, 0xe6ee8000, gic_spi(25), 0, 0), /* SCIF5 */
@@ -311,9 +311,9 @@ static struct clk *audma_clk_get(struct platform_device *pdev)
 static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
 	{
 		.slave_id	= SHDMA_SLAVE_PCM_MEM_SSI0,
-		.addr		= 0xec241008,
+		.addr		= 0xec100000,
 		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
-		.mid_rid	= 0x01,
+		.mid_rid	= 0x15,
 		.desc_mode	= 2,
 		.desc_offset	= 0x0,
 		.desc_stepnum	= 4,
@@ -327,9 +327,9 @@ static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
 		.desc_stepnum	= 4,
 	}, {
 		.slave_id	= SHDMA_SLAVE_PCM_SSI1_MEM,
-		.addr		= 0xec24104c,
+		.addr		= 0xec101000,
 		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
-		.mid_rid	= 0x04,
+		.mid_rid	= 0x4a,
 		.desc_mode	= 2,
 		.desc_offset	= 0x100,
 		.desc_stepnum	= 4,
