@@ -1,6 +1,7 @@
 /*
  * SMP support for r8a7790
  *
+ * Copyright (C) 2014 Renesas Electronics Corporation
  * Copyright (C) 2012-2013 Renesas Solutions Corp.
  * Copyright (C) 2012 Takashi Yoshii <takashi.yoshii.ze@renesas.com>
  *
@@ -19,6 +20,7 @@
 #include <linux/io.h>
 #include <asm/smp_plat.h>
 #include <mach/common.h>
+#include <mach/r8a7790.h>
 
 #define RST		0xe6160000
 #define CA15BAR		0x0020
@@ -26,12 +28,15 @@
 #define CA15RESCNT	0x0040
 #define CA7RESCNT	0x0044
 #define MERAM		0xe8080000
+#define APMU		0xe6151000
+#define CA7DBGRCR	0x0180
+#define CA15DBGRCR	0x1180
 
 static void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
 {
 	void __iomem *p;
 	unsigned int k;
-	u32 bar;
+	u32 bar, val;
 
 	/* MERAM for jump stub, because BAR requires 256KB aligned address */
 	shmobile_boot_p = ioremap_nocache(MERAM, SZ_256K);
@@ -46,6 +51,16 @@ static void __init r8a7790_smp_prepare_cpus(unsigned int max_cpus)
 	writel_relaxed(bar, p + CA7BAR);
 	writel_relaxed(bar | 0x10, p + CA15BAR);
 	writel_relaxed(bar | 0x10, p + CA7BAR);
+
+	/* setup for debug mode */
+	if (rcar_gen2_read_mode_pins() & MD(21)) {
+		p = ioremap_nocache(APMU, 0x2000);
+		val = readl_relaxed(p + CA15DBGRCR);
+		writel_relaxed((val | 0x01f80000), p + CA15DBGRCR);
+		val = readl_relaxed(p + CA7DBGRCR);
+		writel_relaxed((val | 0x01f83330), p + CA7DBGRCR);
+		iounmap(p);
+	}
 
 	/* keep secondary CPU cores in reset */
 	for (k = 1; k < max_cpus; k++)
