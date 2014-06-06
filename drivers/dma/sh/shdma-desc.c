@@ -237,6 +237,15 @@ static void dmae_start(struct sh_dmadesc_chan *sh_chan)
 	struct sh_dmadesc_device *shdev = to_sh_dev(sh_chan);
 	u32 chcr = chcr_read(sh_chan);
 
+	if (sh_chan->config->desc_mode != 0) {
+		if (chcr & CHCR_DE) {
+			if ((chcr & (DSE | CHCR_TE)) &&
+					sh_chan->descmem_used_num > 0)
+				chcr_write(sh_chan, chcr & ~(DSE | CHCR_TE));
+			return;
+		}
+	}
+
 	if (shdev->pdata->needs_tend_set)
 		sh_dmae_writel(sh_chan, 0xFFFFFFFF, TEND);
 
@@ -280,6 +289,8 @@ static void dmae_desc_init(struct sh_dmadesc_chan *sh_chan,
 	sh_chan->descmem_end = sh_chan->descmem_start +
 		(cfg->desc_stepnum * DESC_STEP_SIZE / sizeof(u32));
 	sh_chan->descmem_ptr = sh_chan->descmem_start;
+	sh_chan->descmem_maxnum = cfg->desc_stepnum;
+	sh_chan->descmem_used_num = 0;
 	sh_chan->xmit_shift = calc_xmit_shift(sh_chan, cfg->chcr);
 
 	sh_dmae_writel(sh_chan, ((u32)sh_chan->descmem_start & 0xfffffff0UL),
@@ -329,6 +340,14 @@ static void sh_dmae_start_xfer(struct shdma_chan *schan,
 	/* Get the ld start address from ld_queue */
 	if (sh_chan->config->desc_mode == 0)
 		dmae_set_reg(sh_chan, &sh_desc->hw);
+	else
+		if (sh_chan->descmem_used_num < sh_chan->descmem_maxnum) {
+			/* set dmac descriptor */
+			dmae_set_descmem(sh_chan, &sh_desc->hw);
+			/* increment of used number of descriptor */
+			sh_chan->descmem_used_num++;
+		}
+
 	dmae_start(sh_chan);
 }
 
@@ -338,7 +357,14 @@ static bool sh_dmae_channel_busy(struct shdma_chan *schan)
 		container_of(schan, struct sh_dmadesc_chan, shdma_chan);
 	bool ret;
 
-	ret = dmae_is_busy(sh_chan);
+	if (sh_chan->config->desc_mode != 0)
+		if (sh_chan->descmem_used_num == sh_chan->descmem_maxnum)
+			ret = true;	/* busy (descmem is full) */
+		else
+			ret = false;
+	else
+		ret = dmae_is_busy(sh_chan);
+
 	return ret;
 }
 
@@ -435,8 +461,6 @@ static int sh_dmae_desc_setup(struct shdma_chan *schan,
 			      struct shdma_desc *sdesc,
 			      dma_addr_t src, dma_addr_t dst, size_t *len)
 {
-	struct sh_dmadesc_chan *sh_chan =
-		container_of(schan, struct sh_dmadesc_chan, shdma_chan);
 	struct sh_dmadesc_desc *sh_desc =
 		container_of(sdesc, struct sh_dmadesc_desc, shdma_desc);
 
@@ -446,9 +470,6 @@ static int sh_dmae_desc_setup(struct shdma_chan *schan,
 	sh_desc->hw.sar = src;
 	sh_desc->hw.dar = dst;
 	sh_desc->hw.tcr = *len;
-
-	if (sh_chan->config->desc_mode != 0)
-		dmae_set_descmem(sh_chan, &sh_desc->hw);
 
 	return 0;
 }
@@ -473,8 +494,16 @@ static bool sh_dmae_chan_irq(struct shdma_chan *schan, int irq)
 	    !(chcr_read(sh_chan) & CHCR_TE))
 		return false;
 
-	/* DMA stop */
-	dmae_halt(sh_chan);
+	if (sh_chan->config->desc_mode != 0) {
+		u32 chcr = chcr_read(sh_chan);
+		/* decrement of used number of descriptor */
+		sh_chan->descmem_used_num--;
+		if (sh_chan->descmem_used_num > 0)
+			chcr_write(sh_chan, chcr & ~(DSE | CHCR_TE));
+	} else {
+		/* DMA stop */
+		dmae_halt(sh_chan);
+	}
 
 	return true;
 }

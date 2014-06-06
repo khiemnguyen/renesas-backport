@@ -700,9 +700,15 @@ static int shdma_control(struct dma_chan *chan, enum dma_ctrl_cmd cmd,
 static void shdma_issue_pending(struct dma_chan *chan)
 {
 	struct shdma_chan *schan = to_shdma_chan(chan);
+	struct shdma_dev *sdev = to_shdma_dev(schan->dma_chan.device);
+	const struct shdma_ops *ops = sdev->ops;
+	bool desc_use = false;
+
+	if (ops->dmae_desc_use)
+		desc_use = ops->dmae_desc_use(schan);
 
 	spin_lock_irq(&schan->chan_lock);
-	if (schan->pm_state == SHDMA_PM_ESTABLISHED)
+	if (schan->pm_state == SHDMA_PM_ESTABLISHED || desc_use == true)
 		shdma_chan_xfer_ld_queue(schan);
 	else
 		schan->pm_state = SHDMA_PM_PENDING;

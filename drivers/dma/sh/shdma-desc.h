@@ -41,6 +41,8 @@ struct sh_dmadesc_chan {
 	u32 __iomem *descmem_start;
 	u32 __iomem *descmem_end;
 	u32 *descmem_ptr;
+	u16 descmem_maxnum;		/* the max number of descriptor */
+	u16 descmem_used_num;		/* the used number of descriptor */
 };
 
 struct sh_dmadesc_device {
