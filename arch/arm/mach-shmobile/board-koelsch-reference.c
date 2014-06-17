@@ -29,13 +29,13 @@
 #include <linux/platform_data/vsp1.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/renesas_usbhs.h>
-#include <mach/common.h>
 #include <mach/rcar-gen2.h>
 #include <mach/r8a7791.h>
 #include <asm/mach/arch.h>
 #include <sound/rcar_snd.h>
 #include <sound/simple_card.h>
 #include "clock.h"
+#include "common.h"
 #include "irqs.h"
 
 /* DU */
