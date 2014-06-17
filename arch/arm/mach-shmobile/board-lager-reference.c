@@ -29,13 +29,13 @@
 #include <linux/usb/renesas_usbhs.h>
 #include <linux/platform_data/vsp1.h>
 #include <mach/common.h>
-#include <mach/irqs.h>
 #include <mach/rcar-gen2.h>
 #include <mach/r8a7790.h>
 #include <asm/mach/arch.h>
 #include <sound/rcar_snd.h>
 #include <sound/simple_card.h>
 #include "clock.h"
+#include "irqs.h"
 
 /* DU */
 static struct rcar_du_encoder_data lager_du_encoders[] = {
