@@ -186,7 +186,7 @@ static inline void cpu_enter_lowpower_a15(void)
 	dsb();
 }
 
-void __cpuinit shmobile_smp_apmu_cpu_shutdown(unsigned int cpu)
+void shmobile_smp_apmu_cpu_shutdown(unsigned int cpu)
 {
 
 	/* Select next sleep mode using the APMU */
