@@ -13,6 +13,7 @@
 
 #include <linux/clk.h>
 #include <linux/mutex.h>
+#include <linux/rcar-du-frm-interface.h>
 
 #include <drm/drmP.h>
 #include <drm/drm_crtc.h>
@@ -26,6 +27,9 @@
 #include "rcar_du_plane.h"
 #include "rcar_du_regs.h"
 
+#define  RCAR_DU_MAX_CH  3
+static int du_frmend[RCAR_DU_MAX_CH] = {0};
+
 static u32 rcar_du_crtc_read(struct rcar_du_crtc *rcrtc, u32 reg)
 {
 	struct rcar_du_device *rcdu = rcrtc->group->dev;
@@ -38,14 +42,6 @@ static void rcar_du_crtc_write(struct rcar_du_crtc *rcrtc, u32 reg, u32 data)
 	struct rcar_du_device *rcdu = rcrtc->group->dev;
 
 	rcar_du_write(rcdu, rcrtc->mmio_offset + reg, data);
-}
-
-static void rcar_du_crtc_clr(struct rcar_du_crtc *rcrtc, u32 reg, u32 clr)
-{
-	struct rcar_du_device *rcdu = rcrtc->group->dev;
-
-	rcar_du_write(rcdu, rcrtc->mmio_offset + reg,
-		      rcar_du_read(rcdu, rcrtc->mmio_offset + reg) & ~clr);
 }
 
 static void rcar_du_crtc_set(struct rcar_du_crtc *rcrtc, u32 reg, u32 set)
@@ -372,6 +368,9 @@ static void rcar_du_crtc_start(struct rcar_du_crtc *rcrtc)
 	rcar_du_group_start_stop(rcrtc->group, true);
 
 	rcrtc->started = true;
+
+	rcar_du_crtc_write(rcrtc, DSRCR, DSRCR_VBCL);
+	rcar_du_crtc_set(rcrtc, DIER, DIER_VBE);
 }
 
 static void rcar_du_crtc_stop(struct rcar_du_crtc *rcrtc)
@@ -619,6 +618,20 @@ static void rcar_du_crtc_finish_page_flip(struct rcar_du_crtc *rcrtc)
 	drm_vblank_put(dev, rcrtc->index);
 }
 
+int rcar_du_get_frmend(unsigned int ch)
+{
+	if (ch < RCAR_DU_MAX_CH)
+		return du_frmend[ch];
+	else
+		return -EINVAL;
+}
+EXPORT_SYMBOL(rcar_du_get_frmend);
+
+static void rcar_du_set_frmend(int frmend, unsigned int ch)
+{
+	du_frmend[ch] = frmend;
+}
+
 static irqreturn_t rcar_du_crtc_irq(int irq, void *arg)
 {
 	struct rcar_du_crtc *rcrtc = arg;
@@ -628,11 +641,13 @@ static irqreturn_t rcar_du_crtc_irq(int irq, void *arg)
 	status = rcar_du_crtc_read(rcrtc, DSSR);
 	rcar_du_crtc_write(rcrtc, DSRCR, status & DSRCR_MASK);
 
-	if (status & DSSR_FRM) {
+	if (rcrtc->int_enable && (status & DSSR_FRM)) {
 		drm_handle_vblank(rcrtc->crtc.dev, rcrtc->index);
 		rcar_du_crtc_finish_page_flip(rcrtc);
 		ret = IRQ_HANDLED;
 	}
+
+	rcar_du_set_frmend((status & DSSR_FRM) ? 1 : 0, rcrtc->index);
 
 	return ret;
 }
@@ -782,10 +797,5 @@ int rcar_du_crtc_create(struct rcar_du_group *rgrp, unsigned int index)
 
 void rcar_du_crtc_enable_vblank(struct rcar_du_crtc *rcrtc, bool enable)
 {
-	if (enable) {
-		rcar_du_crtc_write(rcrtc, DSRCR, DSRCR_VBCL);
-		rcar_du_crtc_set(rcrtc, DIER, DIER_VBE);
-	} else {
-		rcar_du_crtc_clr(rcrtc, DIER, DIER_VBE);
-	}
+	rcrtc->int_enable = enable;
 }

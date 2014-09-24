@@ -40,6 +40,8 @@ struct rcar_du_crtc {
 	int lvds_ch;
 	bool dptsr_init;
 	unsigned int dptsr_read;
+
+	bool int_enable;
 };
 
 #define to_rcar_crtc(c)	container_of(c, struct rcar_du_crtc, crtc)
