@@ -454,6 +454,9 @@ struct adv7511 {
 	struct edid *edid;
 
 	int gpio_pd;
+
+	struct workqueue_struct *work_queue;
+	struct delayed_work hpd_handler;
 };
 
 
