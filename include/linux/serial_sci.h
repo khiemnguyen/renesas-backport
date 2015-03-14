@@ -16,6 +16,7 @@ enum {
 	SCBRR_ALGO_3,		/* (((clk * 2) + 16 * bps) / (16 * bps) - 1) */
 	SCBRR_ALGO_4,		/* (((clk * 2) + 16 * bps) / (32 * bps) - 1) */
 	SCBRR_ALGO_5,		/* (((clk * 1000 / 32) / bps) - 1) */
+	SCBRR_ALGO_SRx5_1,	/* (((clk * 2) + 5 * bps) / (10 * bps) - 1) */
 	SCBRR_ALGO_6,		/* HSCIF variable sample rate algorithm */
 };
 
@@ -55,6 +56,13 @@ enum {
 #define SCSPTR_CTSIO	(1 << 5)
 #define SCSPTR_SPB2IO	(1 << 1)
 #define SCSPTR_SPB2DT	(1 << 0)
+
+/* SCPDR */
+#define SCPDR_RTSC	(1 << 4)
+#define SCPDR_CTSC	(1 << 3)
+#define SCPDR_SCKC	(1 << 4)
+#define SCPDR_RXDC	(1 << 1)
+#define SCPDR_TXDC	(1 << 0)
 
 /* HSSRR HSCIF */
 #define HSCIF_SRE	0x8000
@@ -120,7 +128,7 @@ enum {
 	SCSMR, SCBRR, SCSCR, SCxSR,
 	SCFCR, SCFDR, SCxTDR, SCxRDR,
 	SCLSR, SCTFDR, SCRFDR, SCSPTR,
-	HSSRR,
+	HSSRR, SCPDR,
 
 	SCIx_NR_REGS,
 };

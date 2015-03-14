@@ -276,7 +276,11 @@ int rcar_du_encoder_init(struct rcar_du_device *rcdu,
 		return ret;
 
 	if (type == RCAR_DU_ENCODER_HDMI) {
+#if defined(CONFIG_MACH_ARMADILLOEVA1500)
+		adapter = i2c_get_adapter(8);
+#else
 		adapter = i2c_get_adapter(2);
+#endif
 		if (adapter == NULL) {
 			DRM_ERROR("No adapter available!\n");
 			return -EINVAL;

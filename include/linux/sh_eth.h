@@ -18,6 +18,9 @@ struct sh_eth_plat_data {
 	phy_interface_t phy_interface;
 	void (*set_mdio_gate)(void *addr);
 
+	/* init callback is used for board specific initialization */
+	void (*init)(void);
+
 	unsigned char mac_addr[6];
 	unsigned no_ether_link:1;
 	unsigned ether_link_active_low:1;

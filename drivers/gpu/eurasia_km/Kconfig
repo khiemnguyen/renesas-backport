@@ -1,0 +1,18 @@
+config HAS_SGX544
+	boolean
+	default n
+
+menuconfig SGX544
+	bool "SGX544 Support"
+	default HAS_SGX544
+
+if SGX544
+
+config GPU_EURASIA_SGX544
+	tristate "SGX544 driver support for R8A7791"
+	depends on HAS_SGX544 && ARCH_R8A7791
+	default y
+	help
+	  Say yes here to support SGX544 kernel drivers.
+
+endif

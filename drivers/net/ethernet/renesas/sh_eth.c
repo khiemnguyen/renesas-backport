@@ -2628,6 +2628,9 @@ static int sh_eth_drv_probe(struct platform_device *pdev)
 	}
 	ndev->irq = ret;
 
+	if (pd->init)
+		pd->init();
+
 	SET_NETDEV_DEV(ndev, &pdev->dev);
 
 	/* Fill in the fields of the device structure with ethernet values. */

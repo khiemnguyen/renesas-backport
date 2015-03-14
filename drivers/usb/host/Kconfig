@@ -34,7 +34,7 @@ config USB_XHCI_PLATFORM
 config USB_XHCI_RCAR
 	tristate
 	depends on USB_XHCI_HCD
-	default y if ARCH_R8A7790
+	default y if ARCH_R8A7790 || ARCH_R8A7791
 	select USB_XHCI_PLATFORM
 
 config USB_XHCI_HCD_DEBUGGING

@@ -250,6 +250,40 @@ static ssize_t mtd_name_show(struct device *dev,
 }
 static DEVICE_ATTR(name, S_IRUGO, mtd_name_show, NULL);
 
+#if defined(CONFIG_MTD_RO_IF)
+static ssize_t mtd_ro_show(struct device *dev, struct device_attribute *attr,
+			   char *buf)
+{
+	struct mtd_info *mtd = dev_get_drvdata(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n",
+			mtd->flags & MTD_WRITEABLE ? 0 : 1);
+}
+
+static ssize_t mtd_ro_store(struct device *dev, struct device_attribute *attr,
+			    const char *buf, size_t count)
+{
+	struct mtd_info *mtd = dev_get_drvdata(dev);
+	struct mtd_notifier *not;
+	char *end;
+	unsigned long set = simple_strtoul(buf, &end, 0);
+	if (end == buf)
+		return -EINVAL;
+
+	if (set)
+		mtd->flags &= ~MTD_WRITEABLE;
+	else
+		mtd->flags |= MTD_WRITEABLE;
+
+	list_for_each_entry(not, &mtd_notifiers, list)
+		not->update_flags(mtd);
+
+	return count;
+}
+
+static DEVICE_ATTR(ro, S_IRUGO | S_IWUSR, mtd_ro_show, mtd_ro_store);
+#endif
+
 static struct attribute *mtd_attrs[] = {
 	&dev_attr_type.attr,
 	&dev_attr_flags.attr,
@@ -260,6 +294,9 @@ static struct attribute *mtd_attrs[] = {
 	&dev_attr_oobsize.attr,
 	&dev_attr_numeraseregions.attr,
 	&dev_attr_name.attr,
+#if defined(CONFIG_MTD_RO_IF)
+	&dev_attr_ro.attr,
+#endif
 	NULL,
 };
 

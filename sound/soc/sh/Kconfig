@@ -113,4 +113,30 @@ config SND_SOC_KOELSCH_AK4643
         depends on SND_KOELSCH_AK4643
         default y
 
+config SND_SCU_ARMADILLOEVA1500
+	tristate "SCU sound support on Armadillo-EVA 1500"
+	depends on MACH_ARMADILLOEVA1500
+	select SND_SOC_SCU
+	select SND_ARMADILLOEVA1500_CS42L52
+	help
+	  Enable sound support for the R8A77910 Armadillo-EVA 1500
+	  board.  This is supported to the Renesas SCU peripheral.
+	  Say Y here if you have enabled, otherwise say N.  To compile
+	  this driver as a module, say M.
+
+config SND_ARMADILLOEVA1500_CS42L52
+        tristate "Armadillo-EVA 1500 CS42L52 sound support"
+        depends on SND_SCU_ARMADILLOEVA1500
+        select SND_SOC_CS42L52
+        help
+          Enable the sound support for CS42L52 on Armadillo-EVA 1500
+	  board.  This option is dependent on
+	  SND_SCU_ARMADILLOEVA1500.  If you will enable, say Y to
+	  SND_SCU_ARMADILLOEVA1500.  This option enables
+	  SND_SOC_CS42L52.
+
+config SND_SOC_ARMADILLOEVA1500_CS42L52
+        bool
+        depends on SND_ARMADILLOEVA1500_CS42L52
+        default y
 endmenu

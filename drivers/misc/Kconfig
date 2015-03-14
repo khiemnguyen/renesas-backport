@@ -395,6 +395,15 @@ config EP93XX_PWM
 	  To compile this driver as a module, choose M here: the module will
 	  be called ep93xx_pwm.
 
+config RCAR_PWM
+	tristate "R-Car PWM driver"
+	depends on ARCH_SHMOBILE
+	select HAVE_PWM
+	help
+	  This driver supports the Pulse Width Modulation (TPU)
+	  controller found in R-Car chips. It exposes PWM functions
+	  through the PWM API.
+
 config DS1682
 	tristate "Dallas DS1682 Total Elapsed Time Recorder with Alarm"
 	depends on I2C && EXPERIMENTAL

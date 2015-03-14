@@ -377,6 +377,7 @@ extern void put_mtd_device(struct mtd_info *mtd);
 struct mtd_notifier {
 	void (*add)(struct mtd_info *mtd);
 	void (*remove)(struct mtd_info *mtd);
+	void (*update_flags)(struct mtd_info *mtd);
 	struct list_head list;
 };
 

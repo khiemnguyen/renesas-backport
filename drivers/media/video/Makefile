@@ -209,6 +209,7 @@ obj-$(CONFIG_VIDEO_SAA7164)     += saa7164/
 obj-$(CONFIG_VIDEO_IR_I2C)  += ir-kbd-i2c.o
 
 obj-$(CONFIG_VIDEO_RENESAS_VSP1)	+= vsp1/
+obj-y	+= rcar-mmp/
 
 obj-y	+= davinci/
 

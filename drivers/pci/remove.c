@@ -75,6 +75,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
 		return;
 
 	pci_remove_legacy_files(pci_bus);
+	pcibios_remove_bus(pci_bus);
 	device_unregister(&pci_bus->dev);
 }
 EXPORT_SYMBOL(pci_remove_bus);

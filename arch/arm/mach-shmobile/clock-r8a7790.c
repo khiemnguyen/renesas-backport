@@ -228,7 +228,7 @@ enum {
 	MSTP522,
 	MSTP502, MSTP501, MSTP219, MSTP218,
 	MSTP330,
-	MSTP315, MSTP314, MSTP313, MSTP312, MSTP311, MSTP305, MSTP304,
+	MSTP319, MSTP315, MSTP314, MSTP313, MSTP312, MSTP311, MSTP305, MSTP304,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP215, MSTP208, MSTP205, MSTP000,
 	MSTP131, MSTP130, MSTP128, MSTP127, MSTP124, MSTP119, MSTP118, MSTP117,
@@ -281,6 +281,7 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP501] = MSTP(5,  1, &hp_clk, 0), /* MPDMAC1 */
 	[MSTP330] = MSTP(3, 30, &hp_clk, 0), /* USBDMAC0 */
 	[MSTP328] = MSTP(3, 28, &mp_clk, 0), /* SSUSB */
+	[MSTP319] = MSTP(3, 19, &mp_clk, 0), /* PCIe */
 	[MSTP315] = MSTP(3, 15, &div6_clks[DIV6_MMC0], 0), /* MMC0 */
 	[MSTP314] = MSTP(3, 14, &div4_clks[DIV4_SD0], 0), /* SDHI0 */
 	[MSTP313] = MSTP(3, 13, &div4_clks[DIV4_SD1], 0), /* SDHI1 */
@@ -444,6 +445,7 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("vcp0", &mstp_clks[MSTP101]),
 	CLKDEV_CON_ID("vcp1", &mstp_clks[MSTP100]),
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
+	CLKDEV_DEV_ID("rcar-pcie", &mstp_clks[MSTP319]),
 };
 
 static void __init r8a7790_rgx_control_init(void)

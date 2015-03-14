@@ -75,6 +75,7 @@ struct tmio_mmc_host {
 	u8			*bounce_buf;
 
 	/* Track lost interrupts */
+	struct workqueue_struct	*work;
 	struct delayed_work	delayed_reset_work;
 	struct work_struct	done;
 
@@ -88,6 +89,8 @@ struct tmio_mmc_host {
 	bool			native_hotplug;
 	bool			done_tuning;
 	struct completion	completion;
+
+	struct work_struct	detect_wq;
 };
 
 int tmio_mmc_host_probe(struct tmio_mmc_host **host,

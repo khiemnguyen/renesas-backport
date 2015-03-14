@@ -148,6 +148,17 @@ config MTD_BCM63XX_PARTS
 	  This provides partions parsing for BCM63xx devices with CFE
 	  bootloaders.
 
+config MTD_RO_IF
+	bool "Read-only switching user interface support"
+	depends on SYSFS
+	default y
+	help
+	  MTD subsystem does not have sysfs interface to manage partition
+	  read-only/writeable flag interface. This patch implements the feature
+	  which modeled based on the block layer's "ro" file.
+
+	  This interface is available via sysfs under "/sys/class/mtd/mtdX/ro".
+
 comment "User Modules And Translation Layers"
 
 config MTD_CHAR

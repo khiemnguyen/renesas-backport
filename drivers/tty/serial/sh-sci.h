@@ -35,6 +35,7 @@
 #define SCFCR_RFRST 0x0002
 #define SCFCR_TFRST 0x0004
 #define SCFCR_MCE   0x0008
+#define SCFCR_RSTRG_HALF	0x0400
 
 #define SCI_MAJOR		204
 #define SCI_MINOR_START		8

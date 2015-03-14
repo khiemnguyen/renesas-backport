@@ -435,6 +435,8 @@ static int adv7180_try_fmt(struct v4l2_subdev *sd,
 		mf->colorspace	= adv7180_cfmts[i].colorspace;
 	}
 
+	mf->field = V4L2_FIELD_INTERLACED;
+
 	return 0;
 }
 
@@ -681,7 +683,7 @@ static int adv7180_g_fmt(struct v4l2_subdev *sd,
 	mf->height	= ADV7180_MAX_HEIGHT;	/* fixed value */
 	mf->code	= state->cfmt->code;
 	mf->colorspace	= state->cfmt->colorspace;
-	mf->field	= V4L2_FIELD_NONE;
+	mf->field	= V4L2_FIELD_INTERLACED;
 
 	return 0;
 }

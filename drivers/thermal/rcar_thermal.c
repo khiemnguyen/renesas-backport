@@ -18,6 +18,7 @@
  *  59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
  */
 #include <linux/delay.h>
+#include <linux/gpio.h>
 #include <linux/err.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
@@ -79,6 +80,24 @@ struct rcar_thermal_priv {
 # define rcar_force_update_temp(priv)	1
 #else
 # define rcar_force_update_temp(priv)	0
+#endif
+
+/*
+ *		Alarm LED functions
+ */
+#ifdef CONFIG_MACH_ARMADILLOEVA1500
+#include <linux/platform_data/gpio-rcar.h>
+#define ALARM_LED RCAR_GP_PIN(2, 4)
+#define rcar_thermal_alarm_led_request() \
+	gpio_request(ALARM_LED, "ALARM_LED")
+#define rcar_thermal_alarm_led_free() \
+	gpio_free(ALARM_LED)
+#define rcar_thermal_alarm_led_set(on) \
+	gpio_direction_output(ALARM_LED, on)
+#else
+# define rcar_thermal_alarm_led_request() do { } while (0)
+# define rcar_thermal_alarm_led_free() do { } while (0)
+# define rcar_thermal_alarm_led_set() do { } while (0)
 #endif
 
 /*
@@ -194,6 +213,9 @@ static int rcar_thermal_update_temp(struct rcar_thermal_priv *priv)
 	dev_dbg(dev, "thermal%d  %d -> %d\n", priv->id, priv->ctemp, ctemp);
 
 	priv->ctemp = ctemp;
+	if (((ctemp * 5) - 65) < 80)
+		rcar_thermal_alarm_led_set(0);
+
 	ret = 0;
 err_out_unlock:
 	mutex_unlock(&priv->lock);
@@ -226,6 +248,9 @@ static int rcar_thermal_get_trip_type(struct thermal_zone_device *zone,
 	case 0: /* +90 <= temp */
 		*type = THERMAL_TRIP_CRITICAL;
 		break;
+	case 1: /* +80 <= temp */
+		*type = THERMAL_TRIP_HOT;
+		break;
 	default:
 		dev_err(dev, "rcar driver trip error\n");
 		return -EINVAL;
@@ -245,6 +270,9 @@ static int rcar_thermal_get_trip_temp(struct thermal_zone_device *zone,
 	case 0: /* +90 <= temp */
 		*temp = MCELSIUS(90);
 		break;
+	case 1: /* +80 <= temp */
+		*temp = MCELSIUS(80);
+		break;
 	default:
 		dev_err(dev, "rcar driver trip error\n");
 		return -EINVAL;
@@ -263,6 +291,9 @@ static int rcar_thermal_notify(struct thermal_zone_device *zone,
 	case THERMAL_TRIP_CRITICAL:
 		/* FIXME */
 		dev_warn(dev, "Thermal reached to critical temperature\n");
+		break;
+	case THERMAL_TRIP_HOT:
+		rcar_thermal_alarm_led_set(1);
 		break;
 	default:
 		break;
@@ -415,6 +446,8 @@ static int rcar_thermal_probe(struct platform_device *pdev)
 		idle = 0; /* polling delaye is not needed */
 	}
 
+	rcar_thermal_alarm_led_request();
+
 	for (i = 0;; i++) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, mres++);
 		if (!res)
@@ -441,7 +474,7 @@ static int rcar_thermal_probe(struct platform_device *pdev)
 		rcar_thermal_update_temp(priv);
 
 		priv->zone = thermal_zone_device_register("rcar_thermal",
-						1, priv,
+						2, priv,
 						&rcar_thermal_zone_ops,
 						0, 0, 0,
 						IDLE_INTERVAL);
@@ -470,6 +503,8 @@ error_unregister:
 			rcar_thermal_irq_disable(priv);
 	}
 
+	rcar_thermal_alarm_led_free();
+
 	pm_runtime_put_sync(dev);
 	pm_runtime_disable(dev);
 
@@ -487,6 +522,8 @@ static int rcar_thermal_remove(struct platform_device *pdev)
 		if (rcar_has_irq_support(priv))
 			rcar_thermal_irq_disable(priv);
 	}
+
+	rcar_thermal_alarm_led_free();
 
 	platform_set_drvdata(pdev, NULL);
 

@@ -401,6 +401,8 @@ config VIDEO_VPX3220
 
 comment "Video and audio decoders"
 
+source "drivers/media/video/rcar-mmp/Kconfig"
+
 config VIDEO_SAA717X
 	tristate "Philips SAA7171/3/4 audio/video decoders"
 	depends on VIDEO_V4L2 && I2C

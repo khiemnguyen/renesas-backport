@@ -1,0 +1,36 @@
+/*
+ * Device Tree Source for the Armadillo-EVA 1500 board
+ *
+ * Copyright (C) 2014 Atmark Techno, Inc.
+ *
+ * Based on r8a7791-koelsch.dts
+ *
+ * Copyright (C) 2013-2014 Renesas Electronics Corporation
+ * Copyright (C) 2013 Renesas Solutions Corp.
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2.  This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ */
+
+/dts-v1/;
+/include/ "r8a7791.dtsi"
+
+/ {
+	model = "Armadillo-EVA 1500";
+	compatible = "atmark-techno,armadilloeva1500", "renesas,r8a7791";
+
+	chosen {
+		bootargs = "console=ttySC3,115200 mem=768M noinitrd rootwait root=/dev/mmcblk0p1";
+	};
+
+	memory@40000000 {
+		device_type = "memory";
+		reg = <0 0x40000000 0 0x40000000>;
+	};
+
+	lbsc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
+};

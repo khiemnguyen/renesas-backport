@@ -8,6 +8,22 @@ config DRM_RCAR_DU
 	  Choose this option if you have an R-Car chipset.
 	  If M is selected the module will be called rcar-du-drm.
 
+config DRM_RCAR_LCD
+	bool "R-Car DU LCD Support"
+	depends on DRM_RCAR_DU
+	help
+	  Enable support the R-Car Display Unit LCD.
+
+config DRM_RCAR_LCD_SCREEN_X
+	int "Horizontal screen resolution"
+	depends on DRM_RCAR_LCD
+	default "800"
+
+config DRM_RCAR_LCD_SCREEN_Y
+	int "Vertical screen resolution"
+	depends on DRM_RCAR_LCD
+	default "600"
+
 config DRM_RCAR_LVDS
 	bool "R-Car DU LVDS Encoder Support"
 	depends on DRM_RCAR_DU

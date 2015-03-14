@@ -112,6 +112,17 @@ void __init r8a7791_pinmux_init(void)
 	r8a7791_register_gpio(7);
 }
 
+#define SCBPCR (0x30)
+static void scifb_init_pins(struct uart_port *port, unsigned int cflag)
+{
+	if (cflag & CRTSCTS)
+		iowrite16(0, port->membase + (SCBPCR << port->regshift));
+}
+
+static struct plat_sci_port_ops scifb_port_ops = {
+	.init_pins = scifb_init_pins,
+};
+
 #define SCIF_COMMON(scif_type, baseaddr, irq, dma_tx, dma_rx)	\
 	.type		= scif_type,				\
 	.mapbase	= baseaddr,				\
@@ -130,8 +141,10 @@ void __init r8a7791_pinmux_init(void)
 #define SCIFB_DATA(index, baseaddr, irq, dma_tx, dma_rx)	\
 [index] = {					\
 	SCIF_COMMON(PORT_SCIFB, baseaddr, irq, dma_tx, dma_rx),	\
-	.scbrr_algo_id	= SCBRR_ALGO_4,		\
+	.scbrr_algo_id	= SCBRR_ALGO_SRx5_1,	\
 	.scscr = SCSCR_RE | SCSCR_TE,		\
+	.capabilities = SCIx_HAVE_RTSCTS,	\
+	.ops = &scifb_port_ops,			\
 }
 
 #define SCIF_DATA(index, baseaddr, irq, dma_tx, dma_rx)		\
@@ -260,19 +273,31 @@ static const struct resource cmt00_resources[] __initconst = {
 					  sizeof(struct sh_timer_config))
 
 /* Audio */
+#ifdef CONFIG_MACH_KOELSCH
+#define ALSA_NAME "koelsch_alsa_soc_platform"
+#define SSI_PLAYBACK_IRQ gic_spi(370)	/* SSI0 */
+#define SSI_CAPTURE_IRQ  gic_spi(371)	/* SSI1 */
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+#define ALSA_NAME "armadilloeva1500_alsa_soc_platform"
+#define SSI_PLAYBACK_IRQ gic_spi(373)	/* SSI3 */
+#define SSI_CAPTURE_IRQ  gic_spi(374)	/* SSI4 */
+#else
+#error "unsupported board."
+#endif
+
 #define r8a7791_register_alsa(idx)					\
 	platform_device_register_resndata(&platform_bus,		\
-		"koelsch_alsa_soc_platform", idx, NULL, 0, NULL, 0)
+					  ALSA_NAME, idx, NULL, 0, NULL, 0)
 
 static const struct resource r8a7791_scu_resources[] __initconst = {
 	DEFINE_RES_MEM_NAMED(0xec500000, 0x1000, "scu"),
 	DEFINE_RES_MEM_NAMED(0xec540000, 0x860, "ssiu"),
 	DEFINE_RES_MEM_NAMED(0xec541000, 0x280, "ssi"),
 	DEFINE_RES_MEM_NAMED(0xec5a0000, 0x68, "adg"),
-	DEFINE_RES_IRQ_NAMED(gic_spi(370), "ssi0"),
-	DEFINE_RES_IRQ_NAMED(gic_spi(371), "ssi1"),
-	DEFINE_RES_IRQ_NAMED(gic_spi(352), "src0"),
-	DEFINE_RES_IRQ_NAMED(gic_spi(353), "src1"),
+	DEFINE_RES_IRQ_NAMED(SSI_PLAYBACK_IRQ, "ssi_playback"),
+	DEFINE_RES_IRQ_NAMED(SSI_CAPTURE_IRQ, "ssi_capture"),
+	DEFINE_RES_IRQ_NAMED(gic_spi(352), "src_playback"),	/* SRC0 */
+	DEFINE_RES_IRQ_NAMED(gic_spi(353), "src_capture"),	/* SRC1 */
 };
 
 void __init r8a7791_add_scu_device(struct scu_platform_data *pdata)
@@ -309,19 +334,12 @@ static struct clk *audma_clk_get(struct platform_device *pdev)
 }
 
 static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
+	/* for Koelsch */
 	{
 		.slave_id	= SHDMA_SLAVE_PCM_MEM_SSI0,
 		.addr		= 0xec100000,
 		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
 		.mid_rid	= 0x15,
-		.desc_mode	= 2,
-		.desc_offset	= 0x0,
-		.desc_stepnum	= 4,
-	}, {
-		.slave_id	= SHDMA_SLAVE_PCM_MEM_SRC0,
-		.addr		= 0xec000000,
-		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
-		.mid_rid	= 0x85,
 		.desc_mode	= 2,
 		.desc_offset	= 0x0,
 		.desc_stepnum	= 4,
@@ -332,6 +350,35 @@ static const struct sh_dmadesc_slave_config r8a7791_audma_slaves[] = {
 		.mid_rid	= 0x4a,
 		.desc_mode	= 2,
 		.desc_offset	= 0x100,
+		.desc_stepnum	= 4,
+	},
+
+	/* for Armadillo-EVA 1500 */
+	{
+		.slave_id	= SHDMA_SLAVE_PCM_MEM_SSI3,
+		.addr		= 0xec103000,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x6f,
+		.desc_mode	= 2,
+		.desc_offset	= 0x0,
+		.desc_stepnum	= 4,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_SSI4_MEM,
+		.addr		= 0xec104000,
+		.chcr		= CHCR_RX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x72,
+		.desc_mode	= 2,
+		.desc_offset	= 0x100,
+		.desc_stepnum	= 4,
+	},
+
+	{
+		.slave_id	= SHDMA_SLAVE_PCM_MEM_SRC0,
+		.addr		= 0xec000000,
+		.chcr		= CHCR_TX(XMIT_SZ_32BIT),
+		.mid_rid	= 0x85,
+		.desc_mode	= 2,
+		.desc_offset	= 0x0,
 		.desc_stepnum	= 4,
 	}, {
 		.slave_id	= SHDMA_SLAVE_PCM_SRC1_MEM,
@@ -639,6 +686,7 @@ static const struct resource r8a7791_sysdmau_resources[] __initconst = {
 }
 
 static const struct sh_audmapp_slave_config r8a7791_audmapp_slaves[] = {
+	/* for Koelsch */
 	{
 		.slave_id	= SHDMA_SLAVE_PCM_SRC0_SSI0,
 		.sar		= 0xec304000,
@@ -654,6 +702,23 @@ static const struct sh_audmapp_slave_config r8a7791_audmapp_slaves[] = {
 		.sar		= 0xec401000,
 		.dar		= 0xec300400,
 		.chcr		= 0x042e0000,
+	},
+	/* for Armadillo-EVA 1500 */
+	{
+		.slave_id	= SHDMA_SLAVE_PCM_SRC0_SSI3,
+		.sar		= 0xec304000,
+		.dar		= 0xec403000,
+		.chcr		= 0x2d030000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_CMD0_SSI3,
+		.sar		= 0xec308000,
+		.dar		= 0xec403000,
+		.chcr		= 0x37030000,
+	}, {
+		.slave_id	= SHDMA_SLAVE_PCM_SSI4_SRC1,
+		.sar		= 0xec404000,
+		.dar		= 0xec300400,
+		.chcr		= 0x0d2e0000,
 	},
 };
 
@@ -771,6 +836,40 @@ static const struct resource r8a7791_iic6_resources[] __initconst = {
 				idx,					\
 				r8a7791_iic##idx##_resources,		\
 				ARRAY_SIZE(r8a7791_iic##idx##_resources))
+
+/* PWM */
+static const struct resource r8a7791_pwm0_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e30000, SZ_4K),
+};
+
+static const struct resource r8a7791_pwm1_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e31000, SZ_4K),
+};
+
+static const struct resource r8a7791_pwm2_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e32000, SZ_4K),
+};
+
+static const struct resource r8a7791_pwm3_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e33000, SZ_4K),
+};
+
+static const struct resource r8a7791_pwm4_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e34000, SZ_4K),
+};
+
+static const struct resource r8a7791_pwm5_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e35000, SZ_4K),
+};
+
+static const struct resource r8a7791_pwm6_resources[] __initconst = {
+	DEFINE_RES_MEM(0xe6e36000, SZ_4K),
+};
+
+#define r8a7791_register_pwm(idx)				\
+	platform_device_register_simple("pwm-rcar", idx,	\
+		r8a7791_pwm##idx##_resources,			\
+		ARRAY_SIZE(r8a7791_pwm##idx##_resources))
 
 /* MMC */
 static const struct resource sh_mmcif_resources[] __initconst = {
@@ -1397,7 +1496,7 @@ static struct vin_info vin_info[] = {
 		.flags = 0,
 	},
 	[2] = {
-		.input = VIN_INPUT_UNDEFINED,
+		.input = VIN_INPUT_ITUR_BT656_8BIT,
 		.flags = 0,
 	},
 };
@@ -1419,6 +1518,29 @@ void __init r8a7791_register_vin(unsigned int index)
 	info.num_res = 2;
 
 	platform_device_register_full(&info);
+}
+
+/* PCI Express */
+static struct resource pcie_resources[] = {
+	DEFINE_RES_MEM(0xfe000000, SZ_512K),
+	DEFINE_RES_MEM(0xfe100000, SZ_1M),
+	DEFINE_RES_MEM(0xfe200000, SZ_2M),
+	DEFINE_RES_MEM(0x30000000, SZ_128M),
+	DEFINE_RES_NAMED(0x38000000, SZ_128M, NULL, IORESOURCE_MEM | IORESOURCE_PREFETCH),
+	DEFINE_RES_IRQ(gic_spi(116)),
+};
+
+static struct platform_device pcie_device = {
+	.name		= "rcar-pcie",
+	.id		= -1,
+	.resource	= pcie_resources,
+	.num_resources	= ARRAY_SIZE(pcie_resources),
+};
+
+void __init r8a7791_register_pcie(void)
+{
+	if (rcar_gen2_read_mode_pins() & MD(24))
+		platform_device_register(&pcie_device);
 }
 
 static struct platform_device *r8a7791_early_devices[] __initdata = {
@@ -1458,6 +1580,7 @@ void __init r8a7791_add_standard_devices(void)
 
 	r8a7791_add_dt_devices();
 	r8a7791_register_irqc(0);
+	r8a7791_register_thermal();
 	r8a7791_register_alsa(0);
 	r8a7791_register_audma(l, SHDMA_DEVID_AUDIO_LO);
 	r8a7791_register_audma(u, SHDMA_DEVID_AUDIO_UP);
@@ -1474,6 +1597,13 @@ void __init r8a7791_add_standard_devices(void)
 	r8a7791_register_i2c(4);
 	r8a7791_register_i2c(5);
 	r8a7791_register_iic(6);
+	r8a7791_register_pwm(0);
+	r8a7791_register_pwm(1);
+	r8a7791_register_pwm(2);
+	r8a7791_register_pwm(3);
+	r8a7791_register_pwm(4);
+	r8a7791_register_pwm(5);
+	r8a7791_register_pwm(6);
 	r8a7791_register_msiof(0);
 	r8a7791_register_msiof(1);
 	r8a7791_register_msiof(2);
@@ -1499,6 +1629,8 @@ void __init r8a7791_add_standard_devices(void)
 
 	platform_add_devices(r8a7791_early_devices,
 		     ARRAY_SIZE(r8a7791_early_devices));
+
+	r8a7791_register_pcie();
 
 	r8a7791_add_device_to_domain(&r8a7791_sgx, &powervr_device);
 }

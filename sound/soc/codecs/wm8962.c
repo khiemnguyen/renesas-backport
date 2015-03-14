@@ -73,11 +73,9 @@ struct wm8962_priv {
 	struct regulator_bulk_data supplies[WM8962_NUM_SUPPLIES];
 	struct notifier_block disable_nb[WM8962_NUM_SUPPLIES];
 
-#if defined(CONFIG_INPUT) || defined(CONFIG_INPUT_MODULE)
 	struct input_dev *beep;
 	struct work_struct beep_work;
 	int beep_rate;
-#endif
 
 #ifdef CONFIG_GPIOLIB
 	struct gpio_chip gpio_chip;
@@ -3086,7 +3084,6 @@ int wm8962_mic_detect(struct snd_soc_codec *codec, struct snd_soc_jack *jack)
 }
 EXPORT_SYMBOL_GPL(wm8962_mic_detect);
 
-#if defined(CONFIG_INPUT) || defined(CONFIG_INPUT_MODULE)
 static int beep_rates[] = {
 	500, 1000, 2000, 4000,
 };
@@ -3220,15 +3217,6 @@ static void wm8962_free_beep(struct snd_soc_codec *codec)
 
 	snd_soc_update_bits(codec, WM8962_BEEP_GENERATOR_1, WM8962_BEEP_ENA,0);
 }
-#else
-static void wm8962_init_beep(struct snd_soc_codec *codec)
-{
-}
-
-static void wm8962_free_beep(struct snd_soc_codec *codec)
-{
-}
-#endif
 
 static void wm8962_set_gpio_mode(struct snd_soc_codec *codec, int gpio)
 {

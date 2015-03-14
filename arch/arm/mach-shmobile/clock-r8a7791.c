@@ -170,7 +170,7 @@ enum {
 };
 
 static struct clk div4_clks[DIV4_NR] = {
-	[DIV4_SD0] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 4, 0x1df0,
+	[DIV4_SD0] = SH_CLK_DIV4(&pll1_clk, SDCKCR, 4, 0x1de0,
 						CLK_ENABLE_ON_INIT),
 };
 
@@ -196,6 +196,8 @@ enum {
 	MSTP717, MSTP716, MSTP715, MSTP714, MSTP713,
 	MSTP216, MSTP207, MSTP206, MSTP204, MSTP203, MSTP202,
 	MSTP1031, MSTP1030, MSTP1019, MSTP1018, MSTP1017, MSTP1015, MSTP1014,
+	MSTP1013, MSTP1012, MSTP1011, MSTP1010, MSTP1009, MSTP1008, MSTP1007,
+	MSTP1006,
 	MSTP1005, MSTP922,
 	MSTP931, MSTP930, MSTP929, MSTP928, MSTP927, MSTP925,
 	MSTP926,
@@ -206,8 +208,9 @@ enum {
 	MSTP726, MSTP724, MSTP723,
 	MSTP704, MSTP703, MSTP328,
 	MSTP502, MSTP501, MSTP219, MSTP218,
+	MSTP523, MSTP522,
 	MSTP330,
-	MSTP315, MSTP314, MSTP312, MSTP311,
+	MSTP319, MSTP315, MSTP314, MSTP312, MSTP311,
 	MSTP208, MSTP205, MSTP000,
 	MSTP131, MSTP119, MSTP118, MSTP115, MSTP109, MSTP103, MSTP101,
 	MSTP128, MSTP127,
@@ -230,6 +233,14 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP1017] = MSTP(10, 17, &hp_clk, 0), /* SCU (ALL) */
 	[MSTP1015] = MSTP(10, 15, &hp_clk, 0), /* SSI0 */
 	[MSTP1014] = MSTP(10, 14, &hp_clk, 0), /* SSI1 */
+	[MSTP1013] = MSTP(10, 13, &hp_clk, 0), /* SSI2 */
+	[MSTP1012] = MSTP(10, 12, &hp_clk, 0), /* SSI3 */
+	[MSTP1011] = MSTP(10, 11, &hp_clk, 0), /* SSI4 */
+	[MSTP1010] = MSTP(10, 10, &hp_clk, 0), /* SSI5 */
+	[MSTP1009] = MSTP(10,  9, &hp_clk, 0), /* SSI6 */
+	[MSTP1008] = MSTP(10,  8, &hp_clk, 0), /* SSI7 */
+	[MSTP1007] = MSTP(10,  7, &hp_clk, 0), /* SSI8 */
+	[MSTP1006] = MSTP(10,  6, &hp_clk, 0), /* SSI9 */
 	[MSTP1005] = MSTP(10,  5, &hp_clk, 0), /* SSI (ALL) */
 	[MSTP931] = MSTP(9, 31, &hp_clk, 0), /* I2C0 */
 	[MSTP930] = MSTP(9, 30, &hp_clk, 0), /* I2C1 */
@@ -264,10 +275,13 @@ static struct clk mstp_clks[MSTP_NR] = {
 	[MSTP704] = MSTP(7,  4, &mp_clk, 0), /* HSUSB */
 #endif
 	[MSTP703] = MSTP(7,  3, &mp_clk, 0), /* EHCI */
+	[MSTP523] = MSTP(5, 23, &p_clk, 0), /* PWM */
+	[MSTP522] = MSTP(5, 22, &cp_clk, 0), /* Thermal Sensor */
 	[MSTP502] = MSTP(5,  2, &hp_clk, 0), /* MPDMAC0 */
 	[MSTP501] = MSTP(5,  1, &hp_clk, 0), /* MPDMAC1 */
 	[MSTP330] = MSTP(3, 30, &hp_clk, 0), /* USBDMAC0 */
 	[MSTP328] = MSTP(3, 28, &mp_clk, 0), /* SSUSB */
+	[MSTP319] = MSTP(3, 19, &mp_clk, 0), /* PCIe */
 	[MSTP315] = MSTP(3, 15, &div6_clks[DIV6_MMC], 0), /* MMCIF */
 	[MSTP314] = MSTP(3, 14, &div4_clks[DIV4_SD0], 0), /* SDHI0 */
 	[MSTP312] = MSTP(3, 12, &div6_clks[DIV6_SD1], 0), /* SDHI1 */
@@ -363,6 +377,14 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("scu", &mstp_clks[MSTP1017]),
 	CLKDEV_CON_ID("ssi0", &mstp_clks[MSTP1015]),
 	CLKDEV_CON_ID("ssi1", &mstp_clks[MSTP1014]),
+	CLKDEV_CON_ID("ssi2", &mstp_clks[MSTP1013]),
+	CLKDEV_CON_ID("ssi3", &mstp_clks[MSTP1012]),
+	CLKDEV_CON_ID("ssi4", &mstp_clks[MSTP1011]),
+	CLKDEV_CON_ID("ssi5", &mstp_clks[MSTP1010]),
+	CLKDEV_CON_ID("ssi6", &mstp_clks[MSTP1009]),
+	CLKDEV_CON_ID("ssi7", &mstp_clks[MSTP1008]),
+	CLKDEV_CON_ID("ssi8", &mstp_clks[MSTP1007]),
+	CLKDEV_CON_ID("ssi9", &mstp_clks[MSTP1006]),
 	CLKDEV_CON_ID("ssi", &mstp_clks[MSTP1005]),
 	CLKDEV_CON_ID("adg", &mstp_clks[MSTP922]),
 	CLKDEV_DEV_ID("i2c-rcar.0", &mstp_clks[MSTP931]),
@@ -401,6 +423,9 @@ static struct clk_lookup lookups[] = {
 	CLKDEV_CON_ID("vpc0", &mstp_clks[MSTP103]),
 	CLKDEV_CON_ID("vcp0", &mstp_clks[MSTP101]),
 	CLKDEV_DEV_ID("pvrsrvkm", &mstp_clks[MSTP112]),
+	CLKDEV_CON_ID("pwm-rcar", &mstp_clks[MSTP523]),
+	CLKDEV_DEV_ID("rcar-pcie", &mstp_clks[MSTP319]),
+	CLKDEV_DEV_ID("rcar_thermal", &mstp_clks[MSTP522]),
 };
 
 #define R8A7791_CLOCK_ROOT(e, m, p0, p1, p30, p31)		\
@@ -418,13 +443,13 @@ static void __init r8a7791_sdhi_clock_init(void)
 	int ret = 0;
 	struct clk *sdhi_clk;
 
-	/* set SDHI0 clock to 195 MHz */
+	/* set SDHI0 clock to 156 MHz */
 	sdhi_clk = clk_get(NULL, "sdhi0");
 	if (IS_ERR(sdhi_clk)) {
 		pr_err("Cannot get sdhi0 clock\n");
 		goto sdhi0_out;
 	}
-	ret = clk_set_rate(sdhi_clk, 195000000);
+	ret = clk_set_rate(sdhi_clk, 156000000);
 	if (ret < 0)
 		pr_err("Cannot set sdhi0 clock rate :%d\n", ret);
 

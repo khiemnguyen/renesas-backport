@@ -823,6 +823,16 @@ config TOUCHSCREEN_ST1232
 	  To compile this driver as a module, choose M here: the
 	  module will be called st1232_ts.
 
+config TOUCHSCREEN_ST1232_SINGLETOUCH
+	bool "Enable single touch event for ST1232"
+	depends on TOUCHSCREEN_ST1232
+	default n
+	help
+	  If you say Y here, this driver will support both single and multi
+	  touch event.
+
+	  If unsure, say N.
+
 config TOUCHSCREEN_STMPE
 	tristate "STMicroelectronics STMPE touchscreens"
 	depends on MFD_STMPE

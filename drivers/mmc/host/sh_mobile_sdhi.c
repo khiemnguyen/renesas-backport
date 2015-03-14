@@ -119,11 +119,31 @@ static void sh_mobile_sdhi_set_pwr(struct platform_device *pdev, int state)
 	p->set_pwr(pdev, state);
 }
 
+static int sh_mobile_sdhi_get_cd_native_hotplug(struct mmc_host *mmc)
+{
+	struct tmio_mmc_host *host = mmc_priv(mmc);
+	u16 val;
+
+	tmio_mmc_enable_mmc_irqs(host, TMIO_STAT_CARD_REMOVE |
+				 TMIO_STAT_CARD_INSERT);
+
+	val = sd_ctrl_read16(host, CTL_STATUS) & TMIO_STAT_SIGSTATE;
+
+	return val ? 1 : 0;
+}
+
 static int sh_mobile_sdhi_get_cd(struct platform_device *pdev)
 {
 	struct sh_mobile_sdhi_info *p = pdev->dev.platform_data;
+	struct mmc_host *mmc = platform_get_drvdata(pdev);
+	struct tmio_mmc_host *host = mmc_priv(mmc);
 
-	return p->get_cd(pdev);
+	if (p && p->get_cd)
+		return p->get_cd(pdev);
+	if (host->native_hotplug)
+		return sh_mobile_sdhi_get_cd_native_hotplug(mmc);
+
+	return -ENOSYS;
 }
 
 static int sh_mobile_sdhi_get_ro(struct platform_device *pdev)
@@ -534,8 +554,7 @@ static int __devinit sh_mobile_sdhi_probe(struct platform_device *pdev)
 		mmc_data->cd_gpio = p->cd_gpio;
 		if (p->set_pwr)
 			mmc_data->set_pwr = sh_mobile_sdhi_set_pwr;
-		if (p->get_cd)
-			mmc_data->get_cd = sh_mobile_sdhi_get_cd;
+		mmc_data->get_cd = sh_mobile_sdhi_get_cd;
 		if (p->get_ro)
 			mmc_data->get_ro = sh_mobile_sdhi_get_ro;
 		if ((p->set_vlt) && (p->get_vlt))

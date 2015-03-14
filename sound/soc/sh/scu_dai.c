@@ -225,33 +225,78 @@ void adg_init(void)
 	clk_enable(ainfo->clockinfo.adg_clk);
 
 	/* clock select */
+#if defined(CONFIG_MACH_KOELSCH)
 	scu_or_writel(0x23550000,
 		(u32 *)(rinfo->adgreg + ADG_SSICKR));
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+	scu_or_writel(0x23050000,
+		(u32 *)(rinfo->adgreg + ADG_SSICKR));
+#endif
 
 	/* audio clock select */
+#if defined(CONFIG_MACH_KOELSCH)
+	/* CLKA(SSI0, SSI1) */
 	scu_or_writel(((ADG_SEL0_SSI1_DIV1 | ADG_SEL0_SSI1_ACLK_DIV |
 		ADG_SEL0_SSI1_DIVCLK_CLKA) | (ADG_SEL0_SSI0_DIV1 |
 		ADG_SEL0_SSI0_ACLK_DIV | ADG_SEL0_SSI0_DIVCLK_CLKA)),
 		(u32 *)(rinfo->adgreg + ADG_AUDIO_CLK_SEL0));
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+	/* BRGA(SSI3, SSI4) */
+	scu_or_writel(ADG_SEL0_SSI3_DIV1 | ADG_SEL0_SSI3_ACLK_BRGA |
+		      ADG_SEL0_SSI3_DIVCLK_CLKA,
+		      (u32 *)(rinfo->adgreg + ADG_AUDIO_CLK_SEL0));
+	scu_or_writel(ADG_SEL1_SSI4_DIV1 | ADG_SEL1_SSI4_ACLK_BRGA |
+		      ADG_SEL1_SSI4_DIVCLK_CLKA,
+		      (u32 *)(rinfo->adgreg + ADG_AUDIO_CLK_SEL1));
+#endif
 
 	/* SRC Input Timing */
+#if defined(CONFIG_MACH_KOELSCH)
+	/* SSI_WS0 */
 	scu_or_writel((ADG_SRCIN0_SRC1_DIVCLK_SSI_WS0 |
 		ADG_SRCIN0_SRC0_DIVCLK_SSI_WS0),
 		(u32 *)(rinfo->adgreg + ADG_SRCIN_TIMSEL0));
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+	/* SSI_WS3 */
+	scu_or_writel((ADG_SRCIN0_SRC1_DIVCLK_SSI_WS3 |
+		ADG_SRCIN0_SRC0_DIVCLK_SSI_WS3),
+		(u32 *)(rinfo->adgreg + ADG_SRCIN_TIMSEL0));
+#endif
 
 	/* SRC Output Timing */
+#if defined(CONFIG_MACH_KOELSCH)
+	/* SSI_WS0 */
 	scu_or_writel((ADG_SRCOUT0_SRC1_DIVCLK_SSI_WS0 |
 		ADG_SRCOUT0_SRC0_DIVCLK_SSI_WS0),
 		(u32 *)(rinfo->adgreg + ADG_SRCOUT_TIMSEL0));
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+	/* SSI_WS3 */
+	scu_or_writel((ADG_SRCOUT0_SRC1_DIVCLK_SSI_WS3 |
+		ADG_SRCOUT0_SRC0_DIVCLK_SSI_WS3),
+		(u32 *)(rinfo->adgreg + ADG_SRCOUT_TIMSEL0));
+#endif
 
 	/* CMD Output Timing */
+#if defined(CONFIG_MACH_KOELSCH)
+	/* SSI_WS0 */
 	scu_or_writel((ADG_CMDOUT_CMD1_DIVCLK_SSI_WS0 |
 		ADG_CMDOUT_CMD0_DIVCLK_SSI_WS0),
 		(u32 *)(rinfo->adgreg + ADG_CMDOUT_TIMSEL));
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+	/* SSI_WS3 */
+	scu_or_writel((ADG_CMDOUT_CMD1_DIVCLK_SSI_WS3 |
+		ADG_CMDOUT_CMD0_DIVCLK_SSI_WS3),
+		(u32 *)(rinfo->adgreg + ADG_CMDOUT_TIMSEL));
+#endif
 
 	/* division enable */
+#if defined(CONFIG_MACH_KOELSCH)
 	scu_or_writel(ADG_DIVEN_AUDIO_CLKA,
 			(u32 *)(rinfo->adgreg + ADG_DIV_EN));
+#elif defined(CONFIG_MACH_ARMADILLOEVA1500)
+	scu_or_writel(ADG_DIVEN_BRGA,
+			(u32 *)(rinfo->adgreg + ADG_DIV_EN));
+#endif
 
 	FNC_EXIT
 	return;
@@ -275,12 +320,12 @@ static void scu_ssi_control(int master_ch, int slave_ch, int mode)
 	FNC_ENTRY
 	/* SSI setting */
 	if ((readl(&rinfo->ssireg[master_ch]->cr) & SSICR_ENABLE) == 0) {
-		writel(SSICR_P4643_ST, &rinfo->ssireg[master_ch]->cr);
+		writel(SSICR_PLAYBACK_ST, &rinfo->ssireg[master_ch]->cr);
 		writel(SSIWS_ST, &rinfo->ssireg[master_ch]->wsr);
 	}
 	if ((mode == SSI_SLAVE) &&
 	    ((readl(&rinfo->ssireg[slave_ch]->cr) & SSICR_ENABLE) == 0))
-		writel(SSICR_C4643_ST, &rinfo->ssireg[slave_ch]->cr);
+		writel(SSICR_CAPTURE_ST, &rinfo->ssireg[slave_ch]->cr);
 
 	FNC_EXIT
 	return;
@@ -1209,12 +1254,70 @@ static int scu_dai_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 	return 0;
 }
 
+static int scu_dai_set_clkdiv(struct snd_soc_dai *dai, int div_id, int div)
+{
+	struct device *dev = dai->dev;
+	u32 cks, brr;
+	u32 cks_div;
+	u32 val;
+	int offset;
+
+	FNC_ENTRY
+
+	switch (div_id) {
+	case ADG_DIV_BRRA:
+		offset = ADG_BRRA;
+		break;
+	case ADG_DIV_BRRB:
+		offset = ADG_BRRB;
+		break;
+	default:
+		DBG_MSG("scu: invalid divider %d\n", div_id);
+		return -EINVAL;
+	}
+
+	switch (div) {
+	case 2 ... 512:
+		cks = ADG_BRRX_CKS_ACLKX;
+		cks_div = 1;
+		break;
+	case 513 ... 2048:
+		cks = ADG_BRRX_CKS_ACLKX_DIV4;
+		cks_div = 4;
+		break;
+	case 2049 ... 8192:
+		cks = ADG_BRRX_CKS_ACLKX_DIV16;
+		cks_div = 16;
+		break;
+	case 8193 ... 32768:
+		cks = ADG_BRRX_CKS_ACLKX_DIV64;
+		cks_div = 64;
+		break;
+	default:
+		dev_err(dev, "scu: division ratio is out of range (%d)\n",
+			div);
+		return -EINVAL;
+	}
+
+	brr = (div / (2 * cks_div)) - 1;
+	val = (brr + 1) * (2 * cks_div);
+	if (val != div)
+		dev_warn(dev, "scu: wrong division ratio (%d), use (%d)\n",
+			 div, val);
+
+	writel(cks | brr, (u32 *)(rinfo->adgreg + offset));
+
+	FNC_EXIT
+	return 0;
+}
+
 static const struct snd_soc_dai_ops scu_dai_ops = {
 	.startup	= scu_dai_startup,
 	.shutdown	= scu_dai_shutdown,
 	.prepare	= scu_dai_prepare,
 	.set_sysclk	= scu_dai_set_sysclk,
 	.set_fmt	= scu_dai_set_fmt,
+	.set_clkdiv	= scu_dai_set_clkdiv,
 };
 
 static struct snd_soc_dai_driver scu_ssi_dai = {
@@ -1479,31 +1582,45 @@ static int __devinit scu_probe(struct platform_device *pdev)
 		goto error_clk_put;
 	}
 
+	cinfo->ssi_clk[SSI3] = clk_get(NULL, "ssi3");
+	if (IS_ERR(cinfo->ssi_clk[SSI3])) {
+		dev_err(&pdev->dev, "Unable to get ssi3 clock\n");
+		ret = PTR_ERR(cinfo->ssi_clk[SSI3]);
+		goto error_clk_put;
+	}
+
+	cinfo->ssi_clk[SSI4] = clk_get(NULL, "ssi4");
+	if (IS_ERR(cinfo->ssi_clk[SSI4])) {
+		dev_err(&pdev->dev, "Unable to get ssi4 clock\n");
+		ret = PTR_ERR(cinfo->ssi_clk[SSI4]);
+		goto error_clk_put;
+	}
+
 	/* resource */
-	scu_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	scu_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "scu");
 	if (!scu_res) {
-		dev_err(&pdev->dev, "No memory (0) resource\n");
+		dev_err(&pdev->dev, "No memory scu resource\n");
 		ret = -ENODEV;
 		goto error_clk_put;
 	}
 
-	ssiu_res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	ssiu_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ssiu");
 	if (!ssiu_res) {
-		dev_err(&pdev->dev, "No memory (1) resource\n");
+		dev_err(&pdev->dev, "No memory ssiu resource\n");
 		ret = -ENODEV;
 		goto error_clk_put;
 	}
 
-	ssi_res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+	ssi_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ssi");
 	if (!ssiu_res) {
-		dev_err(&pdev->dev, "No memory (2) resource\n");
+		dev_err(&pdev->dev, "No memory ssi resource\n");
 		ret = -ENODEV;
 		goto error_clk_put;
 	}
 
-	adg_res = platform_get_resource(pdev, IORESOURCE_MEM, 3);
+	adg_res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "adg");
 	if (!adg_res) {
-		dev_err(&pdev->dev, "No memory (3) resource\n");
+		dev_err(&pdev->dev, "No memory adg resource\n");
 		ret = -ENODEV;
 		goto error_clk_put;
 	}
@@ -1511,9 +1628,9 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	/* ssi number for playback */
 	irqinfo->ssi_num_playback = pdata->ssi_num_playback;
 	/* ssi irq number for playback */
-	irqinfo->ssi_irq_playback = platform_get_irq(pdev, 0);
+	irqinfo->ssi_irq_playback = platform_get_irq_byname(pdev, "ssi_playback");
 	/* ssi irq resource for playback */
-	irq_res[0] = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
+	irq_res[0] = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "ssi_playback");
 	if (irqinfo->ssi_irq_playback < 0 || !(irq_res[0])) {
 		dev_err(&pdev->dev, "No ssi_irq resource for playback\n");
 		ret = -ENODEV;
@@ -1524,9 +1641,9 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	/* ssi number for capture */
 	irqinfo->ssi_num_capture = pdata->ssi_num_capture;
 	/* ssi irq number for capture */
-	irqinfo->ssi_irq_capture = platform_get_irq(pdev, 1);
+	irqinfo->ssi_irq_capture = platform_get_irq_byname(pdev, "ssi_capture");
 	/* ssi irq resource for capture */
-	irq_res[1] = platform_get_resource(pdev, IORESOURCE_IRQ, 1);
+	irq_res[1] = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "ssi_capture");
 	if (irqinfo->ssi_irq_capture < 0 || !(irq_res[1])) {
 		dev_err(&pdev->dev, "No ssi_irq resource for capture\n");
 		ret = -ENODEV;
@@ -1537,9 +1654,9 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	/* src number for playback */
 	irqinfo->src_num_playback = pdata->src_num_playback;
 	/* src irq number for playback */
-	irqinfo->src_irq_playback = platform_get_irq(pdev, 2);
+	irqinfo->src_irq_playback = platform_get_irq_byname(pdev, "src_playback");
 	/* src irq resource for playback */
-	irq_res[2] = platform_get_resource(pdev, IORESOURCE_IRQ, 2);
+	irq_res[2] = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "src_playback");
 	if (irqinfo->src_irq_playback < 0 || !(irq_res[2])) {
 		dev_err(&pdev->dev, "No src_irq resource for playback\n");
 		ret = -ENODEV;
@@ -1550,9 +1667,9 @@ static int __devinit scu_probe(struct platform_device *pdev)
 	/* src number for capture */
 	irqinfo->src_num_capture = pdata->src_num_capture;
 	/* src irq number for capture */
-	irqinfo->src_irq_capture = platform_get_irq(pdev, 3);
+	irqinfo->src_irq_capture = platform_get_irq_byname(pdev, "src_capture");
 	/* src irq resource for capture */
-	irq_res[3] = platform_get_resource(pdev, IORESOURCE_IRQ, 3);
+	irq_res[3] = platform_get_resource_byname(pdev, IORESOURCE_IRQ, "src_capture");
 	if (irqinfo->src_irq_capture < 0 || !(irq_res[3])) {
 		dev_err(&pdev->dev, "No src_irq resource for capture\n");
 		ret = -ENODEV;
@@ -1695,6 +1812,10 @@ error_clk_put:
 		clk_put(cinfo->ssi_clk[SSI0]);
 	if (!IS_ERR(cinfo->ssi_clk[SSI1]))
 		clk_put(cinfo->ssi_clk[SSI1]);
+	if (!IS_ERR(cinfo->ssi_clk[SSI3]))
+		clk_put(cinfo->ssi_clk[SSI3]);
+	if (!IS_ERR(cinfo->ssi_clk[SSI4]))
+		clk_put(cinfo->ssi_clk[SSI4]);
 
 	FNC_EXIT
 	return ret;
@@ -1719,6 +1840,8 @@ static int __devexit scu_remove(struct platform_device *pdev)
 	clk_put(cinfo->ssiu_clk);
 	clk_put(cinfo->ssi_clk[SSI0]);
 	clk_put(cinfo->ssi_clk[SSI1]);
+	clk_put(cinfo->ssi_clk[SSI3]);
+	clk_put(cinfo->ssi_clk[SSI4]);
 
 	scu_free_irqs(irqinfo);
 
@@ -1727,16 +1850,16 @@ static int __devexit scu_remove(struct platform_device *pdev)
 	iounmap(rinfo->ssireg[0]);
 	iounmap(rinfo->adgreg);
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "scu");
 	if (res)
 		release_mem_region(res->start, resource_size(res));
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ssiu");
 	if (res)
 		release_mem_region(res->start, resource_size(res));
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "ssi");
 	if (res)
 		release_mem_region(res->start, resource_size(res));
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 3);
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "adg");
 	if (res)
 		release_mem_region(res->start, resource_size(res));
 

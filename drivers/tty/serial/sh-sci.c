@@ -69,6 +69,10 @@ struct sci_port {
 	/* Platform configuration */
 	struct plat_sci_port	*cfg;
 
+	/* Modem timer */
+	struct timer_list	modem_timer;
+	unsigned int		modem_status;
+
 	/* Break timer */
 	struct timer_list	break_timer;
 	int			break_flag;
@@ -192,6 +196,7 @@ static struct plat_sci_reg sci_regmap[SCIx_NR_REGTYPES][SCIx_NR_REGS] = {
 		[SCSPTR]	= sci_reg_invalid,
 		[SCLSR]		= sci_reg_invalid,
 		[HSSRR]		= sci_reg_invalid,
+		[SCPDR]		= { 0x34, 16 },
 	},
 
 	/*
@@ -211,6 +216,7 @@ static struct plat_sci_reg sci_regmap[SCIx_NR_REGTYPES][SCIx_NR_REGS] = {
 		[SCSPTR]	= sci_reg_invalid,
 		[SCLSR]		= sci_reg_invalid,
 		[HSSRR]		= sci_reg_invalid,
+		[SCPDR]		= { 0x34, 16 },
 	},
 
 	/*
@@ -643,10 +649,7 @@ static void sci_receive_chars(struct uart_port *port)
 		return;
 
 	while (1) {
-		/* Don't copy more bytes than there is room for in the buffer */
-		count = tty_buffer_request_room(tty, sci_rxfill(port));
-
-		/* If for any reason we can't copy more data, we're done! */
+		count = sci_rxfill(port);
 		if (count == 0)
 			break;
 
@@ -718,7 +721,40 @@ static void sci_receive_chars(struct uart_port *port)
 	}
 }
 
+#define SCI_MODEM_JIFFIES (jiffies + HZ/10)
 #define SCI_BREAK_JIFFIES (HZ/20)
+
+static void sci_mctrl_check(struct sci_port *s)
+{
+	unsigned int status, changed;
+
+	status = s->port.ops->get_mctrl(&s->port);
+	changed = status ^ s->modem_status;
+
+	if (!changed)
+		return;
+
+	s->modem_status = status;
+
+	if (changed & TIOCM_CTS)
+		uart_handle_cts_change(&s->port, status & TIOCM_CTS);
+
+	wake_up_interruptible(&s->port.state->port.delta_msr_wait);
+}
+
+static void sci_modem_timer(unsigned long data)
+{
+	struct sci_port *s = (struct sci_port *)data;
+	unsigned long flags;
+
+	if (s->port.state) {
+		spin_lock_irqsave(&s->port.lock, flags);
+		sci_mctrl_check(s);
+		spin_unlock_irqrestore(&s->port.lock, flags);
+
+		mod_timer(&s->modem_timer, SCI_MODEM_JIFFIES);
+	}
+}
 
 /*
  * The sci generates interrupts during the break,
@@ -986,7 +1022,7 @@ static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 {
 	unsigned short ssr_status, scr_status, err_enabled;
 #if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
-	unsigned short slr_status;
+	unsigned short slr_status = 0;
 #endif
 	struct uart_port *port = ptr;
 	struct sci_port *s = to_sci_port(port);
@@ -995,7 +1031,8 @@ static irqreturn_t sci_mpxed_interrupt(int irq, void *ptr)
 	ssr_status = serial_port_in(port, SCxSR);
 	scr_status = serial_port_in(port, SCSCR);
 #if defined(CONFIG_ARCH_R8A7790) || defined(CONFIG_ARCH_R8A7791)
-	slr_status = serial_port_in(port, SCLSR);
+	if (port->type == PORT_SCIF || port->type == PORT_HSCIF)
+		slr_status = serial_port_in(port, SCLSR);
 #endif
 	err_enabled = scr_status & port_rx_irq_mask(port);
 
@@ -1280,6 +1317,12 @@ static unsigned int sci_get_mctrl(struct uart_port *port)
 	unsigned int mctrl = TIOCM_DSR | TIOCM_CAR;
 	if (port->type == PORT_HSCIF)
 		mctrl |= TIOCM_CTS;
+	if (port->type == PORT_SCIFA || port->type == PORT_SCIFB) {
+		if (!(serial_port_in(port, SCPDR) & SCPDR_CTSC))
+			mctrl |= TIOCM_CTS;
+		if (!(serial_port_in(port, SCPDR) & SCPDR_RTSC))
+			mctrl |= TIOCM_RTS;
+	}
 	return mctrl;
 }
 
@@ -1687,9 +1730,10 @@ static void sci_stop_rx(struct uart_port *port)
 
 static void sci_enable_ms(struct uart_port *port)
 {
-	/*
-	 * Not supported by hardware, always a nop.
-	 */
+	struct sci_port *s = to_sci_port(port);
+
+	if (port->type == PORT_SCIFA || port->type == PORT_SCIFB)
+		mod_timer(&s->modem_timer, SCI_MODEM_JIFFIES);
 }
 
 static void sci_break_ctl(struct uart_port *port, int break_state)
@@ -1896,6 +1940,7 @@ static int sci_startup(struct uart_port *port)
 
 	spin_lock_irqsave(&port->lock, flags);
 	sci_start_tx(port);
+	sci_enable_ms(&s->port);
 	spin_unlock_irqrestore(&port->lock, flags);
 
 	return 0;
@@ -1912,6 +1957,8 @@ static void sci_shutdown(struct uart_port *port)
 	sci_stop_rx(port);
 	sci_stop_tx(port);
 	spin_unlock_irqrestore(&port->lock, flags);
+
+	del_timer_sync(&s->modem_timer);
 
 	serial_port_out(port, SCSCR, 0x00);
 
@@ -1933,6 +1980,8 @@ static unsigned int sci_scbrr_calc(unsigned int algo_id, unsigned int bps,
 		return (((freq * 2) + 16 * bps) / (32 * bps) - 1);
 	case SCBRR_ALGO_5:
 		return (((freq * 1000 / 32) / bps) - 1);
+	case SCBRR_ALGO_SRx5_1:
+		return (((freq * 2) + 5 * bps) / (10 * bps) - 1);
 	}
 
 	/* Warn, but use a safe default */
@@ -2002,6 +2051,8 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 	int t = -1;
 	unsigned int srr = 0;
 
+	del_timer_sync(&s->modem_timer);
+
 	/*
 	 * earlyprintk comes here early on with port->uartclk set to zero.
 	 * the clock framework is not up and running at this point so here
@@ -2046,6 +2097,9 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 		__func__, smr_val, cks, t, s->cfg->scscr);
 
 	if (t >= 0) {
+		if (s->cfg->scbrr_algo_id == SCBRR_ALGO_SRx5_1)
+			/* SRC[2:0] = 001: Sampling rate 1/5 */
+			smr_val |= 0x100;
 		serial_port_out(port, SCSMR, (smr_val & ~3) | cks);
 		serial_port_out(port, SCBRR, t);
 		reg = sci_getreg(port, HSSRR);
@@ -2066,6 +2120,10 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 				ctrl |= SCFCR_MCE;
 			else
 				ctrl &= ~SCFCR_MCE;
+
+			if (port->type == PORT_SCIFA ||
+			    port->type == PORT_SCIFB)
+				ctrl |= SCFCR_RSTRG_HALF;
 		}
 
 		/*
@@ -2104,6 +2162,9 @@ static void sci_set_termios(struct uart_port *port, struct ktermios *termios,
 
 	if ((termios->c_cflag & CREAD) != 0)
 		sci_start_rx(port);
+
+	if (UART_ENABLE_MS(&s->port, termios->c_cflag))
+		sci_enable_ms(&s->port);
 
 	sci_port_disable(s);
 }
@@ -2323,6 +2384,10 @@ static int __devinit sci_init_single(struct platform_device *dev,
 
 		pm_runtime_enable(&dev->dev);
 	}
+
+	sci_port->modem_timer.data = (unsigned long)sci_port;
+	sci_port->modem_timer.function = sci_modem_timer;
+	init_timer(&sci_port->modem_timer);
 
 	sci_port->break_timer.data = (unsigned long)sci_port;
 	sci_port->break_timer.function = sci_break_timer;

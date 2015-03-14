@@ -52,6 +52,8 @@
 
 #include "tmio_mmc.h"
 
+#define TMIO_TIMEOUT	10000	/* msec */
+
 static int tmio_mmc_execute_tuning(struct mmc_host *mmc, u32 opcode);
 static int tmio_mmc_start_data(struct tmio_mmc_host *host,
 	struct mmc_data *data);
@@ -146,6 +148,7 @@ static void tmio_mmc_enable_sdio_irq(struct mmc_host *mmc, int enable)
 		host->sdio_irq_mask = TMIO_SDIO_MASK_ALL;
 		sd_ctrl_write16(host, CTL_SDIO_IRQ_MASK, host->sdio_irq_mask);
 		sd_ctrl_write16(host, CTL_TRANSACTION_CTL, 0x0000);
+		sd_ctrl_write16(host, CTL_SDIO_STATUS, 0);
 	}
 }
 
@@ -243,7 +246,7 @@ static void tmio_mmc_reset_work(struct work_struct *work)
 	 */
 	if (IS_ERR_OR_NULL(mrq)
 	    || time_is_after_jiffies(host->last_req_ts +
-		msecs_to_jiffies(2000))) {
+		msecs_to_jiffies(TMIO_TIMEOUT))) {
 		spin_unlock_irqrestore(&host->lock, flags);
 		return;
 	}
@@ -644,6 +647,23 @@ err_tap:
 
 }
 
+static void tmio_mmc_detect_work(struct work_struct *work)
+{
+	struct tmio_mmc_host *host =
+		container_of(work, struct tmio_mmc_host, detect_wq);
+
+	if (!IS_ERR_OR_NULL(host->mrq) && host->mrq->data) {
+		tmio_mmc_reset(host);
+		host->mrq->cmd->error = -ENOMEDIUM;
+		host->mrq->data->error = -ENOMEDIUM;
+		tmio_mmc_finish_request(host);
+		tmio_mmc_release_dma(host);
+		tmio_mmc_request_dma(host, host->pdata);
+	}
+
+	mmc_detect_change(host->mmc, msecs_to_jiffies(100));
+}
+
 /* These are the bitmasks the tmio chip requires to implement the MMC response
  * types. Note that R1 and R6 are the same in this scheme. */
 #define APP_CMD        0x0040
@@ -824,7 +844,7 @@ void tmio_mmc_do_data_irq(struct tmio_mmc_host *host)
 			BUG();
 	}
 
-	schedule_work(&host->done);
+	queue_work(host->work, &host->done);
 }
 
 static void tmio_mmc_data_irq(struct tmio_mmc_host *host)
@@ -929,7 +949,7 @@ static void tmio_mmc_cmd_irq(struct tmio_mmc_host *host,
 				tasklet_schedule(&host->dma_issue);
 		}
 	} else {
-		schedule_work(&host->done);
+		queue_work(host->work, &host->done);
 	}
 
 out:
@@ -960,8 +980,13 @@ static bool __tmio_mmc_card_detect_irq(struct tmio_mmc_host *host,
 			TMIO_STAT_CARD_REMOVE);
 		if ((((ireg & TMIO_STAT_CARD_REMOVE) && mmc->card) ||
 		     ((ireg & TMIO_STAT_CARD_INSERT) && !mmc->card)) &&
-		    !work_pending(&mmc->detect.work))
-			mmc_detect_change(host->mmc, msecs_to_jiffies(100));
+		    !work_pending(&mmc->detect.work)) {
+			if (!IS_ERR_OR_NULL(host->mrq) && host->mrq->data)
+				queue_work(host->work, &host->detect_wq);
+			else
+				mmc_detect_change(host->mmc,
+						  msecs_to_jiffies(100));
+		}
 		return true;
 	}
 
@@ -1034,16 +1059,10 @@ irqreturn_t tmio_mmc_sdio_irq(int irq, void *devid)
 	status = sd_ctrl_read16(host, CTL_SDIO_STATUS);
 	ireg = status & TMIO_SDIO_MASK_ALL & ~host->sdcard_irq_mask;
 
-	if (pdata->flags & TMIO_MMC_SDIO_STATUS_QUIRK) {
-		sd_ctrl_write16(host, CTL_SDIO_STATUS,
-					(status & ~TMIO_SDIO_MASK_ALL) | 6);
-	} else {
-		sd_ctrl_write16(host, CTL_SDIO_STATUS,
-					status & ~TMIO_SDIO_MASK_ALL);
-	}
-
 	if (mmc->caps & MMC_CAP_SDIO_IRQ && ireg & TMIO_SDIO_STAT_IOIRQ)
 		mmc_signal_sdio_irq(mmc);
+	else
+		tmio_mmc_enable_sdio_irq(mmc, 0);
 
 	return IRQ_HANDLED;
 }
@@ -1149,8 +1168,8 @@ static void tmio_mmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	if (!ret) {
-		schedule_delayed_work(&host->delayed_reset_work,
-				      msecs_to_jiffies(2000));
+		queue_delayed_work(host->work, &host->delayed_reset_work,
+				   msecs_to_jiffies(TMIO_TIMEOUT));
 		return;
 	}
 
@@ -1464,11 +1483,14 @@ int __devinit tmio_mmc_host_probe(struct tmio_mmc_host **host,
 	mutex_init(&_host->ios_lock);
 
 	/* Init delayed work for request timeouts */
+	_host->work = create_singlethread_workqueue("tmio_mmc");
 	INIT_DELAYED_WORK(&_host->delayed_reset_work, tmio_mmc_reset_work);
 	INIT_WORK(&_host->done, tmio_mmc_done_work);
 
 	/* See if we also get DMA */
 	tmio_mmc_request_dma(_host, pdata);
+
+	INIT_WORK(&_host->detect_wq, tmio_mmc_detect_work);
 
 	ret = mmc_add_host(mmc);
 	if (pdata->clk_disable)
@@ -1523,6 +1545,7 @@ void tmio_mmc_host_remove(struct tmio_mmc_host *host)
 	mmc_remove_host(mmc);
 	cancel_work_sync(&host->done);
 	cancel_delayed_work_sync(&host->delayed_reset_work);
+	destroy_workqueue(host->work);
 	tmio_mmc_release_dma(host);
 
 	pm_runtime_put_sync(&pdev->dev);

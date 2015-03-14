@@ -1,0 +1,25 @@
+config VIDEO_RCAR_MMP
+	tristate "MMP Support for R-Car Display Unit"
+	depends on ARCH_R8A7791
+	---help---
+	  Support for the R-Car Multi Media Package.
+
+if VIDEO_RCAR_MMP
+
+config VIDEO_RCAR_MMP_FDPM
+	tristate "FDP Manager support for R8A7791"
+	depends on VIDEO_RCAR_MMP_MMNGR
+
+config VIDEO_RCAR_MMP_VSPM
+	tristate "VSP Manager support for R8A7791"
+
+config VIDEO_RCAR_MMP_UVCS
+	tristate "UVCS support for R8A7791"
+
+config VIDEO_RCAR_MMP_S3CTL
+	tristate "S3CTL support for R8A7791"
+
+config VIDEO_RCAR_MMP_MMNGR
+	tristate "MMNGR support for R8A7791"
+
+endif

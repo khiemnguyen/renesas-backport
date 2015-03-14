@@ -1356,6 +1356,23 @@ err_iounmap:
 	return ret;
 }
 
+/* PCI Express */
+static struct resource pcie_resources[] = {
+	DEFINE_RES_MEM(0xfe000000, SZ_512K),
+	DEFINE_RES_MEM(0xfe100000, SZ_1M),
+	DEFINE_RES_MEM(0xfe200000, SZ_2M),
+	DEFINE_RES_MEM(0x30000000, SZ_128M),
+	DEFINE_RES_NAMED(0x38000000, SZ_128M, NULL, IORESOURCE_MEM | IORESOURCE_PREFETCH),
+	DEFINE_RES_IRQ(gic_spi(116)),
+};
+
+static struct platform_device pcie_device = {
+	.name		= "rcar-pcie",
+	.id		= -1,
+	.resource	= pcie_resources,
+	.num_resources	= ARRAY_SIZE(pcie_resources),
+};
+
 /* VIN */
 static const struct resource vin0_resources[] __initconst = {
 	DEFINE_RES_MEM_NAMED(0xe6ef0000, SZ_4K, "vin0"),
@@ -1424,6 +1441,7 @@ void __init r8a7790_register_vin(unsigned int index)
 
 static struct platform_device *r8a7790_early_devices[] __initdata = {
 	&powervr_device,
+	&pcie_device,
 };
 
 void __init r8a7790_add_standard_devices(void)

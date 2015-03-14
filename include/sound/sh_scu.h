@@ -47,6 +47,10 @@
 #define RP_MEM_SSI0		W_SSI0
 #define RP_MEM_SRC0_SSI0	(W_SSI0 | W_SRC0)
 #define RP_MEM_SRC0_DVC0_SSI0	(W_SSI0 | W_SRC0 | W_DVC0)
+#define	W_SSI3			0x00000008
+#define RP_MEM_SSI3		W_SSI3
+#define RP_MEM_SRC0_SSI3	(W_SSI3 | W_SRC0)
+#define RP_MEM_SRC0_DVC0_SSI3	(W_SSI3 | W_SRC0 | W_DVC0)
 /* capture route */
 #define	W_SSI1			0x00010000
 #define	W_SRC1			0x00020000
@@ -54,6 +58,10 @@
 #define RC_SSI1_MEM		W_SSI1
 #define RC_SSI1_SRC1_MEM	(W_SSI1 | W_SRC1)
 #define RC_SSI1_SRC1_DVC1_MEM	(W_SSI1 | W_SRC1 | W_DVC1)
+#define	W_SSI4			0x00080000
+#define RC_SSI4_MEM		W_SSI4
+#define RC_SSI4_SRC1_MEM	(W_SSI4 | W_SRC1)
+#define RC_SSI4_SRC1_DVC1_MEM	(W_SSI4 | W_SRC1 | W_DVC1)
 
 /* dma direction */
 #define	DMA_DIR(d)	((d == 0) ? DMA_TO_DEVICE : DMA_FROM_DEVICE)
@@ -646,6 +654,40 @@ enum {
 			 SSICR_M_SLAVE  | \
 			 SSICR_TRMD_RX)
 
+/*
+ * SSICR setting for CS42L52
+ *   playback, master, 16bit, stereo
+ *   SCLK=256fs(MCLK)/2=128fs
+ */
+#define	SSICR_P42L52_ST	(SSICR_FORCE    | \
+			 SSICR_CHNL_ST2 | \
+			 SSICR_DWL_ST16 | \
+			 SSICR_SWL_ST16 | \
+			 SSICR_M_MASTER | \
+			 SSICR_CKDV_2   | \
+			 SSICR_TRMD_TX)
+
+/*
+ * SSICR setting for CS42L52
+ *   capture, slave, 16bit, stereo
+ */
+#define	SSICR_C42L52_ST	(SSICR_FORCE    | \
+			 SSICR_CHNL_ST2 | \
+			 SSICR_DWL_ST16 | \
+			 SSICR_SWL_ST16 | \
+			 SSICR_M_SLAVE  | \
+			 SSICR_TRMD_RX)
+
+#if defined(CONFIG_SND_SOC_KOELSCH_AK4643)
+#define	SSICR_PLAYBACK_ST	SSICR_P4643_ST
+#define	SSICR_CAPTURE_ST	SSICR_C4643_ST
+#elif defined(CONFIG_SND_SOC_ARMADILLOEVA1500_CS42L52)
+#define	SSICR_PLAYBACK_ST	SSICR_P42L52_ST
+#define	SSICR_CAPTURE_ST	SSICR_C42L52_ST
+#else
+#error "unsupported audio codec."
+#endif
+
 /* for SSI start */
 #define	SSICR_ENABLE	(SSICR_EN	| \
 			 SSICR_OIEN	| \
@@ -731,17 +773,11 @@ enum {
 #define	ADG_ADSPOUT_TIMSEL	0x0060	/* ADSP output timing select       */
 #define	ADG_DTCP_TIMSEL		0x0064	/* DTCP timing select              */
 
-/* ADG BRRA bit */
-#define	ADG_BRRA_CKS_ACLKA		(0<<8)
-#define	ADG_BRRA_CKS_ACLKA_DIV4		(1<<8)
-#define	ADG_BRRA_CKS_ACLKA_DIV16	(2<<8)
-#define	ADG_BRRA_CKS_ACLKA_DIV64	(3<<8)
-
-/* ADG BRRB bit */
-#define	ADG_BRRB_CKS_ACLKB		(0<<8)
-#define	ADG_BRRB_CKS_ACLKB_DIV4		(1<<8)
-#define	ADG_BRRB_CKS_ACLKB_DIV16	(2<<8)
-#define	ADG_BRRB_CKS_ACLKB_DIV64	(3<<8)
+/* ADG BRRx bit */
+#define	ADG_BRRX_CKS_ACLKX		(0<<8)
+#define	ADG_BRRX_CKS_ACLKX_DIV4		(1<<8)
+#define	ADG_BRRX_CKS_ACLKX_DIV16	(2<<8)
+#define	ADG_BRRX_CKS_ACLKX_DIV64	(3<<8)
 
 /* ADG SSICKR bit */
 #define	ADG_SSICK_CLKOUT_BRGA		(0<<31)
@@ -2010,6 +2046,11 @@ enum {
 #define	ADG_DTCP_DIVRATIO_DIV49152		(28<<16)
 #define	ADG_DTCP_DIVRATIO_DIV98304		(29<<16)
 
+/* Baud rate dividers */
+enum {
+	ADG_DIV_BRRA,
+	ADG_DIV_BRRB,
+};
 
 /************************************************************************
 

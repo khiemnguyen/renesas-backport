@@ -103,7 +103,7 @@ static int wpf_s_stream(struct v4l2_subdev *subdev, int enable)
 	    wpf->entity.formats[RWPF_PAD_SOURCE].code)
 		outfmt |= VI6_WPF_OUTFMT_CSC;
 
-	vsp1_wpf_write(wpf, VI6_WPF_OUTFMT, outfmt);
+	vsp1_wpf_write(wpf, VI6_WPF_OUTFMT, outfmt |= 0xff << 24);
 
 	vsp1_write(vsp1, VI6_DPR_WPF_FPORCH(wpf->entity.index),
 		   VI6_DPR_WPF_FPORCH_FP_WPFN);

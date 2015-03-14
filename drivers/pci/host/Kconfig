@@ -1,0 +1,8 @@
+menu "PCI host controller drivers"
+	depends on PCI
+
+config PCI_RCAR
+	bool "Renesas R-Car PCIe controller"
+	depends on ARCH_SHMOBILE
+
+endmenu

@@ -1,0 +1,7 @@
+#ifndef _LINEX_RTC_RTC_S35390A_H_
+#define _LINEX_RTC_RTC_S35390A_H_
+
+#define RTC_S35390A_FLAG_INT1_EN	(1 << 0)
+#define RTC_S35390A_FLAG_INT2_EN	(1 << 1)
+
+#endif

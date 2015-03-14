@@ -532,9 +532,33 @@ static void blktrans_notify_add(struct mtd_info *mtd)
 		tr->add_mtd(tr, mtd);
 }
 
+#if defined(CONFIG_MTD_RO_IF)
+static void __blktrans_notify_update_flags(struct mtd_info *mtd,
+					   struct mtd_blktrans_dev *dev)
+{
+	set_disk_ro(dev->disk, (mtd->flags & MTD_WRITEABLE) ? 0 : 1);
+}
+					   
+static void blktrans_notify_update_flags(struct mtd_info *mtd)
+{
+	struct mtd_blktrans_ops *tr;
+	struct mtd_blktrans_dev *dev, *next;
+
+	list_for_each_entry(tr, &blktrans_majors, list)
+		list_for_each_entry_safe(dev, next, &tr->devs, list)
+			if (dev->mtd == mtd)
+				__blktrans_notify_update_flags(mtd, dev);
+}
+#else
+static void blktrans_notify_update_flags(struct mtd_info *mtd)
+{
+}
+#endif
+
 static struct mtd_notifier blktrans_notifier = {
 	.add = blktrans_notify_add,
 	.remove = blktrans_notify_remove,
+	.update_flags = blktrans_notify_update_flags,
 };
 
 int register_mtd_blktrans(struct mtd_blktrans_ops *tr)

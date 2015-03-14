@@ -99,6 +99,9 @@ static irqreturn_t st1232_ts_irq_handler(int irq, void *dev_id)
 {
 	struct st1232_ts_data *ts = dev_id;
 	struct st1232_ts_finger *finger = ts->finger;
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_ST1232_SINGLETOUCH)
+	struct st1232_ts_finger *oldest = NULL;
+#endif
 	struct input_dev *input_dev = ts->input_dev;
 	int count = 0;
 	int i, ret;
@@ -117,10 +120,27 @@ static irqreturn_t st1232_ts_irq_handler(int irq, void *dev_id)
 		input_report_abs(input_dev, ABS_MT_POSITION_Y, finger[i].y);
 		input_mt_sync(input_dev);
 		count++;
+
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_ST1232_SINGLETOUCH)
+		if (!oldest)
+			oldest = &finger[i];
+#endif
 	}
 
-	/* SYN_MT_REPORT only if no contact */
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_ST1232_SINGLETOUCH)
+		if (oldest) {
+			input_report_key(input_dev, BTN_TOUCH, 1);
+			input_report_abs(input_dev, ABS_PRESSURE, 1);
+			input_report_abs(input_dev, ABS_X, oldest->x);
+			input_report_abs(input_dev, ABS_Y, oldest->y);
+		} else {
+			input_report_key(input_dev, BTN_TOUCH, 0);
+			input_report_abs(input_dev, ABS_PRESSURE, 0);
+		}
+#endif
+
 	if (!count) {
+		input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_mt_sync(input_dev);
 		if (ts->low_latency_req.dev) {
 			dev_pm_qos_remove_request(&ts->low_latency_req);
@@ -178,6 +198,13 @@ static int __devinit st1232_ts_probe(struct i2c_client *client,
 	input_set_abs_params(input_dev, ABS_MT_TOUCH_MAJOR, 0, MAX_AREA, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_POSITION_X, MIN_X, MAX_X, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_POSITION_Y, MIN_Y, MAX_Y, 0, 0);
+
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_ST1232_SINGLETOUCH)
+	input_set_capability(input_dev, EV_KEY, BTN_TOUCH);
+	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 1, 0, 0);
+	input_set_abs_params(input_dev, ABS_X, MIN_X, MAX_X, 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, MIN_Y, MAX_Y, 0, 0);
+#endif
 
 	error = request_threaded_irq(client->irq, NULL, st1232_ts_irq_handler,
 				     IRQF_ONESHOT, client->name, ts);

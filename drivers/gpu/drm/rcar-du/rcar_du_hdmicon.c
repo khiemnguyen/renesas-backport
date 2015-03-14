@@ -21,12 +21,23 @@
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_encoder_slave.h>
 #include <linux/i2c.h>
+#include <linux/gpio.h>
+#include <linux/platform_data/gpio-rcar.h>
 
 #include "rcar_du_drv.h"
 #include "rcar_du_encoder.h"
 #include "rcar_du_kms.h"
 #include "rcar_du_hdmicon.h"
 #include "../i2c/adv7511.h"
+
+#ifdef CONFIG_DRM_RCAR_LCD
+#ifndef CONFIG_DRM_RCAR_LCD_SCREEN_X
+#define CONFIG_DRM_RCAR_LCD_SCREEN_X 800
+#endif
+#ifndef CONFIG_DRM_RCAR_LCD_SCREEN_Y
+#define CONFIG_DRM_RCAR_LCD_SCREEN_Y 600
+#endif
+#endif
 
 static inline struct drm_encoder *connector_to_encoder(
 					struct drm_connector *connector)
@@ -38,6 +49,7 @@ static inline struct drm_encoder *connector_to_encoder(
 
 static int rcar_du_hdmi_connector_get_modes(struct drm_connector *connector)
 {
+#ifndef CONFIG_DRM_RCAR_LCD
 	int count = 0;
 	struct drm_encoder *encoder = connector_to_encoder(connector);
 
@@ -49,11 +61,16 @@ static int rcar_du_hdmi_connector_get_modes(struct drm_connector *connector)
 		return -EIO;
 
 	return count;
+#else
+	return drm_add_modes_noedid(connector, CONFIG_DRM_RCAR_LCD_SCREEN_X,
+				    CONFIG_DRM_RCAR_LCD_SCREEN_Y);
+#endif
 }
 
 static int rcar_du_hdmi_connector_mode_valid(struct drm_connector *connector,
 					    struct drm_display_mode *mode)
 {
+#ifndef CONFIG_DRM_RCAR_LCD
 	struct rcar_du_connector *rcon = to_rcar_connector(connector);
 	unsigned int max_width, max_height;
 	bool laced;
@@ -71,6 +88,7 @@ static int rcar_du_hdmi_connector_mode_valid(struct drm_connector *connector,
 	if (((mode->hdisplay * mode->vdisplay) == (max_width * max_height))
 		&& (laced) && (!(mode->flags & DRM_MODE_FLAG_INTERLACE)))
 		return MODE_BAD;
+#endif
 
 	return MODE_OK;
 }
@@ -90,6 +108,7 @@ static void rcar_du_hdmi_connector_destroy(struct drm_connector *connector)
 static enum drm_connector_status
 rcar_du_hdmi_connector_detect(struct drm_connector *connector, bool force)
 {
+#ifndef CONFIG_DRM_RCAR_LCD
 	enum drm_connector_status status = connector_status_unknown;
 	struct drm_encoder *encoder = connector_to_encoder(connector);
 
@@ -100,6 +119,9 @@ rcar_du_hdmi_connector_detect(struct drm_connector *connector, bool force)
 						encoder, connector);
 
 	return status;
+#else
+	return connector_status_connected;
+#endif
 }
 
 static const struct drm_connector_funcs connector_funcs = {
@@ -146,6 +168,13 @@ int rcar_du_hdmi_connector_init(struct rcar_du_device *rcdu,
 
 	connector->encoder = renc->encoder;
 	rcon->encoder = renc;
+
+	if (IS_ENABLED(CONFIG_DRM_RCAR_LCD)) {
+		if (IS_ENABLED(CONFIG_MACH_ARMADILLOEVA1500)) {
+			gpio_request(RCAR_GP_PIN(3, 29), "LCD_DON");
+			gpio_direction_output(RCAR_GP_PIN(3, 29), 1);
+		}
+	}
 
 	return 0;
 }
